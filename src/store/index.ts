@@ -6,6 +6,7 @@ interface AppState {
   allImages: ImagePrompt[];
   searchQuery: string;
   activeCategory: string;
+  activeTimeFilter: "all" | "today" | "week" | "month";
   favorites: string[];
   showFavoritesOnly: boolean;
   theme: "light" | "dark";
@@ -13,6 +14,7 @@ interface AppState {
   setAllImages: (images: ImagePrompt[]) => void;
   setSearchQuery: (query: string) => void;
   setActiveCategory: (category: string) => void;
+  setActiveTimeFilter: (filter: "all" | "today" | "week" | "month") => void;
   toggleFavorite: (imageId: string) => void;
   isFavorite: (imageId: string) => boolean;
   toggleShowFavoritesOnly: () => void;
@@ -24,6 +26,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   allImages: [],
   searchQuery: "",
   activeCategory: "all",
+  activeTimeFilter: "all",
   favorites: [],
   showFavoritesOnly: false,
   theme: "light",
@@ -32,6 +35,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAllImages: (images) => set({ allImages: images }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setActiveCategory: (category) => set({ activeCategory: category }),
+  setActiveTimeFilter: (filter) => set({ activeTimeFilter: filter }),
   toggleShowFavoritesOnly: () =>
     set((state) => ({ showFavoritesOnly: !state.showFavoritesOnly })),
 

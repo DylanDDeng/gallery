@@ -12,6 +12,7 @@ interface MasonryGridProps {
 export default function MasonryGrid({ images }: MasonryGridProps) {
   const searchQuery = useAppStore((s) => s.searchQuery);
   const activeCategory = useAppStore((s) => s.activeCategory);
+  const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const favorites = useAppStore((s) => s.favorites);
 
@@ -20,6 +21,19 @@ export default function MasonryGrid({ images }: MasonryGridProps) {
 
     if (activeCategory !== "all") {
       result = result.filter((img) => img.category === activeCategory);
+    }
+
+    if (activeTimeFilter !== "all") {
+      const now = new Date();
+      const cutoffs: Record<string, Date> = {
+        today: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+        week: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        month: new Date(now.getFullYear(), now.getMonth(), 1),
+      };
+      const cutoff = cutoffs[activeTimeFilter];
+      if (cutoff) {
+        result = result.filter((img) => new Date(img.created_at) >= cutoff);
+      }
     }
 
     if (searchQuery) {
@@ -43,7 +57,7 @@ export default function MasonryGrid({ images }: MasonryGridProps) {
     }
 
     return result;
-  }, [images, searchQuery, activeCategory, showFavoritesOnly, favorites]);
+  }, [images, searchQuery, activeCategory, activeTimeFilter, showFavoritesOnly, favorites]);
 
   if (filteredImages.length === 0) {
     return (
