@@ -59,7 +59,7 @@ export default function ImageModal() {
       onClick={() => setSelectedImage(null)}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-xl" />
 
       {/* Modal */}
       <div
@@ -67,13 +67,13 @@ export default function ImageModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left: Large image */}
-        <div className="relative flex-1 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
+        <div className="relative flex-1 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 overflow-hidden p-4">
           <Image
             src={selectedImage.url}
             alt="AI generated image"
             width={selectedImage.width || 768}
             height={selectedImage.height || 1024}
-            className="h-full w-auto max-w-full object-contain"
+            className="h-[90%] w-auto max-w-full rounded-2xl object-contain shadow-2xl ring-1 ring-black/10 dark:ring-white/10"
             priority
           />
         </div>

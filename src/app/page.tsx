@@ -45,7 +45,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Prompt<span className="text-zinc-400">Gallery</span>
+              Aesthesis
             </h1>
             <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
             <button
@@ -100,16 +100,20 @@ export default function Home() {
       {/* Body */}
       <div className="mx-auto flex max-w-[1600px] gap-6 px-6 py-6">
         <aside className="hidden w-[180px] flex-shrink-0 lg:block">
-          <CategoryFilter />
+          <div className="rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-3">
+            <CategoryFilter />
+          </div>
         </aside>
         <main className="min-w-0 flex-1">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
-            </div>
-          ) : (
-            <MasonryGrid images={images} />
-          )}
+          <div className="rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+              </div>
+            ) : (
+              <MasonryGrid images={images} />
+            )}
+          </div>
         </main>
       </div>
 

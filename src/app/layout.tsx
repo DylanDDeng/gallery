@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Prompt Gallery — AI Image Prompts",
+  title: "Aesthesis — AI Image Gallery",
   description:
     "A curated gallery of AI-generated images with their prompts, tags, and generation details.",
 };

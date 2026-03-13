@@ -165,7 +165,7 @@ export default function AdminPage() {
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
         <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-8 ring-1 ring-zinc-200 dark:ring-white/10">
           <h1 className="mb-1 text-lg font-bold text-zinc-900 dark:text-zinc-100">Admin Login</h1>
-          <p className="mb-6 text-xs text-zinc-400 dark:text-zinc-500">Prompt Gallery management</p>
+          <p className="mb-6 text-xs text-zinc-400 dark:text-zinc-500">Aesthesis management</p>
           <form onSubmit={handleLogin}>
             <input
               type="password"

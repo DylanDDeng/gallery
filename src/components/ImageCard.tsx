@@ -37,7 +37,7 @@ export default function ImageCard({ image }: ImageCardProps) {
   return (
     <div className="group relative mb-3 break-inside-avoid">
       <div
-        className="relative cursor-pointer overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-white/5"
+        className="relative cursor-pointer overflow-hidden bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-white/5"
         style={style}
         onClick={() => setSelectedImage(image)}
       >
