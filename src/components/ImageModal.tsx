@@ -67,14 +67,12 @@ export default function ImageModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left: Large image */}
-        <div className="relative flex-1 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 overflow-hidden p-4">
-          <Image
+        <div className="relative flex-1 flex items-center justify-center overflow-auto p-6 bg-zinc-50 dark:bg-zinc-900">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={selectedImage.url}
             alt="AI generated image"
-            width={selectedImage.width || 768}
-            height={selectedImage.height || 1024}
-            className="h-[90%] w-auto max-w-full rounded-2xl object-contain shadow-2xl ring-1 ring-black/10 dark:ring-white/10"
-            priority
+            className="max-w-[95%] max-h-[95%] rounded-2xl shadow-2xl"
           />
         </div>
 
