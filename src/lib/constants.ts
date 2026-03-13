@@ -376,4 +376,5 @@ export const CATEGORIES = [
   { name: "3D", slug: "3d" },
   { name: "Product Photography", slug: "product-photography" },
   { name: "Conceptual Editorial Illustration", slug: "conceptual-editorial-illustration" },
+  { name: "Poster", slug: "poster" },
 ] as const;

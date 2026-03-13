@@ -37,7 +37,7 @@ export default function ImageCard({ image }: ImageCardProps) {
   return (
     <div className="group relative mb-3 break-inside-avoid">
       <div
-        className="relative cursor-pointer overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/5"
+        className="relative cursor-pointer overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-white/5"
         style={style}
         onClick={() => setSelectedImage(image)}
       >
@@ -53,9 +53,9 @@ export default function ImageCard({ image }: ImageCardProps) {
           onLoad={handleLoad}
         />
         {!loaded && (
-          <div className="absolute inset-0 animate-pulse bg-zinc-800">
+          <div className="absolute inset-0 animate-pulse bg-zinc-100 dark:bg-zinc-800">
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-zinc-400" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-400 dark:border-t-zinc-400" />
             </div>
           </div>
         )}

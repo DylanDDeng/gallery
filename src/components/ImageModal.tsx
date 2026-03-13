@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { useAppStore } from "@/store";
 
@@ -63,11 +63,11 @@ export default function ImageModal() {
 
       {/* Modal */}
       <div
-        className="relative z-10 flex h-[95vh] w-full max-w-[1400px] overflow-hidden rounded-2xl bg-zinc-950 ring-1 ring-white/10"
+        className="relative z-10 flex h-[95vh] w-full max-w-[1400px] overflow-hidden rounded-2xl bg-white dark:bg-zinc-950 ring-1 ring-zinc-200 dark:ring-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left: Large image */}
-        <div className="relative flex-1 flex items-center justify-center bg-zinc-900 overflow-hidden">
+        <div className="relative flex-1 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
           <Image
             src={selectedImage.url}
             alt="AI generated image"
@@ -79,17 +79,17 @@ export default function ImageModal() {
         </div>
 
         {/* Right: Details panel */}
-        <div className="flex w-[380px] flex-shrink-0 flex-col overflow-hidden border-l border-white/5">
+        <div className="flex w-[380px] flex-shrink-0 flex-col overflow-hidden border-l border-zinc-200 dark:border-white/5">
           {/* Details scrollable area */}
           <div className="flex-1 overflow-y-auto p-5">
             {/* Close button */}
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-xs font-medium tracking-wider uppercase text-zinc-500">
+              <span className="text-xs font-medium tracking-wider uppercase text-zinc-400 dark:text-zinc-500">
                 Prompt Details
               </span>
               <button
                 onClick={() => setSelectedImage(null)}
-                className="rounded-lg p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-300"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -99,10 +99,10 @@ export default function ImageModal() {
 
             {/* Meta info */}
             <div className="mb-5 flex flex-wrap items-center gap-2">
-              <span className="rounded-md bg-zinc-800 px-2.5 py-1 text-[11px] font-medium text-zinc-300 ring-1 ring-white/5">
+              <span className="rounded-md bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 ring-1 ring-zinc-200 dark:ring-white/5">
                 {selectedImage.model}
               </span>
-              <span className="text-xs text-zinc-500">by {selectedImage.author}</span>
+              <span className="text-xs text-zinc-400 dark:text-zinc-500">by {selectedImage.author}</span>
             </div>
 
             {/* Tags */}
@@ -111,7 +111,7 @@ export default function ImageModal() {
                 {selectedImage.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-400 ring-1 ring-blue-500/20"
+                    className="rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20"
                   >
                     #{tag}
                   </span>
@@ -121,11 +121,11 @@ export default function ImageModal() {
 
             {/* Prompt */}
             <div className="mb-4">
-              <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+              <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                 Prompt
               </h3>
-              <div className="rounded-xl bg-zinc-800/40 p-4 ring-1 ring-white/5">
-                <p className="text-[13px] leading-relaxed text-zinc-300 whitespace-pre-wrap">
+              <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800/40 p-4 ring-1 ring-zinc-200 dark:ring-white/5">
+                <p className="text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
                   {selectedImage.prompt}
                 </p>
               </div>
@@ -133,11 +133,11 @@ export default function ImageModal() {
           </div>
 
           {/* Bottom actions */}
-          <div className="flex-shrink-0 border-t border-white/5 p-4">
+          <div className="flex-shrink-0 border-t border-zinc-200 dark:border-white/5 p-4">
             <div className="flex gap-2">
               <button
                 onClick={copyPrompt}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-sm font-semibold text-zinc-900 transition-all hover:bg-zinc-200"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 dark:bg-white py-2.5 text-sm font-semibold text-white dark:text-zinc-900 transition-all hover:bg-zinc-700 dark:hover:bg-zinc-200"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -153,8 +153,8 @@ export default function ImageModal() {
                 onClick={() => toggleFavorite(selectedImage.id)}
                 className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   isFavorite(selectedImage.id)
-                    ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/25"
-                    : "bg-zinc-800 text-zinc-400 ring-1 ring-white/5 hover:bg-zinc-700 hover:text-zinc-200"
+                    ? "bg-red-500/15 text-red-500 dark:text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/25"
+                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 ring-1 ring-zinc-200 dark:ring-white/5 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-200"
                 }`}
               >
                 <svg
@@ -176,7 +176,7 @@ export default function ImageModal() {
         </div>
 
         {/* Far right: Vertical thumbnail strip */}
-        <div ref={thumbnailRef} className="flex w-[72px] flex-shrink-0 flex-col items-center gap-1.5 overflow-y-auto bg-zinc-900/50 py-3 px-1.5">
+        <div ref={thumbnailRef} className="flex w-[72px] flex-shrink-0 flex-col items-center gap-1.5 overflow-y-auto bg-zinc-50 dark:bg-zinc-900/50 py-3 px-1.5">
           {allImages.map((img) => {
             const isActive = img.id === selectedImage.id;
             return (
@@ -186,7 +186,7 @@ export default function ImageModal() {
                 onClick={() => setSelectedImage(img)}
                 className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg transition-all duration-300 ${
                   isActive
-                    ? "ring-2 ring-white/80 scale-105"
+                    ? "ring-2 ring-zinc-900 dark:ring-white/80 scale-105"
                     : "opacity-50 hover:opacity-80"
                 }`}
               >
