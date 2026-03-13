@@ -124,7 +124,7 @@ export default function ImageModal() {
               <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                 Prompt
               </h3>
-              <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800/40 p-4 ring-1 ring-zinc-200 dark:ring-white/5">
+              <div className="scrollbar-hide group/prompt max-h-[70vh] overflow-y-auto rounded-xl bg-zinc-50 dark:bg-zinc-800/40 p-4 ring-1 ring-zinc-200 dark:ring-white/5">
                 <p className="text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
                   {selectedImage.prompt}
                 </p>
