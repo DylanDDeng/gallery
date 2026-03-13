@@ -14,8 +14,9 @@ export default function ImageCard({ image }: ImageCardProps) {
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFavorite = useAppStore((s) => s.isFavorite);
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  const summary = image.author || image.model || "AI Generated Image";
+  const summary = image.model || "AI Generated Image";
 
   const handleLoad = (
     e: React.SyntheticEvent<HTMLImageElement, Event>
@@ -24,6 +25,7 @@ export default function ImageCard({ image }: ImageCardProps) {
     if (img.naturalWidth && img.naturalHeight) {
       setAspectRatio(img.naturalWidth / img.naturalHeight);
     }
+    setLoaded(true);
   };
 
   const style: React.CSSProperties = aspectRatio
@@ -44,20 +46,39 @@ export default function ImageCard({ image }: ImageCardProps) {
           alt={summary}
           width={image.width || 768}
           height={image.height || 1024}
-          className="h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.03] group-hover:brightness-110"
+          className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.03] group-hover:brightness-110 ${
+            loaded ? "opacity-100" : "opacity-0"
+          }`}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           onLoad={handleLoad}
         />
+        {!loaded && (
+          <div className="absolute inset-0 animate-pulse bg-zinc-800">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-600 border-t-zinc-400" />
+            </div>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <div className="absolute bottom-0 left-0 right-0 p-3">
-            <p className="text-[13px] font-medium text-white truncate">
-              {summary}
-            </p>
-            <div className="mt-1.5 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <span className="rounded-md bg-white/15 px-2 py-0.5 text-[10px] font-medium text-white/90 backdrop-blur-sm">
                 {image.model}
               </span>
-              <span className="text-[11px] text-white/60">{image.author}</span>
+              {image.author && (
+                <a
+                  href={`https://x.com/${image.author.replace(/^@/, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 text-[11px] text-white/60 transition-colors hover:text-white"
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  {image.author}
+                </a>
+              )}
             </div>
           </div>
         </div>

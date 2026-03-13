@@ -445,7 +445,12 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-2">
             {images.map((image) => {
-              const prompt = JSON.parse(image.prompt);
+              let prompt;
+              try {
+                prompt = JSON.parse(image.prompt);
+              } catch {
+                prompt = null;
+              }
               const desc = prompt?.image_description;
               const label =
                 desc?.scene?.location?.city ||
