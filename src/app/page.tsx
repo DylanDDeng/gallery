@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { MOCK_IMAGES } from "@/lib/constants";
-import SearchBar from "@/components/SearchBar";
 import CategoryFilter from "@/components/CategoryFilter";
 import MasonryGrid from "@/components/MasonryGrid";
 import ImageModal from "@/components/ImageModal";
+import SearchModal from "@/components/SearchModal";
 import UserMenu from "@/components/UserMenu";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
@@ -14,6 +14,7 @@ import type { ImagePrompt } from "@/lib/types";
 export default function Home() {
   const [images, setImages] = useState<ImagePrompt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const toggleShowFavoritesOnly = useAppStore((s) => s.toggleShowFavoritesOnly);
   const favorites = useAppStore((s) => s.favorites);
@@ -21,6 +22,28 @@ export default function Home() {
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const user = useAppStore((s) => s.user);
+  const searchQuery = useAppStore((s) => s.searchQuery);
+  const setSearchQuery = useAppStore((s) => s.setSearchQuery);
+
+  // Keyboard shortcut: / to toggle search
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (
+        e.key === "/" &&
+        !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)
+      ) {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, []);
+
+  // Close search but keep the query active
+  const handleCloseSearch = useCallback(() => {
+    setSearchOpen(false);
+  }, []);
 
   useEffect(() => {
     fetch("/api/images")
@@ -82,25 +105,22 @@ export default function Home() {
               </button>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <SearchBar />
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <UserMenu />
-              <button
-                onClick={toggleTheme}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
-              >
-                {theme === "light" ? (
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                ) : (
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                )}
-              </button>
-            </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <UserMenu />
+            <button
+              onClick={toggleTheme}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              {theme === "light" ? (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       </header>
@@ -109,6 +129,22 @@ export default function Home() {
       <div className="mx-auto flex max-w-[1600px] gap-6 px-6 py-6">
         <aside className="hidden w-[180px] flex-shrink-0 lg:block">
           <div className="rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-3">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
+                searchQuery
+                  ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
+                  : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Search
+              {searchQuery && (
+                <span className="ml-auto truncate max-w-[60px] text-[11px] opacity-70">{searchQuery}</span>
+              )}
+            </button>
             <CategoryFilter />
           </div>
         </aside>
@@ -126,6 +162,7 @@ export default function Home() {
       </div>
 
       <ImageModal />
+      <SearchModal open={searchOpen} onClose={handleCloseSearch} />
       <LoginPrompt />
     </div>
   );
