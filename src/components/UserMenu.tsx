@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase-browser";
 
 export default function UserMenu() {
   const user = useAppStore((s) => s.user);
+  const favorites = useAppStore((s) => s.favorites);
+  const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
+  const toggleShowFavoritesOnly = useAppStore((s) => s.toggleShowFavoritesOnly);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -101,6 +104,27 @@ export default function UserMenu() {
               </p>
             )}
           </div>
+          <button
+            onClick={() => {
+              toggleShowFavoritesOnly();
+              setOpen(false);
+            }}
+            className={`flex w-full items-center gap-2.5 text-left px-4 py-2.5 text-sm transition-colors ${
+              showFavoritesOnly
+                ? "text-red-500 bg-red-500/5"
+                : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
+            }`}
+          >
+            <svg className="h-4 w-4" fill={showFavoritesOnly ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            Favorites
+            {favorites.length > 0 && (
+              <span className="ml-auto rounded bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 text-[10px]">
+                {favorites.length}
+              </span>
+            )}
+          </button>
           <button
             onClick={handleSignOut}
             className="w-full text-left px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
