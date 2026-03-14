@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAppStore } from "@/store";
 import { CATEGORIES } from "@/lib/constants";
 
@@ -18,6 +18,7 @@ export default function CategoryFilter() {
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const toggleShowFavoritesOnly = useAppStore((s) => s.toggleShowFavoritesOnly);
   const allImages = useAppStore((s) => s.allImages);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const usedSlugs = useMemo(
     () => new Set(allImages.map((img) => img.category)),
@@ -28,7 +29,7 @@ export default function CategoryFilter() {
     (cat) => cat.slug !== "all" && usedSlugs.has(cat.slug)
   );
 
-  const isAll = activeCategory === "all" && activeTimeFilter === "all";
+  const isAll = activeCategory === "all" && activeTimeFilter === "all" && hasInteracted;
 
   return (
     <nav className="space-y-4">
@@ -37,6 +38,7 @@ export default function CategoryFilter() {
         onClick={() => {
           setActiveCategory("all");
           setActiveTimeFilter("all");
+          setHasInteracted(true);
         }}
         className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
           isAll
@@ -67,6 +69,7 @@ export default function CategoryFilter() {
                     onClick={() => {
                       if (showFavoritesOnly) toggleShowFavoritesOnly();
                       setActiveTimeFilter(tf.slug as "all" | "today" | "week" | "month");
+                      setHasInteracted(true);
                     }}
                     className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
@@ -100,6 +103,7 @@ export default function CategoryFilter() {
                     onClick={() => {
                       if (showFavoritesOnly) toggleShowFavoritesOnly();
                       setActiveCategory(cat.slug);
+                      setHasInteracted(true);
                     }}
                     className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
