@@ -6,6 +6,8 @@ import SearchBar from "@/components/SearchBar";
 import CategoryFilter from "@/components/CategoryFilter";
 import MasonryGrid from "@/components/MasonryGrid";
 import ImageModal from "@/components/ImageModal";
+import UserMenu from "@/components/UserMenu";
+import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
 
@@ -18,6 +20,7 @@ export default function Home() {
   const setAllImages = useAppStore((s) => s.setAllImages);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const user = useAppStore((s) => s.user);
 
   useEffect(() => {
     fetch("/api/images")
@@ -45,40 +48,43 @@ export default function Home() {
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100" style={{ fontFamily: "'Caveat', cursive" }}>
-              Aesthesis
+              Aestara
             </h1>
             <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-            <button
-              onClick={toggleShowFavoritesOnly}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                showFavoritesOnly
-                  ? "bg-red-500/15 text-red-500 ring-1 ring-red-500/20"
-                  : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
-              }`}
-            >
-              <svg
-                className="h-3.5 w-3.5"
-                fill={showFavoritesOnly ? "currentColor" : "none"}
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {user && (
+              <button
+                onClick={toggleShowFavoritesOnly}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                  showFavoritesOnly
+                    ? "bg-red-500/15 text-red-500 ring-1 ring-red-500/20"
+                    : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
+                }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                />
-              </svg>
-              Favorites
-              {favorites.length > 0 && (
-                <span className="rounded bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 text-[10px]">
-                  {favorites.length}
-                </span>
-              )}
-            </button>
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill={showFavoritesOnly ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+                Favorites
+                {favorites.length > 0 && (
+                  <span className="rounded bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 text-[10px]">
+                    {favorites.length}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <SearchBar />
+            <UserMenu />
             <button
               onClick={toggleTheme}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -118,6 +124,7 @@ export default function Home() {
       </div>
 
       <ImageModal />
+      <LoginPrompt />
     </div>
   );
 }

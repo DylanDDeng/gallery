@@ -1,5 +1,17 @@
 import { create } from "zustand";
 import type { ImagePrompt } from "@/lib/types";
+import { createClient } from "@/lib/supabase-browser";
+
+interface User {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    name?: string;
+    avatar_url?: string;
+    full_name?: string;
+    picture?: string;
+  };
+}
 
 interface AppState {
   selectedImage: ImagePrompt | null;
@@ -10,6 +22,11 @@ interface AppState {
   favorites: string[];
   showFavoritesOnly: boolean;
   theme: "light" | "dark";
+  // Auth
+  user: User | null;
+  favoritesLoaded: boolean;
+  showLoginPrompt: boolean;
+  // Actions
   setSelectedImage: (image: ImagePrompt | null) => void;
   setAllImages: (images: ImagePrompt[]) => void;
   setSearchQuery: (query: string) => void;
@@ -19,6 +36,10 @@ interface AppState {
   isFavorite: (imageId: string) => boolean;
   toggleShowFavoritesOnly: () => void;
   toggleTheme: () => void;
+  // Auth actions
+  setUser: (user: User | null) => void;
+  fetchFavorites: () => Promise<void>;
+  setShowLoginPrompt: (show: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -30,6 +51,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   favorites: [],
   showFavoritesOnly: false,
   theme: "light",
+  // Auth
+  user: null,
+  favoritesLoaded: false,
+  showLoginPrompt: false,
 
   setSelectedImage: (image) => set({ selectedImage: image }),
   setAllImages: (images) => set({ allImages: images }),
@@ -51,12 +76,73 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { theme: next };
     }),
 
-  toggleFavorite: (imageId) =>
-    set((state) => ({
-      favorites: state.favorites.includes(imageId)
-        ? state.favorites.filter((id) => id !== imageId)
-        : [...state.favorites, imageId],
-    })),
+  toggleFavorite: (imageId) => {
+    const { user, favorites } = get();
+    const wasFavorite = favorites.includes(imageId);
+
+    // Not logged in → show login prompt
+    if (!user) {
+      set({ showLoginPrompt: true });
+      return;
+    }
+
+    // Optimistic update
+    set({
+      favorites: wasFavorite
+        ? favorites.filter((id) => id !== imageId)
+        : [...favorites, imageId],
+    });
+
+    // Sync to Supabase (fire-and-forget, rollback on error)
+    const supabase = createClient();
+    if (wasFavorite) {
+      supabase
+        .from("favorites")
+        .delete()
+        .eq("image_id", imageId)
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error) {
+            set((s) => ({
+              favorites: [...s.favorites, imageId],
+            }));
+          }
+        });
+    } else {
+      supabase
+        .from("favorites")
+        .insert({ image_id: imageId, user_id: user.id })
+        .then(({ error }) => {
+          if (error) {
+            set((s) => ({
+              favorites: s.favorites.filter((id) => id !== imageId),
+            }));
+          }
+        });
+    }
+  },
 
   isFavorite: (imageId) => get().favorites.includes(imageId),
+
+  // Auth actions
+  setUser: (user) => set({ user }),
+
+  fetchFavorites: async () => {
+    const { user } = get();
+    if (!user) {
+      set({ favorites: [], favoritesLoaded: true });
+      return;
+    }
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("favorites")
+      .select("image_id")
+      .eq("user_id", user.id);
+    set({
+      favorites: data ? data.map((f) => f.image_id) : [],
+      favoritesLoaded: true,
+    });
+  },
+
+  setShowLoginPrompt: (show) => set({ showLoginPrompt: show }),
 }));
