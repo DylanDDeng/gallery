@@ -165,6 +165,13 @@ export default function Home() {
       <ImageModal />
       <SearchModal open={searchOpen} onClose={handleCloseSearch} />
       <LoginPrompt />
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-100 dark:border-zinc-900 py-6 text-center text-xs text-zinc-400">
+        <a href="/privacy" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+          Privacy Policy
+        </a>
+      </footer>
     </div>
   );
 }
