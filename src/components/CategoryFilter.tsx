@@ -36,6 +36,7 @@ export default function CategoryFilter() {
       {/* All */}
       <button
         onClick={() => {
+          if (showFavoritesOnly) toggleShowFavoritesOnly();
           setActiveCategory("all");
           setActiveTimeFilter("all");
           setHasInteracted(true);
