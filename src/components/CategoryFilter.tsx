@@ -15,6 +15,8 @@ export default function CategoryFilter() {
   const setActiveCategory = useAppStore((s) => s.setActiveCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
   const setActiveTimeFilter = useAppStore((s) => s.setActiveTimeFilter);
+  const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
+  const toggleShowFavoritesOnly = useAppStore((s) => s.toggleShowFavoritesOnly);
   const allImages = useAppStore((s) => s.allImages);
 
   const usedSlugs = useMemo(
@@ -62,7 +64,10 @@ export default function CategoryFilter() {
                 return (
                   <button
                     key={tf.slug}
-                    onClick={() => setActiveTimeFilter(tf.slug as "all" | "today" | "week" | "month")}
+                    onClick={() => {
+                      if (showFavoritesOnly) toggleShowFavoritesOnly();
+                      setActiveTimeFilter(tf.slug as "all" | "today" | "week" | "month");
+                    }}
                     className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
                         ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
@@ -92,7 +97,10 @@ export default function CategoryFilter() {
                 return (
                   <button
                     key={cat.slug}
-                    onClick={() => setActiveCategory(cat.slug)}
+                    onClick={() => {
+                      if (showFavoritesOnly) toggleShowFavoritesOnly();
+                      setActiveCategory(cat.slug);
+                    }}
                     className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
                         ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
