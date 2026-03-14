@@ -18,6 +18,13 @@ export default function ImageCard({ image }: ImageCardProps) {
 
   const summary = image.model || "AI Generated Image";
 
+  const modelLogo = (() => {
+    const m = image.model.toLowerCase();
+    if (m.includes("z image")) return "/alibaba-color.svg";
+    if (m.includes("seedream")) return "/bytedance-color.svg";
+    return "/nanobanana-color.svg";
+  })();
+
   const handleLoad = (
     e: React.SyntheticEvent<HTMLImageElement, Event>
   ) => {
@@ -62,7 +69,8 @@ export default function ImageCard({ image }: ImageCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <div className="flex items-center gap-2">
-              <span className="rounded-md bg-white/15 px-2 py-0.5 text-[10px] font-medium text-white/90 backdrop-blur-sm">
+              <span className="flex items-center gap-1.5 rounded-md bg-white/15 px-2 py-0.5 text-[10px] font-medium text-white/90 backdrop-blur-sm">
+                <img src={modelLogo} alt="" className="h-3.5 w-3.5" />
                 {image.model}
               </span>
               {image.author && (

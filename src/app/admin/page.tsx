@@ -88,10 +88,11 @@ export default function AdminPage() {
     setFormAuthor(image.author);
     setFormModel(image.model);
     setFormCategory(image.category);
-    setFormTags(image.tags.join(", "));
+    setFormTags((image.tags || []).join(", "));
     setFormWidth(String(image.width || ""));
     setFormHeight(String(image.height || ""));
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
