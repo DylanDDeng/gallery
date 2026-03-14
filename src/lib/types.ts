@@ -9,6 +9,7 @@ export interface ImagePrompt {
   width: number;
   height: number;
   created_at: string;
+  tweet_url?: string;
 }
 
 export interface Favorite {

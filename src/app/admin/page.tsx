@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [formTags, setFormTags] = useState("");
   const [formWidth, setFormWidth] = useState("");
   const [formHeight, setFormHeight] = useState("");
+  const [formTweetUrl, setFormTweetUrl] = useState("");
 
   const fetchImages = useCallback(async () => {
     const res = await fetch("/api/images");
@@ -71,6 +72,7 @@ export default function AdminPage() {
     setFormTags("");
     setFormWidth("");
     setFormHeight("");
+    setFormTweetUrl("");
     setEditingImage(null);
     setShowForm(false);
     setMessage("");
@@ -91,6 +93,7 @@ export default function AdminPage() {
     setFormTags((image.tags || []).join(", "));
     setFormWidth(String(image.width || ""));
     setFormHeight(String(image.height || ""));
+    setFormTweetUrl(image.tweet_url || "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -112,6 +115,7 @@ export default function AdminPage() {
         .filter(Boolean),
       width: formWidth ? parseInt(formWidth) : null,
       height: formHeight ? parseInt(formHeight) : null,
+      tweet_url: formTweetUrl || null,
     };
 
     if (editingImage) {
@@ -385,6 +389,23 @@ export default function AdminPage() {
                     className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
                   />
                 </div>
+              </div>
+
+              {/* Tweet URL */}
+              <div>
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  Tweet URL (optional)
+                </label>
+                <input
+                  type="text"
+                  value={formTweetUrl}
+                  onChange={(e) => setFormTweetUrl(e.target.value)}
+                  placeholder="https://x.com/author/status/123..."
+                  className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                />
+                <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-600">
+                  If provided, clicking the author link will go to this tweet instead of their profile
+                </p>
               </div>
 
               {/* Preview */}

@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       tags: body.tags,
       width: body.width || null,
       height: body.height || null,
+      tweet_url: body.tweet_url || null,
     })
     .select()
     .single();

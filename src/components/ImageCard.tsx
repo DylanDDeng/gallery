@@ -75,7 +75,7 @@ export default function ImageCard({ image }: ImageCardProps) {
               </span>
               {image.author && (
                 <a
-                  href={`https://x.com/${image.author.replace(/^@/, "")}`}
+                  href={image.tweet_url || `https://x.com/${image.author.replace(/^@/, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}

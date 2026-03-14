@@ -34,6 +34,7 @@ export async function PUT(
       tags: body.tags,
       width: body.width || null,
       height: body.height || null,
+      tweet_url: body.tweet_url || null,
     })
     .eq("id", id)
     .select()
