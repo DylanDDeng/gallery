@@ -6,6 +6,16 @@ export const metadata: Metadata = {
   title: "Aestara — AI Image Gallery",
   description:
     "A curated gallery of AI-generated images with their prompts, tags, and generation details.",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
+  openGraph: {
+    title: "Aestara — AI Image Gallery",
+    description:
+      "A curated gallery of AI-generated images with their prompts, tags, and generation details.",
+    images: ["/opengraph-image.png"],
+  },
 };
 
 export default function RootLayout({

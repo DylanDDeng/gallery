@@ -22,6 +22,7 @@ export default function ImageCard({ image }: ImageCardProps) {
     const m = image.model.toLowerCase();
     if (m.includes("z image")) return "/alibaba-color.svg";
     if (m.includes("seedream")) return "/bytedance-color.svg";
+    if (m.includes("gpt")) return "/openai-color.svg";
     return "/nanobanana-color.svg";
   })();
 
