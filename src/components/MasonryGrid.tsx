@@ -13,6 +13,7 @@ export default function MasonryGrid({ images }: MasonryGridProps) {
   const searchQuery = useAppStore((s) => s.searchQuery);
   const activeCategory = useAppStore((s) => s.activeCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
+  const activeModel = useAppStore((s) => s.activeModel);
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const favorites = useAppStore((s) => s.favorites);
 
@@ -21,6 +22,10 @@ export default function MasonryGrid({ images }: MasonryGridProps) {
 
     if (activeCategory !== "all") {
       result = result.filter((img) => img.category === activeCategory);
+    }
+
+    if (activeModel !== "all") {
+      result = result.filter((img) => img.model === activeModel);
     }
 
     if (activeTimeFilter !== "all") {
@@ -57,7 +62,7 @@ export default function MasonryGrid({ images }: MasonryGridProps) {
     }
 
     return result;
-  }, [images, searchQuery, activeCategory, activeTimeFilter, showFavoritesOnly, favorites]);
+  }, [images, searchQuery, activeCategory, activeModel, activeTimeFilter, showFavoritesOnly, favorites]);
 
   if (filteredImages.length === 0) {
     return (

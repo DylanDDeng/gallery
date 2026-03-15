@@ -19,6 +19,7 @@ interface AppState {
   searchQuery: string;
   activeCategory: string;
   activeTimeFilter: "all" | "today" | "week" | "month";
+  activeModel: string;
   favorites: string[];
   showFavoritesOnly: boolean;
   theme: "light" | "dark";
@@ -32,6 +33,7 @@ interface AppState {
   setSearchQuery: (query: string) => void;
   setActiveCategory: (category: string) => void;
   setActiveTimeFilter: (filter: "all" | "today" | "week" | "month") => void;
+  setActiveModel: (model: string) => void;
   toggleFavorite: (imageId: string) => void;
   isFavorite: (imageId: string) => boolean;
   toggleShowFavoritesOnly: () => void;
@@ -48,6 +50,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   searchQuery: "",
   activeCategory: "all",
   activeTimeFilter: "all",
+  activeModel: "all",
   favorites: [],
   showFavoritesOnly: false,
   theme: "light",
@@ -61,6 +64,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setActiveCategory: (category) => set({ activeCategory: category }),
   setActiveTimeFilter: (filter) => set({ activeTimeFilter: filter }),
+  setActiveModel: (model) => set({ activeModel: model }),
   toggleShowFavoritesOnly: () =>
     set((state) => ({ showFavoritesOnly: !state.showFavoritesOnly })),
 

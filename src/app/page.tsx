@@ -93,7 +93,7 @@ export default function Home() {
 
       {/* Body */}
       <div className="mx-auto flex max-w-[1600px] gap-6 px-6 py-6">
-        <aside className="hidden w-[180px] flex-shrink-0 lg:block lg:sticky lg:top-[73px] lg:self-start">
+        <aside className="hidden w-[220px] flex-shrink-0 lg:block lg:sticky lg:top-[73px] lg:self-start">
           <div className="rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-3">
             <button
               onClick={() => setSearchOpen(true)}
