@@ -2,6 +2,8 @@ export interface ImagePrompt {
   id: string;
   url: string;
   prompt: string; // JSON string of the detailed prompt
+  prompt_zh?: string;
+  prompt_ja?: string;
   author: string;
   model: string;
   category: string;

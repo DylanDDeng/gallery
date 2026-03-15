@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useAppStore } from "@/store";
 
@@ -11,6 +11,7 @@ export default function ImageModal() {
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFavorite = useAppStore((s) => s.isFavorite);
   const thumbnailRef = useRef<HTMLDivElement>(null);
+  const [promptLang, setPromptLang] = useState("en");
 
   // Keyboard navigation
   useEffect(() => {
@@ -22,11 +23,13 @@ export default function ImageModal() {
         e.preventDefault();
         const next = allImages[(idx + 1) % allImages.length];
         setSelectedImage(next);
+        setPromptLang("en");
       }
       if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
         e.preventDefault();
         const prev = allImages[(idx - 1 + allImages.length) % allImages.length];
         setSelectedImage(prev);
+        setPromptLang("en");
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -49,6 +52,17 @@ export default function ImageModal() {
 
   if (!selectedImage) return null;
 
+  const availableLangs: ("en" | "zh" | "ja")[] = ["en"];
+  if (selectedImage.prompt_zh) availableLangs.push("zh");
+  if (selectedImage.prompt_ja) availableLangs.push("ja");
+
+  const promptText =
+    promptLang === "zh"
+      ? selectedImage.prompt_zh!
+      : promptLang === "ja"
+      ? selectedImage.prompt_ja!
+      : selectedImage.prompt;
+
   const modelLogo = (() => {
     const m = selectedImage.model.toLowerCase();
     if (m.includes("z image")) return "/alibaba-color.svg";
@@ -59,7 +73,7 @@ export default function ImageModal() {
   })();
 
   const copyPrompt = () => {
-    navigator.clipboard.writeText(selectedImage.prompt);
+    navigator.clipboard.writeText(promptText);
   };
 
   return (
@@ -140,12 +154,31 @@ export default function ImageModal() {
 
             {/* Prompt */}
             <div className="mb-4">
-              <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-                Prompt
-              </h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                  Prompt
+                </h3>
+                {availableLangs.length > 1 && (
+                  <div className="flex gap-1">
+                    {availableLangs.map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => setPromptLang(lang)}
+                        className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                          promptLang === lang
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                            : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        }`}
+                      >
+                        {{ en: "EN", zh: "中", ja: "日" }[lang]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="scrollbar-hide group/prompt max-h-[70vh] overflow-y-auto rounded-xl bg-zinc-50 dark:bg-zinc-800/40 p-4 ring-1 ring-zinc-200 dark:ring-white/5">
                 <p className="text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
-                  {selectedImage.prompt}
+                  {promptText}
                 </p>
               </div>
             </div>
@@ -202,7 +235,7 @@ export default function ImageModal() {
               <button
                 key={img.id}
                 data-thumb-id={img.id}
-                onClick={() => setSelectedImage(img)}
+                onClick={() => { setSelectedImage(img); setPromptLang("en"); }}
                 className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg transition-all duration-300 ${
                   isActive
                     ? "ring-2 ring-zinc-900 dark:ring-white/80 scale-105"
