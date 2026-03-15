@@ -65,7 +65,7 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
+          <div className="flex select-none items-center gap-3">
             <img src="/logo.png" alt="" className="h-8 w-8" />
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100" style={{ fontFamily: "'Caveat', cursive" }}>
               Aestara
