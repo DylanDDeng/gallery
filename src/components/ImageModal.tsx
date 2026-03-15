@@ -53,6 +53,7 @@ export default function ImageModal() {
     const m = selectedImage.model.toLowerCase();
     if (m.includes("z image")) return "/alibaba-color.svg";
     if (m.includes("seedream")) return "/bytedance-color.svg";
+    if (m.includes("grok")) return "/grok-color.svg";
     if (m.includes("gpt")) return "/openai-color.svg";
     return "/nanobanana-color.svg";
   })();
