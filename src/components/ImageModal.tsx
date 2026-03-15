@@ -76,6 +76,17 @@ export default function ImageModal() {
       >
         {/* Left: Large image */}
         <div className="relative flex-1 flex items-center justify-center overflow-auto p-6 bg-zinc-50 dark:bg-zinc-900">
+          {/* Download button */}
+          <a
+            href={selectedImage.url}
+            download
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg bg-black/50 backdrop-blur-sm text-white transition-all hover:bg-black/70"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </a>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={selectedImage.url}
