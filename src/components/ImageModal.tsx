@@ -118,7 +118,7 @@ export default function ImageModal() {
             {/* Meta info */}
             <div className="mb-5 flex flex-wrap items-center gap-2">
               <span className="flex items-center gap-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 ring-1 ring-zinc-200 dark:ring-white/5">
-                <img src={modelLogo} alt="" className="h-4 w-4" />
+                <img key={selectedImage.id} src={modelLogo} alt="" className="h-4 w-4" />
                 {selectedImage.model}
               </span>
               <span className="text-xs text-zinc-400 dark:text-zinc-500">by {selectedImage.author}</span>
