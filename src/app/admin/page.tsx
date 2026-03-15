@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, MODELS } from "@/lib/constants";
 import type { ImagePrompt } from "@/lib/types";
 
 export default function AdminPage() {
@@ -303,13 +303,17 @@ export default function AdminPage() {
                   <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                     Model
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formModel}
                     onChange={(e) => setFormModel(e.target.value)}
-                    placeholder="Nano Banana Pro"
-                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
-                  />
+                    required
+                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  >
+                    <option value="" disabled>Select a model</option>
+                    {MODELS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Category */}
