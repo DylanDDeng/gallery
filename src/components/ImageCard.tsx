@@ -67,29 +67,21 @@ export default function ImageCard({ image }: ImageCardProps) {
             </div>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <div className="absolute bottom-0 left-0 right-0 p-3">
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-md bg-white/15 px-2 py-0.5 text-[10px] font-medium text-white/90 backdrop-blur-sm">
-                <img src={modelLogo} alt="" className="h-3.5 w-3.5" />
-                {image.model}
-              </span>
-              {image.author && (
-                <a
-                  href={image.tweet_url || `https://x.com/${image.author.replace(/^@/, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1 text-[11px] text-white/60 transition-colors hover:text-white"
-                >
-                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                  {image.author}
-                </a>
-              )}
-            </div>
-          </div>
+        <div className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          {image.author && (
+            <a
+              href={image.tweet_url || `https://x.com/${image.author.replace(/^@/, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/40 px-1.5 py-0.5 text-[11px] text-white/70 backdrop-blur-sm transition-colors hover:text-white"
+            >
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              {image.author}
+            </a>
+          )}
         </div>
       </div>
       <button
