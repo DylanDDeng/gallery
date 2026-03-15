@@ -85,8 +85,8 @@ export default function CategoryFilter() {
         }}
         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
       >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M4.22 2h15.56A2.22 2.22 0 0122 4.22v15.56A2.22 2.22 0 0119.78 22H4.22A2.22 2.22 0 012 19.78V4.22A2.22 2.22 0 014.22 2zm1.12 2.5a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm0 13.76a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm6.88-6.88a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm0-6.88a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm6.88 0a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm0 6.88a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm-6.88 6.88a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm6.88 0a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24z"/>
         </svg>
         Surprise Me
       </button>
