@@ -4,7 +4,7 @@ const projectRoot = process.cwd();
 
 const nextConfig: NextConfig = {
   env: {
-    ADMIN_EMAILS: process.env.ADMIN_EMAILS,
+    ADMIN_EMAILS: process.env.ADMIN_EMAILS || "chengshengdeng@gmail.com",
   },
   outputFileTracingRoot: projectRoot,
   turbopack: {
