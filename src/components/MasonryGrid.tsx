@@ -1,68 +1,72 @@
 "use client";
 
-import { useMemo } from "react";
+import { RefObject, useEffect, useMemo, useState } from "react";
 import ImageCard from "./ImageCard";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
 
 interface MasonryGridProps {
   images: ImagePrompt[];
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  sentinelRef?: RefObject<HTMLDivElement | null>;
 }
 
-export default function MasonryGrid({ images }: MasonryGridProps) {
+function getColumnCount(width: number) {
+  if (width >= 1536) return 5;
+  if (width >= 1280) return 4;
+  if (width >= 1024) return 3;
+  if (width >= 640) return 2;
+  return 1;
+}
+
+export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRef }: MasonryGridProps) {
+  const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
+  const favorites = useAppStore((s) => s.favorites);
   const searchQuery = useAppStore((s) => s.searchQuery);
   const activeCategory = useAppStore((s) => s.activeCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
   const activeModel = useAppStore((s) => s.activeModel);
-  const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
-  const favorites = useAppStore((s) => s.favorites);
+  const [columnCount, setColumnCount] = useState(() =>
+    typeof window === "undefined" ? 1 : getColumnCount(window.innerWidth)
+  );
+
+  useEffect(() => {
+    const handleResize = () => setColumnCount(getColumnCount(window.innerWidth));
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const filteredImages = useMemo(() => {
-    let result = images;
-
-    if (activeCategory !== "all") {
-      result = result.filter((img) => img.category === activeCategory);
+    if (!showFavoritesOnly) {
+      return images;
     }
 
-    if (activeModel !== "all") {
-      result = result.filter((img) => img.model === activeModel);
-    }
+    return images.filter((img) => favorites.includes(img.id));
+  }, [favorites, images, showFavoritesOnly]);
 
-    if (activeTimeFilter !== "all") {
-      const now = new Date();
-      const cutoffs: Record<string, Date> = {
-        today: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-        week: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        month: new Date(now.getFullYear(), now.getMonth(), 1),
-      };
-      const cutoff = cutoffs[activeTimeFilter];
-      if (cutoff) {
-        result = result.filter((img) => new Date(img.created_at) >= cutoff);
-      }
-    }
+  const columns = useMemo(() => {
+    const nextColumns = Array.from({ length: columnCount }, () => [] as ImagePrompt[]);
+    const heights = Array.from({ length: columnCount }, () => 0);
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((img) => {
-        const prompt = img.prompt.toLowerCase();
-        const tags = img.tags.join(" ").toLowerCase();
-        const author = img.author.toLowerCase();
-        const model = img.model.toLowerCase();
-        return (
-          prompt.includes(query) ||
-          tags.includes(query) ||
-          author.includes(query) ||
-          model.includes(query)
-        );
-      });
-    }
+    filteredImages.forEach((image) => {
+      const estimatedHeight =
+        image.width && image.height ? image.height / image.width : 4 / 3;
+      const shortestColumnIndex = heights.indexOf(Math.min(...heights));
 
-    if (showFavoritesOnly) {
-      result = result.filter((img) => favorites.includes(img.id));
-    }
+      nextColumns[shortestColumnIndex].push(image);
+      heights[shortestColumnIndex] += estimatedHeight + 0.12;
+    });
 
-    return result;
-  }, [images, searchQuery, activeCategory, activeModel, activeTimeFilter, showFavoritesOnly, favorites]);
+    return nextColumns;
+  }, [columnCount, filteredImages]);
+
+  const hasActiveFeedFilters =
+    Boolean(searchQuery) ||
+    activeCategory !== "all" ||
+    activeTimeFilter !== "all" ||
+    activeModel !== "all";
 
   if (filteredImages.length === 0) {
     return (
@@ -87,7 +91,9 @@ export default function MasonryGrid({ images }: MasonryGridProps) {
         ) : (
           <>
             <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">No images found</p>
-            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">Try adjusting your search or filter</p>
+            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">
+              {hasActiveFeedFilters ? "Try adjusting your search or filter" : "New images will appear here once the gallery is populated"}
+            </p>
           </>
         )}
       </div>
@@ -95,10 +101,31 @@ export default function MasonryGrid({ images }: MasonryGridProps) {
   }
 
   return (
-    <div className="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
-      {filteredImages.map((image) => (
-        <ImageCard key={image.id} image={image} />
-      ))}
-    </div>
+    <>
+      <div
+        className="grid items-start gap-3"
+        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+      >
+        {columns.map((column, index) => (
+          <div key={index} className="flex flex-col gap-3">
+            {column.map((image) => (
+              <ImageCard key={image.id} image={image} />
+            ))}
+          </div>
+        ))}
+      </div>
+      {/* Sentinel for IntersectionObserver */}
+      <div ref={sentinelRef} className="h-1" />
+      {isLoadingMore && (
+        <div className="flex items-center justify-center py-8">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+        </div>
+      )}
+      {!hasMore && filteredImages.length > 0 && (
+        <p className="py-6 text-center text-xs text-zinc-400 dark:text-zinc-600">
+          All images loaded
+        </p>
+      )}
+    </>
   );
 }

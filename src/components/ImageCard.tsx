@@ -13,25 +13,18 @@ export default function ImageCard({ image }: ImageCardProps) {
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFavorite = useAppStore((s) => s.isFavorite);
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(
+    image.width && image.height ? image.width / image.height : null
+  );
   const [loaded, setLoaded] = useState(false);
 
   const summary = image.model || "AI Generated Image";
-
-  const modelLogo = (() => {
-    const m = image.model.toLowerCase();
-    if (m.includes("z image")) return "/alibaba-color.svg";
-    if (m.includes("seedream")) return "/bytedance-color.svg";
-    if (m.includes("grok")) return "/grok-color.svg";
-    if (m.includes("gpt")) return "/openai-color.svg";
-    return "/nanobanana-color.svg";
-  })();
 
   const handleLoad = (
     e: React.SyntheticEvent<HTMLImageElement, Event>
   ) => {
     const img = e.currentTarget;
-    if (img.naturalWidth && img.naturalHeight) {
+    if (!aspectRatio && img.naturalWidth && img.naturalHeight) {
       setAspectRatio(img.naturalWidth / img.naturalHeight);
     }
     setLoaded(true);
@@ -44,7 +37,7 @@ export default function ImageCard({ image }: ImageCardProps) {
     : { aspectRatio: "3 / 4" };
 
   return (
-    <div className="group relative mb-3 break-inside-avoid">
+    <div className="group relative">
       <div
         className="relative cursor-pointer overflow-hidden bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-white/5"
         style={style}

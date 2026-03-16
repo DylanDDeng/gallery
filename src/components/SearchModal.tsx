@@ -8,9 +8,10 @@ import type { ImagePrompt } from "@/lib/types";
 interface SearchModalProps {
   open: boolean;
   onClose: () => void;
+  isLoadingResults: boolean;
 }
 
-export default function SearchModal({ open, onClose }: SearchModalProps) {
+export default function SearchModal({ open, onClose, isLoadingResults }: SearchModalProps) {
   const searchQuery = useAppStore((s) => s.searchQuery);
   const setSearchQuery = useAppStore((s) => s.setSearchQuery);
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
@@ -34,19 +35,7 @@ export default function SearchModal({ open, onClose }: SearchModalProps) {
 
   const results = useMemo(() => {
     if (!searchQuery) return [];
-    const q = searchQuery.toLowerCase();
-    return allImages.filter((img) => {
-      const prompt = img.prompt.toLowerCase();
-      const tags = img.tags.join(" ").toLowerCase();
-      const author = img.author.toLowerCase();
-      const model = img.model.toLowerCase();
-      return (
-        prompt.includes(q) ||
-        tags.includes(q) ||
-        author.includes(q) ||
-        model.includes(q)
-      );
-    }).slice(0, 12);
+    return allImages.slice(0, 12);
   }, [allImages, searchQuery]);
 
   const handleSelectImage = (image: ImagePrompt) => {
@@ -104,7 +93,14 @@ export default function SearchModal({ open, onClose }: SearchModalProps) {
 
         {/* Results */}
         <div className="overflow-y-auto rounded-b-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl">
-          {searchQuery && results.length > 0 && (
+          {searchQuery && isLoadingResults && (
+            <div className="flex flex-col items-center justify-center py-12 text-zinc-400">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+              <p className="mt-3 text-sm">Searching...</p>
+            </div>
+          )}
+
+          {searchQuery && !isLoadingResults && results.length > 0 && (
             <div className="grid grid-cols-3 gap-2 p-4">
               {results.map((image) => (
                 <div
@@ -131,7 +127,7 @@ export default function SearchModal({ open, onClose }: SearchModalProps) {
             </div>
           )}
 
-          {searchQuery && results.length === 0 && (
+          {searchQuery && !isLoadingResults && results.length === 0 && (
             <div className="flex flex-col items-center py-12 text-zinc-400">
               <svg className="mb-3 h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

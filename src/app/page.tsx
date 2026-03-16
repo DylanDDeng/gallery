@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { MOCK_IMAGES } from "@/lib/constants";
 import CategoryFilter from "@/components/CategoryFilter";
 import MasonryGrid from "@/components/MasonryGrid";
@@ -11,15 +11,134 @@ import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
 
+const PAGE_SIZE = 20;
+
 export default function Home() {
   const [images, setImages] = useState<ImagePrompt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const imagesRef = useRef<ImagePrompt[]>([]);
+  const loadingRef = useRef(false);
+  const hasMoreRef = useRef(false);
+  const initialLoadRef = useRef(true);
+  const feedVersionRef = useRef(0);
   const setAllImages = useAppStore((s) => s.setAllImages);
   const searchQuery = useAppStore((s) => s.searchQuery);
+  const activeCategory = useAppStore((s) => s.activeCategory);
+  const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
+  const activeModel = useAppStore((s) => s.activeModel);
+  const favorites = useAppStore((s) => s.favorites);
+  const favoritesLoaded = useAppStore((s) => s.favoritesLoaded);
+  const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
-  const setSearchQuery = useAppStore((s) => s.setSearchQuery);
+  const favoriteIdsParam = showFavoritesOnly ? favorites.join(",") : "";
+  const hasFavoriteSelection = favoriteIdsParam.length > 0;
+
+  // Keep refs in sync with state
+  imagesRef.current = images;
+  hasMoreRef.current = hasMore;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const buildQueryString = useCallback(
+    (offset: number) => {
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+      });
+
+      if (debouncedSearchQuery) {
+        params.set("search", debouncedSearchQuery);
+      }
+
+      if (activeCategory !== "all") {
+        params.set("category", activeCategory);
+      }
+
+      if (activeTimeFilter !== "all") {
+        params.set("time", activeTimeFilter);
+      }
+
+      if (activeModel !== "all") {
+        params.set("model", activeModel);
+      }
+
+      if (favoriteIdsParam) {
+        params.set("ids", favoriteIdsParam);
+      }
+
+      return params.toString();
+    },
+    [
+      activeCategory,
+      activeModel,
+      activeTimeFilter,
+      debouncedSearchQuery,
+      favoriteIdsParam,
+    ]
+  );
+
+  const fetchPage = useCallback(
+    async (offset: number, signal?: AbortSignal) => {
+      const res = await fetch(`/api/images?${buildQueryString(offset)}`, signal ? { signal } : undefined);
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to load images");
+      }
+
+      return {
+        data: (json.data ?? []) as ImagePrompt[],
+        hasMore: Boolean(json.hasMore),
+      };
+    },
+    [buildQueryString]
+  );
+
+  const loadMore = useCallback(async () => {
+    if (loadingRef.current || !hasMoreRef.current || isLoading) return;
+    if (showFavoritesOnly && (!favoritesLoaded || !hasFavoriteSelection)) return;
+
+    const feedVersion = feedVersionRef.current;
+    loadingRef.current = true;
+    setIsLoadingMore(true);
+
+    try {
+      const { data, hasMore: more } = await fetchPage(imagesRef.current.length);
+
+      if (feedVersion !== feedVersionRef.current) return;
+
+      const accumulated = [...imagesRef.current, ...data];
+      imagesRef.current = accumulated;
+      setImages(accumulated);
+      setAllImages(accumulated);
+      setHasMore(more);
+    } catch {
+      // silently fail — user still sees what was loaded
+    } finally {
+      if (feedVersion === feedVersionRef.current) {
+        loadingRef.current = false;
+        setIsLoadingMore(false);
+      }
+    }
+  }, [
+    hasFavoriteSelection,
+    favoritesLoaded,
+    fetchPage,
+    isLoading,
+    setAllImages,
+    showFavoritesOnly,
+  ]);
 
   // Keyboard shortcut: / to toggle search
   useEffect(() => {
@@ -42,23 +161,110 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/images")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+    const isDefaultFeed =
+      !debouncedSearchQuery &&
+      activeCategory === "all" &&
+      activeTimeFilter === "all" &&
+      activeModel === "all" &&
+      !showFavoritesOnly;
+
+    if (showFavoritesOnly && !favoritesLoaded) {
+      setIsLoading(true);
+      return;
+    }
+
+    if (showFavoritesOnly && !hasFavoriteSelection) {
+      feedVersionRef.current += 1;
+      imagesRef.current = [];
+      loadingRef.current = false;
+      setImages([]);
+      setAllImages([]);
+      setHasMore(false);
+      setIsLoading(false);
+      setIsLoadingMore(false);
+      initialLoadRef.current = false;
+      return;
+    }
+
+    const controller = new AbortController();
+    const feedVersion = feedVersionRef.current + 1;
+    feedVersionRef.current = feedVersion;
+    loadingRef.current = false;
+    setIsLoading(true);
+    setIsLoadingMore(false);
+    setHasMore(false);
+    imagesRef.current = [];
+    setImages([]);
+    setAllImages([]);
+
+    if (!initialLoadRef.current) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+
+    fetchPage(0, controller.signal)
+      .then(({ data, hasMore: more }) => {
+        if (feedVersion !== feedVersionRef.current) return;
+
+        if (data.length > 0 || !isDefaultFeed) {
+          imagesRef.current = data;
           setImages(data);
           setAllImages(data);
-        } else {
-          setImages(MOCK_IMAGES);
-          setAllImages(MOCK_IMAGES);
+          setHasMore(more);
+          return;
         }
-      })
-      .catch(() => {
+
+        imagesRef.current = MOCK_IMAGES;
         setImages(MOCK_IMAGES);
         setAllImages(MOCK_IMAGES);
+        setHasMore(false);
       })
-      .finally(() => setIsLoading(false));
-  }, [setAllImages]);
+      .catch(() => {
+        if (controller.signal.aborted || feedVersion !== feedVersionRef.current) return;
+
+        if (isDefaultFeed) {
+          imagesRef.current = MOCK_IMAGES;
+          setImages(MOCK_IMAGES);
+          setAllImages(MOCK_IMAGES);
+        } else {
+          imagesRef.current = [];
+          setImages([]);
+          setAllImages([]);
+        }
+        setHasMore(false);
+      })
+      .finally(() => {
+        if (feedVersion !== feedVersionRef.current) return;
+
+        setIsLoading(false);
+        initialLoadRef.current = false;
+      });
+
+    return () => controller.abort();
+  }, [
+    activeCategory,
+    activeModel,
+    activeTimeFilter,
+    debouncedSearchQuery,
+    hasFavoriteSelection,
+    favoritesLoaded,
+    fetchPage,
+    setAllImages,
+    showFavoritesOnly,
+  ]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) loadMore();
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore, isLoading]); // re-run when isLoading flips so sentinel ref is available
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
@@ -121,14 +327,26 @@ export default function Home() {
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
               </div>
             ) : (
-              <MasonryGrid images={images} />
+              <MasonryGrid
+                images={images}
+                hasMore={hasMore}
+                isLoadingMore={isLoadingMore}
+                sentinelRef={sentinelRef}
+              />
             )}
           </div>
         </main>
       </div>
 
       <ImageModal />
-      <SearchModal open={searchOpen} onClose={handleCloseSearch} />
+      <SearchModal
+        open={searchOpen}
+        onClose={handleCloseSearch}
+        isLoadingResults={
+          Boolean(searchQuery) &&
+          (isLoading || debouncedSearchQuery !== searchQuery.trim())
+        }
+      />
       <LoginPrompt />
 
       {/* Footer */}

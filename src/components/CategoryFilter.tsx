@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useAppStore } from "@/store";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, MODELS } from "@/lib/constants";
 
 const TIME_FILTERS = [
   { name: "Today", slug: "today" },
@@ -32,19 +32,8 @@ export default function CategoryFilter() {
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const [hasInteracted, setHasInteracted] = useState(false);
 
-  const usedSlugs = useMemo(
-    () => new Set(allImages.map((img) => img.category)),
-    [allImages]
-  );
-
-  const visibleCategories = CATEGORIES.filter(
-    (cat) => cat.slug !== "all" && usedSlugs.has(cat.slug)
-  );
-
-  const usedModels = useMemo(
-    () => [...new Set(allImages.map((img) => img.model))],
-    [allImages]
-  );
+  const visibleCategories = CATEGORIES.filter((cat) => cat.slug !== "all");
+  const availableModels = [...MODELS];
 
   const isAll = activeCategory === "all" && activeTimeFilter === "all" && activeModel === "all" && hasInteracted;
 
@@ -127,7 +116,7 @@ export default function CategoryFilter() {
       )}
 
       {/* Models filter */}
-      {usedModels.length > 0 && (
+      {availableModels.length > 0 && (
         <>
           <div className="h-px bg-zinc-200 dark:bg-white/5" />
           <div>
@@ -135,7 +124,7 @@ export default function CategoryFilter() {
               Models
             </p>
             <div className="space-y-0.5">
-              {usedModels.map((model) => {
+              {availableModels.map((model) => {
                 const isActive = activeModel === model;
                 return (
                   <button
