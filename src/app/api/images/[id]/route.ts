@@ -1,10 +1,33 @@
 import { NextResponse } from "next/server";
+import { isAdminEmail } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { createClient as createServerClient } from "@/lib/supabase-server";
+
+async function ensureAdmin() {
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAdminEmail(user.email)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  return null;
+}
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = await ensureAdmin();
+  if (authError) return authError;
+
   const { id } = await params;
 
   const { error } = await supabaseAdmin.from("images").delete().eq("id", id);
@@ -20,6 +43,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = await ensureAdmin();
+  if (authError) return authError;
+
   const { id } = await params;
   const body = await request.json();
 
