@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import Providers from "@/components/Providers";
 import "./globals.css";
 
@@ -47,6 +48,12 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
         <Providers>{children}</Providers>
+        <Script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="d6584f0c-286d-42d7-a9f4-ac20093c3865"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
