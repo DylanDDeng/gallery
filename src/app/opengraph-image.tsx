@@ -10,6 +10,8 @@ export default async function OGImage(request: NextRequest) {
   const description =
     searchParams.get("description") || "AI Image Gallery";
 
+  const logoUrl = new URL("/logo.png", request.url).toString();
+
   return new ImageResponse(
     (
       <div
@@ -21,8 +23,6 @@ export default async function OGImage(request: NextRequest) {
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#09090b",
-          backgroundImage:
-            "radial-gradient(circle at 25% 50%, rgba(120, 80, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 75% 50%, rgba(255, 100, 150, 0.1) 0%, transparent 50%)",
         }}
       >
         {/* Logo */}
@@ -35,7 +35,7 @@ export default async function OGImage(request: NextRequest) {
           }}
         >
           <img
-            src={`${new URL("/logo.png", request.url).toString()}`}
+            src={logoUrl}
             width={80}
             height={80}
             style={{
@@ -65,7 +65,7 @@ export default async function OGImage(request: NextRequest) {
             marginTop: 24,
             marginBottom: 24,
             borderRadius: 2,
-            background: "linear-gradient(90deg, #7c5cff, #ff6496)",
+            background: "#7c5cff",
           }}
         />
 
