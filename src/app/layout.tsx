@@ -15,14 +15,14 @@ export const metadata: Metadata = {
     title: "Aestara — AI Image Gallery",
     description:
       "A curated gallery of AI-generated images with their prompts, tags, and generation details.",
-    images: ["/opengraph-image"],
+    images: ["/opengraph-image.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "Aestara — AI Image Gallery",
     description:
       "A curated gallery of AI-generated images with their prompts, tags, and generation details.",
-    images: ["/opengraph-image"],
+    images: ["/opengraph-image.png"],
   },
 };
 
