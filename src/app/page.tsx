@@ -14,9 +14,10 @@ import type { ImagePrompt } from "@/lib/types";
 const PAGE_SIZE = 20;
 
 export default function Home() {
-  const [images, setImages] = useState<ImagePrompt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [images, setImages] = useState<ImagePrompt[]>(() => useAppStore.getState().allImages);
+  const [isLoading, setIsLoading] = useState(() => useAppStore.getState().allImages.length === 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -24,7 +25,7 @@ export default function Home() {
   const imagesRef = useRef<ImagePrompt[]>([]);
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(false);
-  const initialLoadRef = useRef(true);
+  const initialLoadRef = useRef(useAppStore.getState().allImages.length === 0);
   const feedVersionRef = useRef(0);
   const setAllImages = useAppStore((s) => s.setAllImages);
   const searchQuery = useAppStore((s) => s.searchQuery);
@@ -38,6 +39,7 @@ export default function Home() {
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const favoriteIdsParam = showFavoritesOnly ? favorites.join(",") : "";
   const hasFavoriteSelection = favoriteIdsParam.length > 0;
+  const favoritesReadyForFeed = !showFavoritesOnly || favoritesLoaded;
 
   // Keep refs in sync with state
   imagesRef.current = images;
@@ -107,7 +109,7 @@ export default function Home() {
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMoreRef.current || isLoading) return;
-    if (showFavoritesOnly && (!favoritesLoaded || !hasFavoriteSelection)) return;
+    if (!favoritesReadyForFeed || (showFavoritesOnly && !hasFavoriteSelection)) return;
 
     const feedVersion = feedVersionRef.current;
     loadingRef.current = true;
@@ -132,8 +134,8 @@ export default function Home() {
       }
     }
   }, [
+    favoritesReadyForFeed,
     hasFavoriteSelection,
-    favoritesLoaded,
     fetchPage,
     isLoading,
     setAllImages,
@@ -168,8 +170,12 @@ export default function Home() {
       activeModel === "all" &&
       !showFavoritesOnly;
 
-    if (showFavoritesOnly && !favoritesLoaded) {
-      setIsLoading(true);
+    if (!favoritesReadyForFeed) {
+      if (imagesRef.current.length === 0) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       return;
     }
 
@@ -182,6 +188,7 @@ export default function Home() {
       setHasMore(false);
       setIsLoading(false);
       setIsLoadingMore(false);
+      setIsRefreshing(false);
       initialLoadRef.current = false;
       return;
     }
@@ -190,15 +197,14 @@ export default function Home() {
     const feedVersion = feedVersionRef.current + 1;
     feedVersionRef.current = feedVersion;
     loadingRef.current = false;
-    setIsLoading(true);
     setIsLoadingMore(false);
     setHasMore(false);
-    imagesRef.current = [];
-    setImages([]);
-    setAllImages([]);
 
-    if (!initialLoadRef.current) {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    if (initialLoadRef.current && imagesRef.current.length === 0) {
+      setIsLoading(true);
+      setIsRefreshing(false);
+    } else {
+      setIsRefreshing(true);
     }
 
     fetchPage(0, controller.signal)
@@ -221,6 +227,11 @@ export default function Home() {
       .catch(() => {
         if (controller.signal.aborted || feedVersion !== feedVersionRef.current) return;
 
+        if (imagesRef.current.length > 0) {
+          setHasMore(false);
+          return;
+        }
+
         if (isDefaultFeed) {
           imagesRef.current = MOCK_IMAGES;
           setImages(MOCK_IMAGES);
@@ -236,6 +247,7 @@ export default function Home() {
         if (feedVersion !== feedVersionRef.current) return;
 
         setIsLoading(false);
+        setIsRefreshing(false);
         initialLoadRef.current = false;
       });
 
@@ -245,8 +257,8 @@ export default function Home() {
     activeModel,
     activeTimeFilter,
     debouncedSearchQuery,
+    favoritesReadyForFeed,
     hasFavoriteSelection,
-    favoritesLoaded,
     fetchPage,
     setAllImages,
     showFavoritesOnly,
@@ -344,7 +356,7 @@ export default function Home() {
         onClose={handleCloseSearch}
         isLoadingResults={
           Boolean(searchQuery) &&
-          (isLoading || debouncedSearchQuery !== searchQuery.trim())
+          (isLoading || isRefreshing || debouncedSearchQuery !== searchQuery.trim())
         }
       />
       <LoginPrompt />
