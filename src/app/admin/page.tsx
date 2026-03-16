@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, MODELS } from "@/lib/constants";
+import { createClient as createBrowserClient } from "@/lib/supabase-browser";
 import type { ImagePrompt } from "@/lib/types";
 
 export default function AdminPage() {
@@ -31,14 +32,84 @@ export default function AdminPage() {
   const [formPromptZh, setFormPromptZh] = useState("");
   const [formPromptJa, setFormPromptJa] = useState("");
 
-  const fetchImages = useCallback(async () => {
-    const res = await fetch("/api/images");
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      setImages(data);
+  const fetchImagesFromApi = useCallback(async () => {
+    const pageSize = 50;
+    let offset = 0;
+    let hasMore = true;
+    const accumulated: ImagePrompt[] = [];
+
+    while (hasMore) {
+      const res = await fetch(`/api/images?limit=${pageSize}&offset=${offset}`, {
+        cache: "no-store",
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to load images");
+      }
+
+      const page: ImagePrompt[] = Array.isArray(json)
+        ? json
+        : Array.isArray(json.data)
+        ? json.data
+        : [];
+
+      accumulated.push(...page);
+      hasMore = Array.isArray(json) ? false : Boolean(json.hasMore);
+      offset += page.length;
+
+      if (page.length === 0) {
+        hasMore = false;
+      }
     }
-    setLoading(false);
+
+    return accumulated;
   }, []);
+
+  const fetchImagesFromBrowser = useCallback(async () => {
+    const supabase = createBrowserClient();
+    const pageSize = 100;
+    let offset = 0;
+    let hasMore = true;
+    const accumulated: ImagePrompt[] = [];
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("images")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+
+      if (error) {
+        throw error;
+      }
+
+      const page = (data || []) as ImagePrompt[];
+      accumulated.push(...page);
+      hasMore = page.length === pageSize;
+      offset += page.length;
+    }
+
+    return accumulated;
+  }, []);
+
+  const fetchImages = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const images = await fetchImagesFromApi();
+      setImages(images);
+    } catch {
+      try {
+        const images = await fetchImagesFromBrowser();
+        setImages(images);
+      } catch {
+        setImages([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchImagesFromApi, fetchImagesFromBrowser]);
 
   useEffect(() => {
     const token = sessionStorage.getItem("admin_auth");
@@ -59,7 +130,7 @@ export default function AdminPage() {
     if (res.ok) {
       sessionStorage.setItem("admin_auth", "true");
       setAuthenticated(true);
-      fetchImages();
+      await fetchImages();
     } else {
       setAuthError("Invalid password");
     }
@@ -134,7 +205,7 @@ export default function AdminPage() {
       });
       if (res.ok) {
         setMessage("Updated successfully");
-        fetchImages();
+        await fetchImages();
         setTimeout(resetForm, 1000);
       } else {
         const err = await res.json();
@@ -148,7 +219,7 @@ export default function AdminPage() {
       });
       if (res.ok) {
         setMessage("Added successfully");
-        fetchImages();
+        await fetchImages();
         resetForm();
       } else {
         const err = await res.json();
@@ -162,7 +233,7 @@ export default function AdminPage() {
     if (!confirm("Are you sure you want to delete this image?")) return;
     const res = await fetch(`/api/images/${id}`, { method: "DELETE" });
     if (res.ok) {
-      fetchImages();
+      await fetchImages();
       if (editingImage?.id === id) resetForm();
     }
   };
