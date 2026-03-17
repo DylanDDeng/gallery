@@ -151,7 +151,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
   const openEditForm = (image: ImagePrompt) => {
     setPreviewError(false);
     setEditingImage(image);
-    setFormUrl(image.url);
+    setFormUrl(normalizeImageUrlInput(image.url));
     setFormPrompt(image.prompt);
     setFormAuthor(image.author);
     setFormModel(image.model);
@@ -170,9 +170,10 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
     e.preventDefault();
     setSubmitting(true);
     setMessage("");
+    const normalizedUrl = normalizeImageUrlInput(formUrl);
 
     const payload = {
-      url: formUrl,
+      url: normalizedUrl,
       prompt: formPrompt,
       author: formAuthor,
       model: formModel,
@@ -554,6 +555,8 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                       alt=""
                       width={48}
                       height={64}
+                      sizes="48px"
+                      unoptimized
                       className="h-full w-full object-cover"
                     />
                   </div>
