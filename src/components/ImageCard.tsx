@@ -30,6 +30,10 @@ export default function ImageCard({ image }: ImageCardProps) {
     setLoaded(true);
   };
 
+  const handleError = () => {
+    setLoaded(true);
+  };
+
   const style: React.CSSProperties = aspectRatio
     ? { aspectRatio: String(aspectRatio) }
     : image.width && image.height
@@ -52,7 +56,9 @@ export default function ImageCard({ image }: ImageCardProps) {
             loaded ? "opacity-100" : "opacity-0"
           }`}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          unoptimized
           onLoad={handleLoad}
+          onError={handleError}
         />
         {!loaded && (
           <div className="absolute inset-0 animate-pulse bg-zinc-100 dark:bg-zinc-800">

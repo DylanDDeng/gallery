@@ -247,6 +247,8 @@ export default function ImageModal() {
                   alt=""
                   width={60}
                   height={60}
+                  sizes="60px"
+                  unoptimized
                   className={`h-full w-full object-cover ${
                     isActive ? "" : "blur-[2px]"
                   }`}
