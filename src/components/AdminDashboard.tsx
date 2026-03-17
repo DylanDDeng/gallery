@@ -477,11 +477,9 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                         Image failed to load — check if the URL is accessible
                       </p>
                     ) : (
-                      <Image
+                      <img
                         src={formUrl}
                         alt="Preview"
-                        width={300}
-                        height={200}
                         className="h-full w-auto object-contain"
                         onError={() => setPreviewError(true)}
                       />
