@@ -22,6 +22,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
 
   // Form state
   const [formUrl, setFormUrl] = useState("");
+  const [previewError, setPreviewError] = useState(false);
   const [formPrompt, setFormPrompt] = useState("");
   const [formAuthor, setFormAuthor] = useState("");
   const [formModel, setFormModel] = useState("");
@@ -311,6 +312,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                       const raw = e.target.value;
                       const cleaned = raw.replace(/^!\[.*?\]\((.+)\)$/, "$1");
                       setFormUrl(cleaned);
+                      setPreviewError(false);
                     }}
                     placeholder="https://... or paste markdown ![](url)"
                     className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
@@ -470,13 +472,20 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                     Preview
                   </label>
                   <div className="flex h-48 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-white/5">
-                    <Image
-                      src={formUrl}
-                      alt="Preview"
-                      width={300}
-                      height={200}
-                      className="h-full w-auto object-contain"
-                    />
+                    {previewError ? (
+                      <p className="text-xs text-red-400 dark:text-red-500 px-4 text-center">
+                        Image failed to load — check if the URL is accessible
+                      </p>
+                    ) : (
+                      <Image
+                        src={formUrl}
+                        alt="Preview"
+                        width={300}
+                        height={200}
+                        className="h-full w-auto object-contain"
+                        onError={() => setPreviewError(true)}
+                      />
+                    )}
                   </div>
                 </div>
               )}
