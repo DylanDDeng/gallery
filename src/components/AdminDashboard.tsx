@@ -11,6 +11,12 @@ interface AdminDashboardProps {
   email?: string | null;
 }
 
+const normalizeImageUrlInput = (raw: string) => {
+  const trimmed = raw.trim();
+  const markdownMatch = trimmed.match(/^!\[[^\]]*]\((.+?)\)$/);
+  return markdownMatch ? markdownMatch[1].trim() : trimmed;
+};
+
 export default function AdminDashboard({ email }: AdminDashboardProps) {
   const router = useRouter();
   const [images, setImages] = useState<ImagePrompt[]>([]);
@@ -121,6 +127,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
 
   const resetForm = () => {
     setFormUrl("");
+    setPreviewError(false);
     setFormPrompt("");
     setFormAuthor("");
     setFormModel("");
@@ -142,6 +149,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
   };
 
   const openEditForm = (image: ImagePrompt) => {
+    setPreviewError(false);
     setEditingImage(image);
     setFormUrl(image.url);
     setFormPrompt(image.prompt);
@@ -309,9 +317,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                     required
                     value={formUrl}
                     onChange={(e) => {
-                      const raw = e.target.value;
-                      const cleaned = raw.replace(/^!\[.*?\]\((.+)\)$/, "$1");
-                      setFormUrl(cleaned);
+                      setFormUrl(normalizeImageUrlInput(e.target.value));
                       setPreviewError(false);
                     }}
                     placeholder="https://... or paste markdown ![](url)"
@@ -481,6 +487,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                         src={formUrl}
                         alt="Preview"
                         className="h-full w-auto object-contain"
+                        onLoad={() => setPreviewError(false)}
                         onError={() => setPreviewError(true)}
                       />
                     )}
