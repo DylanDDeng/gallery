@@ -104,7 +104,9 @@ export async function POST(request: Request) {
   const rawBody = await request.text();
   const headersList = await headers();
   const signature = headersList.get("stripe-signature");
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret =
+    process.env.BILLING_STRIPE_WEBHOOK_SECRET ||
+    process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!signature) {
     return NextResponse.json(
@@ -114,7 +116,9 @@ export async function POST(request: Request) {
   }
 
   if (!webhookSecret) {
-    console.error("Missing STRIPE_WEBHOOK_SECRET");
+    console.error(
+      "Missing BILLING_STRIPE_WEBHOOK_SECRET or STRIPE_WEBHOOK_SECRET"
+    );
     return NextResponse.json(
       { error: "Server configuration error" },
       { status: 500 }

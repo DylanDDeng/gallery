@@ -30,6 +30,7 @@ Use the environment variables in `.env.example` to configure billing:
 - `DOUBAO_API_KEY` for server-managed image generation when self-service API keys are disabled.
 - `USER_API_KEYS_ENCRYPTION_KEY` to encrypt user-supplied API keys at rest when self-service API keys are enabled.
 - Stripe:
+  - `BILLING_STRIPE_SECRET_KEY` and `BILLING_STRIPE_WEBHOOK_SECRET` as preferred Vercel-safe aliases
   - `STRIPE_SECRET_KEY`
   - `STRIPE_WEBHOOK_SECRET`
   - `STRIPE_PRICE_SMALL`, `STRIPE_PRICE_MEDIUM`, `STRIPE_PRICE_LARGE`, `STRIPE_PRICE_PRO`

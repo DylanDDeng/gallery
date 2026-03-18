@@ -4,10 +4,13 @@ let stripeClient: Stripe | null = null;
 
 export function getStripe() {
   if (!stripeClient) {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const secretKey =
+      process.env.BILLING_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
 
     if (!secretKey) {
-      throw new Error("Missing STRIPE_SECRET_KEY environment variable");
+      throw new Error(
+        "Missing BILLING_STRIPE_SECRET_KEY or STRIPE_SECRET_KEY environment variable"
+      );
     }
 
     stripeClient = new Stripe(secretKey);
