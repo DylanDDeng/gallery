@@ -27,6 +27,8 @@ export default function Home() {
   const hasMoreRef = useRef(false);
   const initialLoadRef = useRef(useAppStore.getState().allImages.length === 0);
   const feedVersionRef = useRef(0);
+  const defaultFeedImagesRef = useRef<ImagePrompt[]>(useAppStore.getState().allImages);
+  const defaultFeedHasMoreRef = useRef(false);
   const setAllImages = useAppStore((s) => s.setAllImages);
   const searchQuery = useAppStore((s) => s.searchQuery);
   const activeCategory = useAppStore((s) => s.activeCategory);
@@ -40,6 +42,12 @@ export default function Home() {
   const favoriteIdsParam = showFavoritesOnly ? favorites.join(",") : "";
   const hasFavoriteSelection = favoriteIdsParam.length > 0;
   const favoritesReadyForFeed = !showFavoritesOnly || favoritesLoaded;
+  const isDefaultFeed =
+    !debouncedSearchQuery &&
+    activeCategory === "all" &&
+    activeTimeFilter === "all" &&
+    activeModel === "all" &&
+    !showFavoritesOnly;
 
   // Keep refs in sync with state
   imagesRef.current = images;
@@ -125,6 +133,11 @@ export default function Home() {
       setImages(accumulated);
       setAllImages(accumulated);
       setHasMore(more);
+
+      if (isDefaultFeed) {
+        defaultFeedImagesRef.current = accumulated;
+        defaultFeedHasMoreRef.current = more;
+      }
     } catch {
       // silently fail — user still sees what was loaded
     } finally {
@@ -138,6 +151,7 @@ export default function Home() {
     hasFavoriteSelection,
     fetchPage,
     isLoading,
+    isDefaultFeed,
     setAllImages,
     showFavoritesOnly,
   ]);
@@ -163,13 +177,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const isDefaultFeed =
-      !debouncedSearchQuery &&
-      activeCategory === "all" &&
-      activeTimeFilter === "all" &&
-      activeModel === "all" &&
-      !showFavoritesOnly;
-
     if (!favoritesReadyForFeed) {
       if (imagesRef.current.length === 0) {
         setIsLoading(true);
@@ -200,6 +207,16 @@ export default function Home() {
     setIsLoadingMore(false);
     setHasMore(false);
 
+    if (isDefaultFeed && defaultFeedImagesRef.current.length > 0 && !initialLoadRef.current) {
+      imagesRef.current = defaultFeedImagesRef.current;
+      setImages(defaultFeedImagesRef.current);
+      setAllImages(defaultFeedImagesRef.current);
+      setHasMore(defaultFeedHasMoreRef.current);
+      setIsLoading(false);
+      setIsRefreshing(false);
+      return () => controller.abort();
+    }
+
     if (initialLoadRef.current && imagesRef.current.length === 0) {
       setIsLoading(true);
       setIsRefreshing(false);
@@ -216,6 +233,11 @@ export default function Home() {
           setImages(data);
           setAllImages(data);
           setHasMore(more);
+
+          if (isDefaultFeed) {
+            defaultFeedImagesRef.current = data;
+            defaultFeedHasMoreRef.current = more;
+          }
           return;
         }
 
@@ -223,6 +245,11 @@ export default function Home() {
         setImages(MOCK_IMAGES);
         setAllImages(MOCK_IMAGES);
         setHasMore(false);
+
+        if (isDefaultFeed) {
+          defaultFeedImagesRef.current = MOCK_IMAGES;
+          defaultFeedHasMoreRef.current = false;
+        }
       })
       .catch(() => {
         if (controller.signal.aborted || feedVersion !== feedVersionRef.current) return;
@@ -260,6 +287,7 @@ export default function Home() {
     favoritesReadyForFeed,
     hasFavoriteSelection,
     fetchPage,
+    isDefaultFeed,
     setAllImages,
     showFavoritesOnly,
   ]);
