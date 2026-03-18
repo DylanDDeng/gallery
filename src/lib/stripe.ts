@@ -1,11 +1,14 @@
 import Stripe from "stripe";
+import { getFirstServerEnv } from "@/lib/server-env";
 
 let stripeClient: Stripe | null = null;
 
 export function getStripe() {
   if (!stripeClient) {
-    const secretKey =
-      process.env.BILLING_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
+    const secretKey = getFirstServerEnv([
+      "BILLING_STRIPE_SECRET_KEY",
+      "STRIPE_SECRET_KEY",
+    ]);
 
     if (!secretKey) {
       throw new Error(

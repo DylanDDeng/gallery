@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
 import { isBillingEnabled } from "@/lib/billing-feature";
+import { getFirstServerEnv } from "@/lib/server-env";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getStripe } from "@/lib/stripe";
 
@@ -104,9 +105,10 @@ export async function POST(request: Request) {
   const rawBody = await request.text();
   const headersList = await headers();
   const signature = headersList.get("stripe-signature");
-  const webhookSecret =
-    process.env.BILLING_STRIPE_WEBHOOK_SECRET ||
-    process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = getFirstServerEnv([
+    "BILLING_STRIPE_WEBHOOK_SECRET",
+    "STRIPE_WEBHOOK_SECRET",
+  ]);
 
   if (!signature) {
     return NextResponse.json(
