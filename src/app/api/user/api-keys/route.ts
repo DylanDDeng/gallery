@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { encryptApiKey } from "@/lib/api-key-crypto";
+import { isSelfServiceApiKeysEnabled } from "@/lib/billing-feature";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
+  if (!isSelfServiceApiKeysEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const user = await ensureAuth();
   if (user instanceof NextResponse) {
     return user;
@@ -31,6 +36,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isSelfServiceApiKeysEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const user = await ensureAuth();
   if (user instanceof NextResponse) {
     return user;
@@ -94,6 +103,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!isSelfServiceApiKeysEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const user = await ensureAuth();
   if (user instanceof NextResponse) {
     return user;

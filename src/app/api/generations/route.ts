@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { decryptApiKey } from "@/lib/api-key-crypto";
-import { isBillingEnabled } from "@/lib/billing-feature";
+import {
+  isBillingEnabled,
+  isSelfServiceApiKeysEnabled,
+} from "@/lib/billing-feature";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { DoubaoClient } from "@/lib/doubao";
 
@@ -87,6 +90,7 @@ export async function POST(request: Request) {
 
   try {
     const billingEnabled = isBillingEnabled();
+    const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
     const body = await request.json();
     const { prompt, model = "doubao-seedream-5-0-260128", size = "2K" } = body;
 
@@ -97,23 +101,37 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get user's API key
-    const { data: apiKeyData, error: apiKeyError } = await supabaseAdmin
-      .from("user_api_keys")
-      .select("encrypted_key")
-      .eq("user_id", user.id)
-      .eq("provider", "doubao")
-      .eq("is_active", true)
-      .single();
+    let apiKey: string;
 
-    if (apiKeyError || !apiKeyData) {
-      return NextResponse.json(
-        { error: "Please configure your Doubao API key in Settings first" },
-        { status: 400 }
-      );
+    if (selfServiceApiKeysEnabled) {
+      const { data: apiKeyData, error: apiKeyError } = await supabaseAdmin
+        .from("user_api_keys")
+        .select("encrypted_key")
+        .eq("user_id", user.id)
+        .eq("provider", "doubao")
+        .eq("is_active", true)
+        .single();
+
+      if (apiKeyError || !apiKeyData) {
+        return NextResponse.json(
+          { error: "Please configure your Doubao API key in Settings first" },
+          { status: 400 }
+        );
+      }
+
+      apiKey = decryptApiKey(apiKeyData.encrypted_key);
+    } else {
+      const configuredApiKey = process.env.DOUBAO_API_KEY;
+
+      if (!configuredApiKey) {
+        return NextResponse.json(
+          { error: "Generation service is not configured" },
+          { status: 500 }
+        );
+      }
+
+      apiKey = configuredApiKey;
     }
-
-    const apiKey = decryptApiKey(apiKeyData.encrypted_key);
 
     // Create generation task
     const { data: task, error: taskError } = await supabaseAdmin

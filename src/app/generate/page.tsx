@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { isBillingEnabled } from "@/lib/billing-feature";
+import {
+  isBillingEnabled,
+  isSelfServiceApiKeysEnabled,
+} from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 
 interface GenerationTask {
@@ -22,6 +25,7 @@ export default function GeneratePage() {
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const billingEnabled = isBillingEnabled();
+  const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
 
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -76,12 +80,24 @@ export default function GeneratePage() {
       router.push("/");
       return;
     }
-    void checkApiKey();
+    if (selfServiceApiKeysEnabled) {
+      void checkApiKey();
+    } else {
+      setHasApiKey(true);
+    }
     if (billingEnabled) {
       void fetchCredits();
     }
     void fetchRecentTasks();
-  }, [billingEnabled, user, router, checkApiKey, fetchCredits, fetchRecentTasks]);
+  }, [
+    billingEnabled,
+    user,
+    router,
+    checkApiKey,
+    fetchCredits,
+    fetchRecentTasks,
+    selfServiceApiKeysEnabled,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +118,7 @@ export default function GeneratePage() {
 
       if (!res.ok) {
         setError(json.error || "Failed to create generation");
-        if (json.error?.includes("API key")) {
+        if (selfServiceApiKeysEnabled && json.error?.includes("API key")) {
           setHasApiKey(false);
         }
         void fetchRecentTasks();
@@ -178,7 +194,7 @@ export default function GeneratePage() {
 
       <div className="mx-auto max-w-[800px] px-6 py-8">
         {/* API Key Warning */}
-        {hasApiKey === false && (
+        {selfServiceApiKeysEnabled && hasApiKey === false && (
           <div className="mb-6 rounded-xl bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
             <p className="font-medium">API Key not configured</p>
             <p className="mt-1">Please configure your Doubao API key in{" "}
@@ -213,7 +229,7 @@ export default function GeneratePage() {
               Buy Credits
             </button>
           </div>
-        ) : (
+        ) : selfServiceApiKeysEnabled ? (
           <div className="mb-6 rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
               API-key mode
@@ -222,7 +238,7 @@ export default function GeneratePage() {
               Generation currently uses your own configured Doubao API key. Credits and purchases are disabled.
             </p>
           </div>
-        )}
+        ) : null}
 
         {/* Generate Form */}
         <form onSubmit={(e) => void handleSubmit(e)} className="mb-8">
@@ -250,7 +266,7 @@ export default function GeneratePage() {
                 disabled={
                   submitting ||
                   !prompt.trim() ||
-                  !hasApiKey ||
+                  (selfServiceApiKeysEnabled && !hasApiKey) ||
                   (billingEnabled && (credits ?? 0) < 1)
                 }
                 className="flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-6 py-2.5 text-sm font-semibold text-white dark:text-zinc-900 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50"

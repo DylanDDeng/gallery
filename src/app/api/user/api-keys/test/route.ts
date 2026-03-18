@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { decryptApiKey } from "@/lib/api-key-crypto";
+import { isSelfServiceApiKeysEnabled } from "@/lib/billing-feature";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { DoubaoClient } from "@/lib/doubao";
 
 export async function POST(request: Request) {
+  if (!isSelfServiceApiKeysEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const user = await ensureAuth();
   if (user instanceof NextResponse) {
     return user;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { isSelfServiceApiKeysEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 
 interface ApiKeyConfig {
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
 
   const [apiKeys, setApiKeys] = useState<ApiKeyConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +52,11 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    if (!selfServiceApiKeysEnabled) {
+      router.replace("/");
+      return;
+    }
+
     if (!user) {
       // Only redirect to home if we're sure user is not logged in
       // Use a small delay to allow auth state to sync
@@ -62,7 +69,7 @@ export default function SettingsPage() {
       return () => clearTimeout(timer);
     }
     void fetchApiKeys();
-  }, [user, router, fetchApiKeys]);
+  }, [fetchApiKeys, router, selfServiceApiKeysEnabled, user]);
 
   const handleSave = async () => {
     if (!doubaoKey.trim() && !apiKeys.find((k) => k.provider === "doubao")) {
@@ -155,7 +162,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (!user) {
+  if (!user || !selfServiceApiKeysEnabled) {
     return null;
   }
 

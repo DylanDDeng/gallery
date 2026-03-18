@@ -26,7 +26,9 @@ Use the environment variables in `.env.example` to configure billing:
 - `PAYMENT_PROVIDER` to choose `stripe` or `paddle`.
 - `NEXT_PUBLIC_BASE_URL` for success and cancel redirects.
 - `NEXT_PUBLIC_BILLING_ENABLED` to turn the public billing flow on or off.
-- `USER_API_KEYS_ENCRYPTION_KEY` to encrypt user-supplied API keys at rest.
+- `NEXT_PUBLIC_SELF_SERVICE_API_KEYS_ENABLED` to allow or disallow user-managed provider API keys.
+- `DOUBAO_API_KEY` for server-managed image generation when self-service API keys are disabled.
+- `USER_API_KEYS_ENCRYPTION_KEY` to encrypt user-supplied API keys at rest when self-service API keys are enabled.
 - Stripe:
   - `STRIPE_SECRET_KEY`
   - `STRIPE_WEBHOOK_SECRET`
