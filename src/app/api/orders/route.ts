@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getPackageById } from "@/lib/billing";
+import { getCreditPackages, getPackageById } from "@/lib/billing";
 import { isBillingEnabled } from "@/lib/billing-feature";
 import { getPaymentProvider, isPaddleProvider } from "@/lib/payment-provider";
 import { createPaddleTransaction } from "@/lib/paddle";
 import { createStripeCheckoutSession } from "@/lib/stripe";
+
+function getPackagePriceDiagnostics(paymentProvider: string) {
+  return Object.fromEntries(
+    getCreditPackages(paymentProvider === "paddle" ? "paddle" : "stripe").map(
+      (pkg) => [pkg.id, Boolean(pkg.priceId)]
+    )
+  );
+}
 
 export async function GET() {
   if (!isBillingEnabled()) {
@@ -63,6 +71,16 @@ export async function POST(request: Request) {
     }
 
     if (!pkg.priceId) {
+      console.error("Billing package price missing", {
+        paymentProvider,
+        packageId,
+        selectedPackage: pkg.id,
+        priceConfigured: Boolean(pkg.priceId),
+        packagePriceDiagnostics: getPackagePriceDiagnostics(paymentProvider),
+        billingEnabled: isBillingEnabled(),
+        baseUrlConfigured: Boolean(process.env.NEXT_PUBLIC_BASE_URL),
+      });
+
       return NextResponse.json(
         { error: "Package price not configured" },
         { status: 500 }
