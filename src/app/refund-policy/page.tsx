@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import LegalPageShell from "@/components/LegalPageShell";
 
 export const metadata: Metadata = {
@@ -7,6 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function RefundPolicyPage() {
+  if (!isBillingEnabled()) {
+    notFound();
+  }
+
   return (
     <LegalPageShell
       title="Refund Policy"

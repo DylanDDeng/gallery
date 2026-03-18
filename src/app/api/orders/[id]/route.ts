@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isBillingEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const user = await ensureAuth();
   if (user instanceof NextResponse) {
     return user;

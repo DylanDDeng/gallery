@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { CREDIT_PACKAGE_CATALOG } from "@/lib/billing";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
@@ -9,6 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default function PricingPage() {
+  if (!isBillingEnabled()) {
+    notFound();
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/80 backdrop-blur-xl dark:border-white/5 dark:bg-zinc-950/80">

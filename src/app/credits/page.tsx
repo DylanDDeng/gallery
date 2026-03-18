@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import {
   CREDIT_PACKAGE_CATALOG,
   type CreditPackageCatalogItem,
@@ -14,6 +15,7 @@ function CreditsContent() {
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const billingEnabled = isBillingEnabled();
 
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,6 +82,11 @@ function CreditsContent() {
   );
 
   useEffect(() => {
+    if (!billingEnabled) {
+      router.replace("/");
+      return;
+    }
+
     const status = (searchParams.get("payment_status") ?? searchParams.get("status") ?? "").toLowerCase();
     const success = searchParams.get("success");
     const orderId = searchParams.get("order_id");
@@ -100,15 +107,21 @@ function CreditsContent() {
       setMessage({ type: "error", text: "Checkout was canceled." });
       router.replace("/credits");
     }
-  }, [fetchCredits, router, searchParams, waitForOrderCompletion]);
+  }, [billingEnabled, fetchCredits, router, searchParams, waitForOrderCompletion]);
 
   useEffect(() => {
     if (!user) {
       router.push("/");
       return;
     }
+
+    if (!billingEnabled) {
+      router.replace("/");
+      return;
+    }
+
     void fetchCredits();
-  }, [user, router, fetchCredits]);
+  }, [billingEnabled, user, router, fetchCredits]);
 
   const handlePurchase = async (pkg: CreditPackageCatalogItem) => {
     if (!user) {
@@ -144,7 +157,7 @@ function CreditsContent() {
     }
   };
 
-  if (!user) {
+  if (!user || !billingEnabled) {
     return null;
   }
 

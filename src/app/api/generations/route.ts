@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { decryptApiKey } from "@/lib/api-key-crypto";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { DoubaoClient } from "@/lib/doubao";
 
@@ -85,6 +86,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const billingEnabled = isBillingEnabled();
     const body = await request.json();
     const { prompt, model = "doubao-seedream-5-0-260128", size = "2K" } = body;
 
@@ -121,7 +123,7 @@ export async function POST(request: Request) {
         prompt: prompt.trim(),
         model,
         status: "processing",
-        credits_cost: GENERATION_COST,
+        credits_cost: billingEnabled ? GENERATION_COST : 0,
       })
       .select()
       .single();
@@ -133,32 +135,34 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: deductResult, error: deductError } = await supabaseAdmin.rpc(
-      "deduct_credits",
-      {
-        p_user_id: user.id,
-        p_amount: GENERATION_COST,
-        p_task_id: task.id,
+    if (billingEnabled) {
+      const { data: deductResult, error: deductError } = await supabaseAdmin.rpc(
+        "deduct_credits",
+        {
+          p_user_id: user.id,
+          p_amount: GENERATION_COST,
+          p_task_id: task.id,
+        }
+      );
+
+      if (deductError) {
+        console.error("Error deducting credits:", deductError);
+        await markTaskFailed(task.id, "Failed to deduct credits");
+
+        return NextResponse.json(
+          { error: "Failed to deduct credits" },
+          { status: 500 }
+        );
       }
-    );
 
-    if (deductError) {
-      console.error("Error deducting credits:", deductError);
-      await markTaskFailed(task.id, "Failed to deduct credits");
+      if (!deductResult) {
+        await supabaseAdmin.from("generation_tasks").delete().eq("id", task.id);
 
-      return NextResponse.json(
-        { error: "Failed to deduct credits" },
-        { status: 500 }
-      );
-    }
-
-    if (!deductResult) {
-      await supabaseAdmin.from("generation_tasks").delete().eq("id", task.id);
-
-      return NextResponse.json(
-        { error: "Insufficient credits" },
-        { status: 402 }
-      );
+        return NextResponse.json(
+          { error: "Insufficient credits" },
+          { status: 402 }
+        );
+      }
     }
 
     // Call Doubao API
@@ -176,7 +180,11 @@ export async function POST(request: Request) {
       console.error("Doubao API error:", apiError);
       const errorMessage =
         apiError instanceof Error ? apiError.message : "API call failed";
-      await refundFailedGeneration(user.id, task.id, errorMessage);
+      if (billingEnabled) {
+        await refundFailedGeneration(user.id, task.id, errorMessage);
+      } else {
+        await markTaskFailed(task.id, errorMessage);
+      }
 
       return NextResponse.json(
         { error: errorMessage },
@@ -187,7 +195,11 @@ export async function POST(request: Request) {
     // Download image from Doubao response
     const imageUrl = doubaoResponse.data[0]?.url;
     if (!imageUrl) {
-      await refundFailedGeneration(user.id, task.id, "No image URL in response");
+      if (billingEnabled) {
+        await refundFailedGeneration(user.id, task.id, "No image URL in response");
+      } else {
+        await markTaskFailed(task.id, "No image URL in response");
+      }
 
       return NextResponse.json(
         { error: "No image URL in Doubao response" },
@@ -205,11 +217,15 @@ export async function POST(request: Request) {
       imageBuffer = await imageResponse.arrayBuffer();
     } catch (downloadError) {
       console.error("Image download error:", downloadError);
-      await refundFailedGeneration(
-        user.id,
-        task.id,
-        "Failed to download generated image"
-      );
+      if (billingEnabled) {
+        await refundFailedGeneration(
+          user.id,
+          task.id,
+          "Failed to download generated image"
+        );
+      } else {
+        await markTaskFailed(task.id, "Failed to download generated image");
+      }
 
       return NextResponse.json(
         { error: "Failed to download generated image" },
@@ -243,7 +259,7 @@ export async function POST(request: Request) {
             ...task,
             status: "completed",
             result_url: imageUrl,
-            credits_cost: GENERATION_COST,
+            credits_cost: billingEnabled ? GENERATION_COST : 0,
           },
         },
         { status: 201 }
@@ -272,7 +288,7 @@ export async function POST(request: Request) {
           ...task,
           status: "completed",
           result_url: finalUrl,
-          credits_cost: GENERATION_COST,
+          credits_cost: billingEnabled ? GENERATION_COST : 0,
         },
         downloadUrl: finalUrl,
       },

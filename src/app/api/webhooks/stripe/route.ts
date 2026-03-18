@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getStripe } from "@/lib/stripe";
 
@@ -96,6 +97,10 @@ async function fulfillStripeCheckout(session: Stripe.Checkout.Session) {
 }
 
 export async function POST(request: Request) {
+  if (!isBillingEnabled()) {
+    return NextResponse.json({ received: true, ignored: true });
+  }
+
   const rawBody = await request.text();
   const headersList = await headers();
   const signature = headersList.get("stripe-signature");

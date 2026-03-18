@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   type PaddleTransactionData,
@@ -97,6 +98,10 @@ async function handleCompletedTransaction(
 }
 
 export async function POST(request: Request) {
+  if (!isBillingEnabled()) {
+    return NextResponse.json({ received: true, ignored: true });
+  }
+
   const rawBody = await request.text();
   const headersList = await headers();
   const signature = headersList.get("paddle-signature");

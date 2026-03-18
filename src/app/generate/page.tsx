@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 
 interface GenerationTask {
@@ -20,6 +21,7 @@ export default function GeneratePage() {
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const billingEnabled = isBillingEnabled();
 
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -75,9 +77,11 @@ export default function GeneratePage() {
       return;
     }
     void checkApiKey();
-    void fetchCredits();
+    if (billingEnabled) {
+      void fetchCredits();
+    }
     void fetchRecentTasks();
-  }, [user, router, checkApiKey, fetchCredits, fetchRecentTasks]);
+  }, [billingEnabled, user, router, checkApiKey, fetchCredits, fetchRecentTasks]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,20 +106,26 @@ export default function GeneratePage() {
           setHasApiKey(false);
         }
         void fetchRecentTasks();
-        void fetchCredits();
+        if (billingEnabled) {
+          void fetchCredits();
+        }
         return;
       }
 
       setCurrentTask(json.task);
       setPrompt("");
-      void fetchCredits();
+      if (billingEnabled) {
+        void fetchCredits();
+      }
 
       // Refresh recent tasks
       void fetchRecentTasks();
     } catch (err) {
       console.error("Error creating generation:", err);
       setError("An error occurred. Please try again.");
-      void fetchCredits();
+      if (billingEnabled) {
+        void fetchCredits();
+      }
     } finally {
       setSubmitting(false);
     }
@@ -183,25 +193,36 @@ export default function GeneratePage() {
           </div>
         )}
 
-        <div className="mb-6 flex items-center justify-between rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
-          <div>
+        {billingEnabled ? (
+          <div className="mb-6 flex items-center justify-between rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
+                Credits
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+                {credits ?? "—"}
+              </p>
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                Each generation costs 1 credit.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/credits")}
+              className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            >
+              Buy Credits
+            </button>
+          </div>
+        ) : (
+          <div className="mb-6 rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
-              Credits
+              API-key mode
             </p>
-            <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-              {credits ?? "—"}
-            </p>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Each generation costs 1 credit.
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+              Generation currently uses your own configured Doubao API key. Credits and purchases are disabled.
             </p>
           </div>
-          <button
-            onClick={() => router.push("/credits")}
-            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            Buy Credits
-          </button>
-        </div>
+        )}
 
         {/* Generate Form */}
         <form onSubmit={(e) => void handleSubmit(e)} className="mb-8">
@@ -226,7 +247,12 @@ export default function GeneratePage() {
             <div className="mt-4 flex items-center justify-end">
               <button
                 type="submit"
-                disabled={submitting || !prompt.trim() || !hasApiKey || (credits ?? 0) < 1}
+                disabled={
+                  submitting ||
+                  !prompt.trim() ||
+                  !hasApiKey ||
+                  (billingEnabled && (credits ?? 0) < 1)
+                }
                 className="flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-6 py-2.5 text-sm font-semibold text-white dark:text-zinc-900 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50"
               >
                 {submitting ? (
@@ -297,10 +323,12 @@ export default function GeneratePage() {
                     <span className="text-xs text-zinc-400 dark:text-zinc-500">
                       {new Date(currentTask.created_at).toLocaleTimeString()}
                     </span>
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                      {currentTask.credits_cost ?? 1} credit
-                      {(currentTask.credits_cost ?? 1) !== 1 ? "s" : ""}
-                    </span>
+                    {billingEnabled && (currentTask.credits_cost ?? 0) > 0 && (
+                      <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                        {currentTask.credits_cost ?? 1} credit
+                        {(currentTask.credits_cost ?? 1) !== 1 ? "s" : ""}
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 mb-1">
@@ -382,10 +410,12 @@ export default function GeneratePage() {
                     <p className="text-xs text-zinc-400 dark:text-zinc-500">
                       {new Date(task.created_at).toLocaleString()}
                     </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                      {task.credits_cost ?? 1} credit
-                      {(task.credits_cost ?? 1) !== 1 ? "s" : ""}
-                    </p>
+                    {billingEnabled && (task.credits_cost ?? 0) > 0 && (
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                        {task.credits_cost ?? 1} credit
+                        {(task.credits_cost ?? 1) !== 1 ? "s" : ""}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}

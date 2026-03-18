@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getPackageById } from "@/lib/billing";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { getPaymentProvider, isPaddleProvider } from "@/lib/payment-provider";
 import { createPaddleTransaction } from "@/lib/paddle";
 import { createStripeCheckoutSession } from "@/lib/stripe";
 
 export async function GET() {
+  if (!isBillingEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const user = await ensureAuth();
   if (user instanceof NextResponse) {
     return user;
@@ -35,6 +40,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isBillingEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const user = await ensureAuth();
   if (user instanceof NextResponse) {
     return user;

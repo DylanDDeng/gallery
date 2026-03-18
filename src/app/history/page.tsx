@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 
 interface Order {
@@ -30,6 +31,7 @@ export default function HistoryPage() {
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const billingEnabled = isBillingEnabled();
 
   const [activeTab, setActiveTab] = useState<Tab>("generations");
   const [generations, setGenerations] = useState<GenerationTask[]>([]);
@@ -69,11 +71,15 @@ export default function HistoryPage() {
 
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchGenerations(), fetchOrders()]);
+      if (billingEnabled) {
+        await Promise.all([fetchGenerations(), fetchOrders()]);
+      } else {
+        await fetchGenerations();
+      }
       setLoading(false);
     };
     void load();
-  }, [user, router, fetchGenerations, fetchOrders]);
+  }, [billingEnabled, user, router, fetchGenerations, fetchOrders]);
 
   const handleDelete = async (taskId: string) => {
     if (!confirm("Are you sure you want to delete this task from your history?")) {
@@ -157,16 +163,18 @@ export default function HistoryPage() {
           >
             Generations
           </button>
-          <button
-            onClick={() => setActiveTab("orders")}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "orders"
-                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
-                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-            }`}
-          >
-            Orders
-          </button>
+          {billingEnabled && (
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === "orders"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              }`}
+            >
+              Orders
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -214,9 +222,11 @@ export default function HistoryPage() {
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles[task.status] || ""}`}>
                         {task.status}
                       </span>
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                        {task.credits_cost} credit{task.credits_cost !== 1 ? "s" : ""}
-                      </span>
+                      {billingEnabled && task.credits_cost > 0 && (
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                          {task.credits_cost} credit{task.credits_cost !== 1 ? "s" : ""}
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-sm text-zinc-700 dark:text-zinc-300 mb-1 line-clamp-2">
@@ -247,7 +257,7 @@ export default function HistoryPage() {
               ))}
             </div>
           )
-        ) : orders.length === 0 ? (
+        ) : !billingEnabled ? null : orders.length === 0 ? (
           <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900 p-12 text-center">
             <p className="text-sm text-zinc-400 dark:text-zinc-500">No orders yet</p>
             <button
