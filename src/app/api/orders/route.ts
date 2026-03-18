@@ -5,6 +5,7 @@ import { getCreditPackages, getPackageById } from "@/lib/billing";
 import { isBillingEnabled } from "@/lib/billing-feature";
 import { getPaymentProvider, isPaddleProvider } from "@/lib/payment-provider";
 import { createPaddleTransaction } from "@/lib/paddle";
+import { getFirstServerEnv, getServerEnv } from "@/lib/server-env";
 import { createStripeCheckoutSession } from "@/lib/stripe";
 
 function getPackagePriceDiagnostics(paymentProvider: string) {
@@ -191,6 +192,22 @@ export async function POST(request: Request) {
             stripeError: err.message || null,
             stripeErrorType: err.type || null,
             stripeErrorCode: err.code || null,
+            hasBillingStripeSecret: Boolean(
+              getFirstServerEnv([
+                "BILLING_STRIPE_SECRET_KEY",
+                "STRIPE_SECRET_KEY",
+              ])
+            ),
+            hasBillingStripeWebhookSecret: Boolean(
+              getFirstServerEnv([
+                "BILLING_STRIPE_WEBHOOK_SECRET",
+                "STRIPE_WEBHOOK_SECRET",
+              ])
+            ),
+            vercelEnv: getServerEnv("VERCEL_ENV") || null,
+            vercelUrl: getServerEnv("VERCEL_URL") || null,
+            vercelProjectProductionUrl:
+              getServerEnv("VERCEL_PROJECT_PRODUCTION_URL") || null,
           },
         },
         { status: 500 }
