@@ -68,12 +68,13 @@ async function handleCompletedTransaction(
   const userId = metadataUserId ?? order.user_id;
 
   const { data: fulfillmentResult, error: fulfillmentError } =
-    await supabaseAdmin.rpc("complete_credit_order", {
+    await supabaseAdmin.rpc("complete_credit_order_v2", {
       p_order_id: order.id,
       p_user_id: userId,
       p_credits: credits,
       p_provider: "paddle",
-      p_transaction_id: transaction.id,
+      p_provider_checkout_id: transaction.id,
+      p_provider_payment_intent_id: null,
     });
 
   if (fulfillmentError) {

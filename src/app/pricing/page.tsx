@@ -98,7 +98,7 @@ export default function PricingPage() {
           <ul className="mt-4 space-y-2">
             <li>Credit purchases are one-time transactions, not subscriptions.</li>
             <li>Purchased credits do not expire under the current product model.</li>
-            <li>Payments are processed through Paddle.</li>
+            <li>Payments are processed through our secure checkout provider.</li>
             <li>
               Refund requests can be submitted within 7 days. See{" "}
               <Link href="/refund-policy" className="underline underline-offset-2">

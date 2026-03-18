@@ -49,9 +49,10 @@ export default function TermsPage() {
             generation consumes one credit.
           </p>
           <p>
-            Prices are shown before purchase. Payments are processed by Paddle, our
-            merchant of record and payment processor for checkout, invoicing, and sales
-            tax handling where applicable.
+            Prices are shown before purchase. Payments are processed by our
+            third-party checkout provider. Depending on the active integration, this may
+            include checkout, payment processing, invoicing, and related billing
+            operations.
           </p>
           <p>
             Purchased credits do not expire under the current product model. We may change

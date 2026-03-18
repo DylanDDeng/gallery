@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { CREDIT_PACKAGES } from "@/lib/billing";
+import { getPackageById } from "@/lib/billing";
+import { getPaymentProvider, isPaddleProvider } from "@/lib/payment-provider";
 import { createPaddleTransaction } from "@/lib/paddle";
+import { createStripeCheckoutSession } from "@/lib/stripe";
 
 export async function GET() {
   const user = await ensureAuth();
@@ -41,8 +43,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { packageId } = body;
+    const paymentProvider = getPaymentProvider();
 
-    const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
+    const pkg = getPackageById(packageId, paymentProvider);
     if (!pkg) {
       return NextResponse.json(
         { error: "Invalid package ID" },
@@ -65,7 +68,7 @@ export async function POST(request: Request) {
         amount: pkg.credits,
         price_cents: pkg.priceCents,
         currency: "usd",
-        payment_provider: "paddle",
+        payment_provider: paymentProvider,
         status: "pending",
       })
       .select()
@@ -81,40 +84,60 @@ export async function POST(request: Request) {
 
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin;
-    const checkoutPageUrl = `${baseUrl}/checkout/${order.id}`;
 
     try {
-      const { transactionId, checkoutUrl } = await createPaddleTransaction({
-        priceId: pkg.priceId,
-        orderId: order.id,
-        userId: user.id,
-        packageId: pkg.id,
-        credits: pkg.credits,
-        checkoutPageUrl,
-      });
+      let checkoutUrl: string;
+      let updateFields: Record<string, string>;
+
+      if (isPaddleProvider(paymentProvider)) {
+        const checkoutPageUrl = `${baseUrl}/checkout/${order.id}`;
+        const { transactionId, checkoutUrl: paddleCheckoutUrl } =
+          await createPaddleTransaction({
+            priceId: pkg.priceId,
+            orderId: order.id,
+            userId: user.id,
+            packageId: pkg.id,
+            credits: pkg.credits,
+            checkoutPageUrl,
+          });
+
+        checkoutUrl = paddleCheckoutUrl;
+        updateFields = { paddle_transaction_id: transactionId };
+      } else {
+        const { sessionId, checkoutUrl: stripeCheckoutUrl } =
+          await createStripeCheckoutSession({
+            orderId: order.id,
+            userId: user.id,
+            userEmail: user.email,
+            packageId: pkg.id,
+            credits: pkg.credits,
+            priceId: pkg.priceId,
+            baseUrl,
+          });
+
+        checkoutUrl = stripeCheckoutUrl;
+        updateFields = { stripe_session_id: sessionId };
+      }
 
       const { error: updateOrderError } = await supabaseAdmin
         .from("orders")
-        .update({ paddle_transaction_id: transactionId })
+        .update(updateFields)
         .eq("id", order.id)
         .eq("user_id", user.id);
 
       if (updateOrderError) {
-        console.error(
-          "Error saving Paddle transaction ID on order:",
-          updateOrderError
-        );
+        console.error("Error saving checkout provider ID on order:", updateOrderError);
       }
 
       return NextResponse.json({
         order: {
           ...order,
-          paddle_transaction_id: transactionId,
+          ...updateFields,
         },
         checkoutUrl,
       });
     } catch (error) {
-      console.error("Error creating Paddle transaction:", error);
+      console.error("Error creating checkout session:", error);
 
       await supabaseAdmin
         .from("orders")

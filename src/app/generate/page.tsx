@@ -11,7 +11,7 @@ interface GenerationTask {
   status: "queued" | "processing" | "completed" | "failed" | "cancelled";
   result_url?: string;
   error_message?: string;
-  credits_cost: number;
+  credits_cost?: number;
   created_at: string;
 }
 
@@ -22,15 +22,13 @@ export default function GeneratePage() {
   const toggleTheme = useAppStore((s) => s.toggleTheme);
 
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState("seedream");
   const [submitting, setSubmitting] = useState(false);
   const [currentTask, setCurrentTask] = useState<GenerationTask | null>(null);
   const [recentTasks, setRecentTasks] = useState<GenerationTask[]>([]);
-  const [credits, setCredits] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pollingTaskId, setPollingTaskId] = useState<string | null>(null);
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  const [credits, setCredits] = useState<number | null>(null);
 
-  // Fetch credits
   const fetchCredits = useCallback(async () => {
     try {
       const res = await fetch("/api/credits");
@@ -40,6 +38,21 @@ export default function GeneratePage() {
       }
     } catch (error) {
       console.error("Error fetching credits:", error);
+    }
+  }, []);
+
+  // Check if user has API key configured
+  const checkApiKey = useCallback(async () => {
+    try {
+      const res = await fetch("/api/user/api-keys");
+      const json = await res.json();
+      if (res.ok) {
+        const hasDoubao = json.data?.some((k: { provider: string }) => k.provider === "doubao");
+        setHasApiKey(hasDoubao || false);
+      }
+    } catch (error) {
+      console.error("Error checking API key:", error);
+      setHasApiKey(false);
     }
   }, []);
 
@@ -61,40 +74,10 @@ export default function GeneratePage() {
       router.push("/");
       return;
     }
+    void checkApiKey();
     void fetchCredits();
     void fetchRecentTasks();
-  }, [user, router, fetchCredits, fetchRecentTasks]);
-
-  // Poll for task completion
-  useEffect(() => {
-    if (!pollingTaskId) return;
-
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/generations/${pollingTaskId}`);
-        const json = await res.json();
-        if (res.ok && json.task) {
-          setCurrentTask(json.task);
-          setPollingTaskId(null);
-
-          if (json.task.status === "completed" || json.task.status === "failed") {
-            // Refresh credits
-            void fetchCredits();
-            // Refresh recent tasks
-            void fetchRecentTasks();
-          } else if (json.task.status === "queued" || json.task.status === "processing") {
-            // Continue polling
-            setTimeout(() => setPollingTaskId(json.task.id), 2000);
-          }
-        }
-      } catch (error) {
-        console.error("Error polling task:", error);
-      }
-    };
-
-    const timeout = setTimeout(poll, 2000);
-    return () => clearTimeout(timeout);
-  }, [pollingTaskId, fetchCredits, fetchRecentTasks]);
+  }, [user, router, checkApiKey, fetchCredits, fetchRecentTasks]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,33 +91,43 @@ export default function GeneratePage() {
       const res = await fetch("/api/generations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim(), model }),
+        body: JSON.stringify({ prompt: prompt.trim() }),
       });
 
       const json = await res.json();
 
       if (!res.ok) {
-        if (res.status === 402) {
-          setError(`Insufficient credits. You have ${credits} credits, but need 1.`);
-        } else {
-          setError(json.error || "Failed to create generation");
+        setError(json.error || "Failed to create generation");
+        if (json.error?.includes("API key")) {
+          setHasApiKey(false);
         }
+        void fetchRecentTasks();
+        void fetchCredits();
         return;
       }
 
       setCurrentTask(json.task);
-      setPollingTaskId(json.task.id);
-      setCredits(json.creditsRemaining);
       setPrompt("");
+      void fetchCredits();
 
       // Refresh recent tasks
       void fetchRecentTasks();
     } catch (err) {
       console.error("Error creating generation:", err);
       setError("An error occurred. Please try again.");
+      void fetchCredits();
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDownload = (url: string) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `generated-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (!user) {
@@ -156,29 +149,60 @@ export default function GeneratePage() {
             <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
             <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Generate</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-zinc-500 dark:text-zinc-400">
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">{credits ?? "—"}</span> credits
-            </div>
-            <button
-              onClick={toggleTheme}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
-            >
-              {theme === "light" ? (
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              )}
-            </button>
-          </div>
+          <button
+            onClick={toggleTheme}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
+            {theme === "light" ? (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            )}
+          </button>
         </div>
       </header>
 
       <div className="mx-auto max-w-[800px] px-6 py-8">
+        {/* API Key Warning */}
+        {hasApiKey === false && (
+          <div className="mb-6 rounded-xl bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
+            <p className="font-medium">API Key not configured</p>
+            <p className="mt-1">Please configure your Doubao API key in{" "}
+              <button
+                onClick={() => router.push("/settings")}
+                className="underline hover:no-underline"
+              >
+                Settings
+              </button>
+              {" "}to start generating images.
+            </p>
+          </div>
+        )}
+
+        <div className="mb-6 flex items-center justify-between rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
+              Credits
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+              {credits ?? "—"}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Each generation costs 1 credit.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/credits")}
+            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          >
+            Buy Credits
+          </button>
+        </div>
+
         {/* Generate Form */}
         <form onSubmit={(e) => void handleSubmit(e)} className="mb-8">
           <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900 p-6 ring-1 ring-zinc-200 dark:ring-white/10">
@@ -199,13 +223,10 @@ export default function GeneratePage() {
               </div>
             )}
 
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                Cost: <span className="font-medium">1 credit</span>
-              </div>
+            <div className="mt-4 flex items-center justify-end">
               <button
                 type="submit"
-                disabled={submitting || !prompt.trim() || (credits ?? 0) < 1}
+                disabled={submitting || !prompt.trim() || !hasApiKey || (credits ?? 0) < 1}
                 className="flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-6 py-2.5 text-sm font-semibold text-white dark:text-zinc-900 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50"
               >
                 {submitting ? (
@@ -233,11 +254,21 @@ export default function GeneratePage() {
             <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 ring-1 ring-zinc-200 dark:ring-white/10">
               <div className="flex items-start gap-4">
                 {currentTask.status === "completed" && currentTask.result_url ? (
-                  <img
-                    src={currentTask.result_url}
-                    alt="Generated"
-                    className="h-32 w-32 rounded-lg object-cover"
-                  />
+                  <div className="relative group">
+                    <img
+                      src={currentTask.result_url}
+                      alt="Generated"
+                      className="h-32 w-32 rounded-lg object-cover"
+                    />
+                    <button
+                      onClick={() => handleDownload(currentTask.result_url!)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </button>
+                  </div>
                 ) : currentTask.status === "failed" ? (
                   <div className="h-32 w-32 rounded-lg bg-red-500/10 flex items-center justify-center">
                     <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,24 +288,36 @@ export default function GeneratePage() {
                         ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
                         : currentTask.status === "failed"
                         ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                        : currentTask.status === "cancelled"
-                        ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
                         : "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
                     }`}>
-                      {currentTask.status === "queued" && "In Queue"}
                       {currentTask.status === "processing" && "Processing"}
                       {currentTask.status === "completed" && "Completed"}
                       {currentTask.status === "failed" && "Failed"}
-                      {currentTask.status === "cancelled" && "Cancelled"}
                     </span>
                     <span className="text-xs text-zinc-400 dark:text-zinc-500">
                       {new Date(currentTask.created_at).toLocaleTimeString()}
+                    </span>
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                      {currentTask.credits_cost ?? 1} credit
+                      {(currentTask.credits_cost ?? 1) !== 1 ? "s" : ""}
                     </span>
                   </div>
 
                   <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 mb-1">
                     {currentTask.prompt}
                   </p>
+
+                  {currentTask.status === "completed" && currentTask.result_url && (
+                    <button
+                      onClick={() => handleDownload(currentTask.result_url!)}
+                      className="mt-2 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Download
+                    </button>
+                  )}
 
                   {currentTask.status === "failed" && currentTask.error_message && (
                     <p className="text-xs text-red-500 dark:text-red-400">
@@ -306,11 +349,21 @@ export default function GeneratePage() {
                   className="flex items-center gap-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 p-3 ring-1 ring-zinc-200 dark:ring-white/10"
                 >
                   {task.status === "completed" && task.result_url ? (
-                    <img
-                      src={task.result_url}
-                      alt=""
-                      className="h-12 w-12 rounded-lg object-cover"
-                    />
+                    <div className="relative group flex-shrink-0">
+                      <img
+                        src={task.result_url}
+                        alt=""
+                        className="h-12 w-12 rounded-lg object-cover"
+                      />
+                      <button
+                        onClick={() => handleDownload(task.result_url!)}
+                        className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </button>
+                    </div>
                   ) : (
                     <div className="h-12 w-12 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center flex-shrink-0">
                       {task.status === "failed" ? (
@@ -328,6 +381,10 @@ export default function GeneratePage() {
                     </p>
                     <p className="text-xs text-zinc-400 dark:text-zinc-500">
                       {new Date(task.created_at).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                      {task.credits_cost ?? 1} credit
+                      {(task.credits_cost ?? 1) !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>

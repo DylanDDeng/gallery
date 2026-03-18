@@ -114,7 +114,7 @@ export default function PrivacyPolicy() {
               {[
                 { name: "Google", desc: "For user authentication via Google OAuth." },
                 { name: "Supabase", desc: "For database, authentication, and data storage." },
-                { name: "Paddle", desc: "For payment processing, billing, and tax handling as merchant of record." },
+                { name: "Checkout Provider", desc: "For payment processing, billing, and related transaction handling." },
                 { name: "Vercel", desc: "For website hosting and content delivery." },
                 { name: "Umami", desc: "For privacy-focused website analytics." },
               ].map((s) => (

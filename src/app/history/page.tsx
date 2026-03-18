@@ -75,8 +75,8 @@ export default function HistoryPage() {
     void load();
   }, [user, router, fetchGenerations, fetchOrders]);
 
-  const handleCancel = async (taskId: string) => {
-    if (!confirm("Are you sure you want to cancel this task? Credits will be refunded.")) {
+  const handleDelete = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task from your history?")) {
       return;
     }
 
@@ -88,10 +88,10 @@ export default function HistoryPage() {
         void fetchGenerations();
       } else {
         const json = await res.json();
-        alert(json.error || "Failed to cancel task");
+        alert(json.error || "Failed to delete task");
       }
     } catch (error) {
-      console.error("Error cancelling task:", error);
+      console.error("Error deleting task:", error);
       alert("An error occurred");
     } finally {
       setCancellingId(null);
@@ -234,13 +234,13 @@ export default function HistoryPage() {
                     </p>
                   </div>
 
-                  {(task.status === "queued" || task.status === "processing") && (
+                  {(task.status === "completed" || task.status === "failed") && (
                     <button
-                      onClick={() => void handleCancel(task.id)}
+                      onClick={() => void handleDelete(task.id)}
                       disabled={cancellingId === task.id}
                       className="flex-shrink-0 rounded-lg px-3 py-1.5 text-xs text-red-500 hover:bg-red-500/10 disabled:opacity-50"
                     >
-                      {cancellingId === task.id ? "Cancelling..." : "Cancel"}
+                      {cancellingId === task.id ? "Deleting..." : "Delete"}
                     </button>
                   )}
                 </div>

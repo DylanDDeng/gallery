@@ -6,7 +6,7 @@ AI image generation site built with Next.js, Supabase, and a credits-based billi
 
 - Users sign in and buy credits.
 - Credits are spent when generating images.
-- Purchase flow is designed around Paddle hosted checkout for a simpler global payment setup.
+- Purchase flow supports a switchable hosted checkout provider.
 
 ## Getting Started
 
@@ -19,28 +19,35 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-## Paddle Setup
+## Billing Setup
 
 Use the environment variables in `.env.example` to configure billing:
 
+- `PAYMENT_PROVIDER` to choose `stripe` or `paddle`.
 - `NEXT_PUBLIC_BASE_URL` for success and cancel redirects.
-- `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` for Paddle.js on the checkout landing page.
-- `PADDLE_API_KEY` for server-side checkout and order creation.
-- `PADDLE_WEBHOOK_SECRET` for webhook verification.
-- `PADDLE_PRICE_SMALL`, `PADDLE_PRICE_MEDIUM`, `PADDLE_PRICE_LARGE`, `PADDLE_PRICE_PRO` for credit bundle mapping.
-- Set your Paddle default payment link to `/checkout/default`.
-- Approve your site in Paddle Checkout settings before going live.
-- Point Paddle webhooks to `/api/webhooks/paddle`.
+- `USER_API_KEYS_ENCRYPTION_KEY` to encrypt user-supplied API keys at rest.
+- Stripe:
+  - `STRIPE_SECRET_KEY`
+  - `STRIPE_WEBHOOK_SECRET`
+  - `STRIPE_PRICE_SMALL`, `STRIPE_PRICE_MEDIUM`, `STRIPE_PRICE_LARGE`, `STRIPE_PRICE_PRO`
+- Paddle:
+  - `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`
+  - `PADDLE_API_KEY`
+  - `PADDLE_WEBHOOK_SECRET`
+  - `PADDLE_PRICE_SMALL`, `PADDLE_PRICE_MEDIUM`, `PADDLE_PRICE_LARGE`, `PADDLE_PRICE_PRO`
+  - Set your Paddle default payment link to `/checkout/default`.
+  - Approve your site in Paddle Checkout settings before going live.
+  - Point Paddle webhooks to `/api/webhooks/paddle`.
 
 ## Billing Flow
 
 1. User opens the credits page and selects a credit bundle.
-2. The app creates a Paddle transaction and redirects to a hosted checkout landing page.
-3. Paddle confirms the payment through a webhook.
+2. The app creates a provider-specific hosted checkout session.
+3. The selected payment provider confirms the payment through a webhook.
 4. The order is marked complete and credits are added to the user account.
 
 ## Local Notes
 
-- Keep the credit bundle definitions in sync with the price IDs configured in Paddle.
-- Do not expose secret Paddle keys to the client.
+- Keep the credit bundle definitions in sync with the configured price IDs for the active provider.
+- Do not expose secret payment provider keys to the client.
 - The credit balance is the source of truth for image generation.

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { seedreamClient } from "@/lib/seedream";
 
 export async function GET(
   request: Request,
@@ -27,42 +26,6 @@ export async function GET(
         return NextResponse.json({ error: "Task not found" }, { status: 404 });
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // If task is still processing, check Seedream status
-    if (task.status === "processing" && task.seedream_task_id) {
-      try {
-        const seedreamStatus = await seedreamClient.getTaskStatus(
-          task.seedream_task_id
-        );
-
-        if (seedreamStatus.status === "completed" && seedreamStatus.result_url) {
-          // Update task with result
-          await supabaseAdmin
-            .from("generation_tasks")
-            .update({
-              status: "completed",
-              result_url: seedreamStatus.result_url,
-            })
-            .eq("id", task.id);
-
-          task.status = "completed";
-          task.result_url = seedreamStatus.result_url;
-        } else if (seedreamStatus.status === "failed") {
-          await supabaseAdmin
-            .from("generation_tasks")
-            .update({
-              status: "failed",
-              error_message: seedreamStatus.error_message,
-            })
-            .eq("id", task.id);
-
-          task.status = "failed";
-          task.error_message = seedreamStatus.error_message;
-        }
-      } catch (apiError) {
-        console.error("Error checking Seedream status:", apiError);
-      }
     }
 
     return NextResponse.json({ task });
@@ -102,56 +65,38 @@ export async function DELETE(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Can only cancel queued or processing tasks
-    if (task.status !== "queued" && task.status !== "processing") {
+    // Can only delete completed or failed tasks
+    if (task.status !== "completed" && task.status !== "failed") {
       return NextResponse.json(
-        { error: "Cannot cancel task in current status" },
+        { error: "Cannot delete task in current status" },
         { status: 400 }
       );
     }
 
-    // Cancel on Seedream if processing
-    if (task.status === "processing" && task.seedream_task_id) {
+    // Delete from storage if it's a completed task with our storage URL
+    if (task.status === "completed" && task.result_url && task.result_url.includes("supabase")) {
       try {
-        await seedreamClient.cancelTask(task.seedream_task_id);
-      } catch (apiError) {
-        console.error("Error cancelling Seedream task:", apiError);
+        const url = new URL(task.result_url);
+        const pathParts = url.pathname.split("/");
+        const bucketIndex = pathParts.indexOf("generations");
+        if (bucketIndex !== -1) {
+          const fileName = pathParts.slice(bucketIndex + 1).join("/");
+          await supabaseAdmin.storage.from("generations").remove([fileName]);
+        }
+      } catch (storageError) {
+        console.error("Error deleting from storage:", storageError);
       }
     }
 
-    // Refund credits
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("credits")
-      .eq("id", user.id)
-      .single();
-
-    const newBalance = (profile?.credits ?? 0) + task.credits_cost;
-
-    await supabaseAdmin
-      .from("profiles")
-      .update({ credits: newBalance })
-      .eq("id", user.id);
-
-    // Create refund transaction
-    await supabaseAdmin.from("credit_transactions").insert({
-      user_id: user.id,
-      type: "refund",
-      amount: task.credits_cost,
-      balance_after: newBalance,
-      generation_task_id: task.id,
-      description: `Refunded ${task.credits_cost} credits for cancelled task`,
-    });
-
-    // Update task status
+    // Delete the task record
     await supabaseAdmin
       .from("generation_tasks")
-      .update({ status: "cancelled" })
+      .delete()
       .eq("id", id);
 
-    return NextResponse.json({ success: true, creditsRefunded: task.credits_cost });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error cancelling generation task:", error);
+    console.error("Error deleting generation task:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
