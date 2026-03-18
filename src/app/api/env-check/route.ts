@@ -10,6 +10,9 @@ export async function GET() {
     "BILLING_STRIPE_WEBHOOK_SECRET",
     "STRIPE_WEBHOOK_SECRET",
   ]);
+  const runtimeEnvKeys = Object.keys(process.env)
+    .filter((key) => /(STRIPE|BILLING|DOUBAO|SUPABASE)/.test(key))
+    .sort();
 
   return NextResponse.json({
     hasBillingStripeSecret: Boolean(billingStripeSecret),
@@ -27,5 +30,6 @@ export async function GET() {
     vercelUrl: getServerEnv("VERCEL_URL") || null,
     vercelProjectProductionUrl:
       getServerEnv("VERCEL_PROJECT_PRODUCTION_URL") || null,
+    runtimeEnvKeys,
   });
 }
