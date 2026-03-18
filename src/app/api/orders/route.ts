@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     }
 
     if (!pkg.priceId) {
-      console.error("Billing package price missing", {
+      const diagnostics = {
         paymentProvider,
         packageId,
         selectedPackage: pkg.id,
@@ -79,10 +79,14 @@ export async function POST(request: Request) {
         packagePriceDiagnostics: getPackagePriceDiagnostics(paymentProvider),
         billingEnabled: isBillingEnabled(),
         baseUrlConfigured: Boolean(process.env.NEXT_PUBLIC_BASE_URL),
+      };
+
+      console.error("Billing package price missing", {
+        ...diagnostics,
       });
 
       return NextResponse.json(
-        { error: "Package price not configured" },
+        { error: "Package price not configured", diagnostics },
         { status: 500 }
       );
     }
