@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!pkg.priceId) {
+    if (isPaddleProvider(paymentProvider) && !pkg.priceId) {
       const diagnostics = {
         paymentProvider,
         packageId,
@@ -113,8 +113,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin;
+    const baseUrl = new URL(request.url).origin;
 
     try {
       let checkoutUrl: string;
@@ -142,7 +141,8 @@ export async function POST(request: Request) {
             userEmail: user.email,
             packageId: pkg.id,
             credits: pkg.credits,
-            priceId: pkg.priceId,
+            priceCents: pkg.priceCents,
+            currency: order.currency,
             baseUrl,
           });
 

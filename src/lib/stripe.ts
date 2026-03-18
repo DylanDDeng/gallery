@@ -22,7 +22,8 @@ interface CreateStripeCheckoutSessionInput {
   userEmail?: string | null;
   packageId: string;
   credits: number;
-  priceId: string;
+  priceCents: number;
+  currency: string;
   baseUrl: string;
 }
 
@@ -36,7 +37,14 @@ export async function createStripeCheckoutSession(
     payment_method_types: ["card"],
     line_items: [
       {
-        price: input.priceId,
+        price_data: {
+          currency: input.currency,
+          unit_amount: input.priceCents,
+          product_data: {
+            name: `Aestara Credits - ${input.packageId}`,
+            description: `${input.credits} credits`,
+          },
+        },
         quantity: 1,
       },
     ],
