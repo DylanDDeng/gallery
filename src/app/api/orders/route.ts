@@ -168,6 +168,12 @@ export async function POST(request: Request) {
         checkoutUrl,
       });
     } catch (error) {
+      const err = error as {
+        message?: string;
+        type?: string;
+        code?: string;
+      };
+
       console.error("Error creating checkout session:", error);
 
       await supabaseAdmin
@@ -177,7 +183,16 @@ export async function POST(request: Request) {
         .eq("status", "pending");
 
       return NextResponse.json(
-        { error: "Failed to create checkout" },
+        {
+          error: "Failed to create checkout",
+          diagnostics: {
+            paymentProvider,
+            packageId: pkg.id,
+            stripeError: err.message || null,
+            stripeErrorType: err.type || null,
+            stripeErrorCode: err.code || null,
+          },
+        },
         { status: 500 }
       );
     }
