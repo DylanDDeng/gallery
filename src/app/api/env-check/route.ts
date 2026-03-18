@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
-import { getFirstServerEnv, getServerEnv } from "@/lib/server-env";
+import { getFirstAppSecret, listAppSecretKeys } from "@/lib/app-secrets";
+import { getServerEnv } from "@/lib/server-env";
 
 export async function GET() {
-  const billingStripeSecret = getFirstServerEnv([
+  const billingStripeSecret = await getFirstAppSecret([
     "BILLING_STRIPE_SECRET_KEY",
     "STRIPE_SECRET_KEY",
   ]);
-  const billingStripeWebhookSecret = getFirstServerEnv([
+  const billingStripeWebhookSecret = await getFirstAppSecret([
     "BILLING_STRIPE_WEBHOOK_SECRET",
     "STRIPE_WEBHOOK_SECRET",
   ]);
   const runtimeEnvKeys = Object.keys(process.env)
     .filter((key) => /(STRIPE|BILLING|DOUBAO|SUPABASE)/.test(key))
     .sort();
+  const appSecretKeys = await listAppSecretKeys();
 
   return NextResponse.json({
     hasBillingStripeSecret: Boolean(billingStripeSecret),
@@ -31,5 +33,6 @@ export async function GET() {
     vercelProjectProductionUrl:
       getServerEnv("VERCEL_PROJECT_PRODUCTION_URL") || null,
     runtimeEnvKeys,
+    appSecretKeys,
   });
 }

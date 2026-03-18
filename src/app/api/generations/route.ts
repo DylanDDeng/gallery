@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { decryptApiKey } from "@/lib/api-key-crypto";
+import { getAppSecret } from "@/lib/app-secrets";
 import {
   isBillingEnabled,
   isSelfServiceApiKeysEnabled,
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
 
       apiKey = decryptApiKey(apiKeyData.encrypted_key);
     } else {
-      const configuredApiKey = process.env.DOUBAO_API_KEY;
+      const configuredApiKey = await getAppSecret("DOUBAO_API_KEY");
 
       if (!configuredApiKey) {
         return NextResponse.json(

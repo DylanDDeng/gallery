@@ -1,11 +1,11 @@
 import Stripe from "stripe";
-import { getFirstServerEnv } from "@/lib/server-env";
+import { getFirstAppSecret } from "@/lib/app-secrets";
 
 let stripeClient: Stripe | null = null;
 
-export function getStripe() {
+export async function getStripe() {
   if (!stripeClient) {
-    const secretKey = getFirstServerEnv([
+    const secretKey = await getFirstAppSecret([
       "BILLING_STRIPE_SECRET_KEY",
       "STRIPE_SECRET_KEY",
     ]);
@@ -36,7 +36,7 @@ interface CreateStripeCheckoutSessionInput {
 export async function createStripeCheckoutSession(
   input: CreateStripeCheckoutSessionInput
 ) {
-  const stripe = getStripe();
+  const stripe = await getStripe();
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
