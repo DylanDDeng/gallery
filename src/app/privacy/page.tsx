@@ -1,43 +1,25 @@
 import type { Metadata } from "next";
+import LegalPageShell from "@/components/LegalPageShell";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — Aestara",
-  description: "Privacy policy for Aestara AI Image Gallery.",
+  description: "Privacy policy for Aestara's AI image generation service.",
 };
 
 export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
-      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1600px] items-center px-6 py-3">
-          <a href="/" className="flex items-center gap-2 text-zinc-400 transition-colors hover:text-zinc-600 dark:hover:text-zinc-300">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Aestara
-          </a>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-2xl px-6 py-16">
-        <div className="mb-12">
-          <h1
-            className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100"
-            style={{ fontFamily: "'Caveat', cursive" }}
-          >
-            Privacy Policy
-          </h1>
-          <p className="mt-3 text-sm text-zinc-400">Last updated: March 15, 2026</p>
-        </div>
-
-        <div className="space-y-10">
+    <LegalPageShell
+      title="Privacy Policy"
+      description="This policy explains what information Aestara collects, how it is used, and which third parties help operate the service."
+      updatedAt="March 18, 2026"
+    >
           <section>
             <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               Overview
             </h2>
             <p className="leading-relaxed text-[15px] text-zinc-600 dark:text-zinc-400">
-              Aestara is an AI-generated image gallery that showcases curated artwork
-              along with their prompts, tags, and generation details. We are committed
+              Aestara is an AI image generation service that lets users create accounts,
+              purchase credits, submit prompts, and generate images. We are committed
               to protecting your privacy and being transparent about how we handle your
               data.
             </p>
@@ -58,18 +40,29 @@ export default function PrivacyPolicy() {
                     <strong className="text-zinc-800 dark:text-zinc-200">Google Account Information</strong>
                     <p className="mt-0.5">
                       When you sign in with Google, we receive your name, email address,
-                      and profile picture from your Google account. This is used solely for
-                      authentication and personalizing your experience.
+                      and profile picture from your Google account. This is used for
+                      authentication, account access, and personalizing your experience.
                     </p>
                   </div>
                 </li>
                 <li className="flex gap-3">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-600" />
                   <div>
-                    <strong className="text-zinc-800 dark:text-zinc-200">Favorites</strong>
+                    <strong className="text-zinc-800 dark:text-zinc-200">Prompts and Generated Images</strong>
                     <p className="mt-0.5">
-                      We store which images you have favorited. This data is linked to your
-                      account and is only visible to you.
+                      We store prompts you submit, generation job data, and generated
+                      image results so that the service can deliver outputs, maintain job
+                      history, and support refunds or troubleshooting.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex gap-3">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                  <div>
+                    <strong className="text-zinc-800 dark:text-zinc-200">Orders and Credit Balances</strong>
+                    <p className="mt-0.5">
+                      We store purchase history, credit balances, and order metadata so we
+                      can fulfill purchases and maintain account balances.
                     </p>
                   </div>
                 </li>
@@ -101,6 +94,10 @@ export default function PrivacyPolicy() {
               </li>
               <li className="flex gap-3">
                 <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                Process credit purchases, support refunds, and maintain your account balance
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-600" />
                 Maintain and improve the service
               </li>
             </ul>
@@ -117,7 +114,9 @@ export default function PrivacyPolicy() {
               {[
                 { name: "Google", desc: "For user authentication via Google OAuth." },
                 { name: "Supabase", desc: "For database, authentication, and data storage." },
+                { name: "Paddle", desc: "For payment processing, billing, and tax handling as merchant of record." },
                 { name: "Vercel", desc: "For website hosting and content delivery." },
+                { name: "Umami", desc: "For privacy-focused website analytics." },
               ].map((s) => (
                 <div
                   key={s.name}
@@ -140,9 +139,8 @@ export default function PrivacyPolicy() {
             </h2>
             <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
               Your data is stored securely in Supabase with row-level security (RLS)
-              policies ensuring that your personal information and favorites are only
-              accessible to you. We do not share, sell, or transfer your personal data
-              to any third parties.
+              policies helping ensure that personal account data is only accessible to
+              the appropriate user and service roles. We do not sell your personal data.
             </p>
           </section>
 
@@ -167,9 +165,10 @@ export default function PrivacyPolicy() {
               Cookies
             </h2>
             <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-              We use cookies only for essential functionality — maintaining your
-              authentication session and theme preference. We do not use tracking cookies
-              or third-party analytics.
+              We use cookies and local storage for essential functionality such as
+              maintaining your authentication session and theme preference. We may also
+              use privacy-focused analytics tools to understand site performance and
+              product usage at an aggregate level.
             </p>
           </section>
 
@@ -199,12 +198,6 @@ export default function PrivacyPolicy() {
               .
             </p>
           </section>
-        </div>
-
-        <div className="mt-16 border-t border-zinc-200 dark:border-zinc-800 pt-8 text-center text-xs text-zinc-400">
-          Aestara
-        </div>
-      </main>
-    </div>
+    </LegalPageShell>
   );
 }

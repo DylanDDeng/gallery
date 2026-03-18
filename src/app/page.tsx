@@ -1,5 +1,6 @@
 "use client";
 
+import SiteFooter from "@/components/SiteFooter";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { MOCK_IMAGES } from "@/lib/constants";
 import CategoryFilter from "@/components/CategoryFilter";
@@ -389,12 +390,7 @@ export default function Home() {
       />
       <LoginPrompt />
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-100 dark:border-zinc-900 py-6 text-center text-xs text-zinc-400">
-        <a href="/privacy" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-          Privacy Policy
-        </a>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

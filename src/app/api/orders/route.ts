@@ -1,0 +1,137 @@
+import { NextResponse } from "next/server";
+import { ensureAuth } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { CREDIT_PACKAGES } from "@/lib/billing";
+import { createPaddleTransaction } from "@/lib/paddle";
+
+export async function GET() {
+  const user = await ensureAuth();
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
+  try {
+    const { data: orders, error } = await supabaseAdmin
+      .from("orders")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ orders: orders ?? [] });
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  const user = await ensureAuth();
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
+  try {
+    const body = await request.json();
+    const { packageId } = body;
+
+    const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
+    if (!pkg) {
+      return NextResponse.json(
+        { error: "Invalid package ID" },
+        { status: 400 }
+      );
+    }
+
+    if (!pkg.priceId) {
+      return NextResponse.json(
+        { error: "Package price not configured" },
+        { status: 500 }
+      );
+    }
+
+    // Create pending order
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        user_id: user.id,
+        amount: pkg.credits,
+        price_cents: pkg.priceCents,
+        currency: "usd",
+        payment_provider: "paddle",
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error("Error creating order:", orderError);
+      return NextResponse.json(
+        { error: "Failed to create order" },
+        { status: 500 }
+      );
+    }
+
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin;
+    const checkoutPageUrl = `${baseUrl}/checkout/${order.id}`;
+
+    try {
+      const { transactionId, checkoutUrl } = await createPaddleTransaction({
+        priceId: pkg.priceId,
+        orderId: order.id,
+        userId: user.id,
+        packageId: pkg.id,
+        credits: pkg.credits,
+        checkoutPageUrl,
+      });
+
+      const { error: updateOrderError } = await supabaseAdmin
+        .from("orders")
+        .update({ paddle_transaction_id: transactionId })
+        .eq("id", order.id)
+        .eq("user_id", user.id);
+
+      if (updateOrderError) {
+        console.error(
+          "Error saving Paddle transaction ID on order:",
+          updateOrderError
+        );
+      }
+
+      return NextResponse.json({
+        order: {
+          ...order,
+          paddle_transaction_id: transactionId,
+        },
+        checkoutUrl,
+      });
+    } catch (error) {
+      console.error("Error creating Paddle transaction:", error);
+
+      await supabaseAdmin
+        .from("orders")
+        .update({ status: "failed" })
+        .eq("id", order.id)
+        .eq("status", "pending");
+
+      return NextResponse.json(
+        { error: "Failed to create checkout" },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

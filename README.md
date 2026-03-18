@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Image Web
+
+AI image generation site built with Next.js, Supabase, and a credits-based billing model.
+
+## What It Does
+
+- Users sign in and buy credits.
+- Credits are spent when generating images.
+- Purchase flow is designed around Paddle hosted checkout for a simpler global payment setup.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies and run the dev server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Paddle Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Use the environment variables in `.env.example` to configure billing:
 
-## Learn More
+- `NEXT_PUBLIC_BASE_URL` for success and cancel redirects.
+- `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` for Paddle.js on the checkout landing page.
+- `PADDLE_API_KEY` for server-side checkout and order creation.
+- `PADDLE_WEBHOOK_SECRET` for webhook verification.
+- `PADDLE_PRICE_SMALL`, `PADDLE_PRICE_MEDIUM`, `PADDLE_PRICE_LARGE`, `PADDLE_PRICE_PRO` for credit bundle mapping.
+- Set your Paddle default payment link to `/checkout/default`.
+- Approve your site in Paddle Checkout settings before going live.
+- Point Paddle webhooks to `/api/webhooks/paddle`.
 
-To learn more about Next.js, take a look at the following resources:
+## Billing Flow
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. User opens the credits page and selects a credit bundle.
+2. The app creates a Paddle transaction and redirects to a hosted checkout landing page.
+3. Paddle confirms the payment through a webhook.
+4. The order is marked complete and credits are added to the user account.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Local Notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Keep the credit bundle definitions in sync with the price IDs configured in Paddle.
+- Do not expose secret Paddle keys to the client.
+- The credit balance is the source of truth for image generation.

@@ -27,6 +27,8 @@ interface AppState {
   user: User | null;
   favoritesLoaded: boolean;
   showLoginPrompt: boolean;
+  // Credits
+  credits: number | null;
   // Actions
   setSelectedImage: (image: ImagePrompt | null) => void;
   setAllImages: (images: ImagePrompt[]) => void;
@@ -58,6 +60,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   favoritesLoaded: false,
   showLoginPrompt: false,
+  // Credits
+  credits: null,
 
   setSelectedImage: (image) => set({ selectedImage: image }),
   setAllImages: (images) => set({ allImages: images }),
@@ -149,4 +153,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setShowLoginPrompt: (show) => set({ showLoginPrompt: show }),
+  // Credits actions
+  setCredits: (credits: number | null) => set({ credits }),
+  fetchCredits: async () => {
+    const { user } = get();
+    if (!user) {
+      set({ credits: null });
+      return;
+    }
+    try {
+      const res = await fetch("/api/credits");
+      const json = await res.json();
+      if (res.ok) {
+        set({ credits: json.credits });
+      }
+    } catch (error) {
+      console.error("Error fetching credits:", error);
+    }
+  },
 }));

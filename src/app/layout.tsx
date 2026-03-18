@@ -4,24 +4,25 @@ import Providers from "@/components/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Aestara — AI Image Gallery",
+  metadataBase: new URL("https://www.aestara.art"),
+  title: "Aestara — AI Image Generation",
   description:
-    "A curated gallery of AI-generated images with their prompts, tags, and generation details.",
+    "Generate AI images with credits, save your history, and manage purchases through Aestara.",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-icon.png",
   },
   openGraph: {
-    title: "Aestara — AI Image Gallery",
+    title: "Aestara — AI Image Generation",
     description:
-      "A curated gallery of AI-generated images with their prompts, tags, and generation details.",
+      "Generate AI images with credits, save your history, and manage purchases through Aestara.",
     images: ["/opengraph-image.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Aestara — AI Image Gallery",
+    title: "Aestara — AI Image Generation",
     description:
-      "A curated gallery of AI-generated images with their prompts, tags, and generation details.",
+      "Generate AI images with credits, save your history, and manage purchases through Aestara.",
     images: ["/opengraph-image.png"],
   },
 };
