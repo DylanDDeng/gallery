@@ -8,9 +8,12 @@ import {
   isSelfServiceApiKeysEnabled,
 } from "@/lib/billing-feature";
 import {
+  readRemixContextSnapshot,
   readRemixGenerationDraft,
+  saveRemixContextSnapshot,
   saveRemixGenerationDraft,
   type RemixGenerationDraft,
+  type RemixSeriesItem,
 } from "@/lib/generation-draft";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
@@ -93,12 +96,13 @@ export default function GeneratePage() {
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [currentTask, setCurrentTask] = useState<GenerationTask | null>(null);
-  const [stagedTasks, setStagedTasks] = useState<GenerationTask[]>([]);
+  const [stagedTasks, setStagedTasks] = useState<RemixSeriesItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
+  const [isRestoringSeries, setIsRestoringSeries] = useState(false);
   const [selectedModel, setSelectedModel] = useState<
     (typeof MODELS)[number]["id"]
   >(MODELS[0].id);
@@ -135,19 +139,21 @@ export default function GeneratePage() {
     }
   }, []);
 
-  const fetchRemixSeries = useCallback(
+  const fetchRemixContext = useCallback(
     async (nextSourceImageId: string) => {
       const res = await fetch(
-        `/api/generations?status=completed&sourceImageId=${encodeURIComponent(nextSourceImageId)}&limit=20`
+        `/api/generations/remix-context?sourceImageId=${encodeURIComponent(nextSourceImageId)}`
       );
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.error || "Failed to load remix series");
+        throw new Error(json.error || "Failed to load remix context");
       }
 
-      const tasks = Array.isArray(json.data) ? (json.data as GenerationTask[]) : [];
-      return [...tasks].reverse();
+      return {
+        sourceImage: json.sourceImage as ImagePrompt,
+        tasks: Array.isArray(json.tasks) ? (json.tasks as RemixSeriesItem[]) : [],
+      };
     },
     []
   );
@@ -186,43 +192,74 @@ export default function GeneratePage() {
     }
 
     const draft = readRemixGenerationDraft();
-    if (draft && (!sourceImageId || draft.sourceImageId === sourceImageId)) {
-      setRemixDraft(draft);
-      setPrompt(draft.prompt);
-      return;
-    }
-
     if (!sourceImageId) {
       setRemixDraft(null);
       setPrompt("");
       return;
     }
 
+    if (draft && draft.sourceImageId === sourceImageId) {
+      setRemixDraft(draft);
+      setPrompt(draft.prompt);
+    }
+  }, [isRemixMode, sourceImageId, user]);
+
+  useEffect(() => {
+    setCurrentTask(null);
+    setHoveredTaskId(null);
+
+    if (!isRemixMode || !sourceImageId || !user?.id) {
+      setStagedTasks([]);
+      setIsRestoringSeries(false);
+      return;
+    }
+
+    const draft = readRemixGenerationDraft();
+    const snapshot = readRemixContextSnapshot(user.id, sourceImageId);
+
+    if (snapshot) {
+      const snapshotPrompt =
+        draft?.prompt ||
+        snapshot.sourceImage.prompt ||
+        snapshot.sourceImage.prompt_zh ||
+        snapshot.sourceImage.prompt_ja ||
+        "";
+
+      setRemixDraft({
+        mode: "remix",
+        sourceImageId,
+        prompt: snapshotPrompt,
+        promptLang: draft?.promptLang || "en",
+        sourceImage: snapshot.sourceImage,
+        returnTo: returnTo === "original" ? "original" : "gallery",
+        returnImageId: searchParams.get("returnImageId") || sourceImageId,
+        createdAt: Date.now(),
+      });
+      setPrompt(snapshotPrompt);
+      setStagedTasks(snapshot.tasks);
+    } else {
+      setStagedTasks([]);
+    }
+
     let isActive = true;
 
-    const hydrateDraft = async () => {
+    const hydrateContext = async () => {
+      setIsRestoringSeries(true);
       try {
-        const res = await fetch(`/api/images/${encodeURIComponent(sourceImageId)}`);
-        const json = await res.json();
-
-        if (!res.ok) {
-          throw new Error(json.error || "Failed to load source image");
-        }
-
-        const sourceImage = json as ImagePrompt;
-        if (!sourceImage) {
-          throw new Error("Failed to load source image");
-        }
-
+        const context = await fetchRemixContext(sourceImageId);
         const promptFromImage =
-          sourceImage.prompt || sourceImage.prompt_zh || sourceImage.prompt_ja;
+          draft?.prompt ||
+          context.sourceImage.prompt ||
+          context.sourceImage.prompt_zh ||
+          context.sourceImage.prompt_ja ||
+          "";
 
         const nextDraft: RemixGenerationDraft = {
           mode: "remix",
           sourceImageId,
           prompt: promptFromImage,
           promptLang: "en",
-          sourceImage,
+          sourceImage: context.sourceImage,
           returnTo: returnTo === "original" ? "original" : "gallery",
           returnImageId: searchParams.get("returnImageId") || sourceImageId,
           createdAt: Date.now(),
@@ -232,19 +269,26 @@ export default function GeneratePage() {
 
         setRemixDraft(nextDraft);
         setPrompt(promptFromImage);
+        setStagedTasks(context.tasks);
+        saveRemixContextSnapshot(user.id, sourceImageId, {
+          sourceImage: context.sourceImage,
+          tasks: context.tasks,
+          savedAt: Date.now(),
+        });
       } catch {
         if (!isActive) return;
-        setRemixDraft(null);
-        setPrompt("");
+      } finally {
+        if (!isActive) return;
+        setIsRestoringSeries(false);
       }
     };
 
-    void hydrateDraft();
+    void hydrateContext();
 
     return () => {
       isActive = false;
     };
-  }, [isRemixMode, returnTo, searchParams, sourceImageId, user]);
+  }, [fetchRemixContext, isRemixMode, returnTo, searchParams, sourceImageId, user?.id]);
 
   useEffect(() => {
     if (!isRemixMode || !remixDraft) {
@@ -257,35 +301,6 @@ export default function GeneratePage() {
       sourceImage: remixDraft.sourceImage,
     });
   }, [isRemixMode, prompt, remixDraft]);
-
-  useEffect(() => {
-    setCurrentTask(null);
-    setHoveredTaskId(null);
-
-    if (!isRemixMode || !sourceImageId || !user?.id) {
-      setStagedTasks([]);
-      return;
-    }
-
-    let isActive = true;
-
-    const hydrateSeries = async () => {
-      try {
-        const tasks = await fetchRemixSeries(sourceImageId);
-        if (!isActive) return;
-        setStagedTasks(tasks);
-      } catch {
-        if (!isActive) return;
-        setStagedTasks([]);
-      }
-    };
-
-    void hydrateSeries();
-
-    return () => {
-      isActive = false;
-    };
-  }, [fetchRemixSeries, isRemixMode, sourceImageId, user?.id]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -323,12 +338,22 @@ export default function GeneratePage() {
       setCurrentTask(json.task);
 
       if (isRemixMode && sourceImageId && json.task.result_url) {
-        setStagedTasks((previous) =>
-          [
+        setStagedTasks((previous) => {
+          const next = [
             ...previous.filter((task) => task.id !== json.task.id),
-            json.task as GenerationTask,
-          ].slice(-10)
-        );
+            json.task as RemixSeriesItem,
+          ].slice(-10);
+
+          if (user?.id && remixDraft?.sourceImage) {
+            saveRemixContextSnapshot(user.id, sourceImageId, {
+              sourceImage: remixDraft.sourceImage,
+              tasks: next,
+              savedAt: Date.now(),
+            });
+          }
+
+          return next;
+        });
       }
 
       if (!isRemixMode) {
@@ -419,6 +444,14 @@ export default function GeneratePage() {
               <div className="rounded-full bg-white/78 px-4 py-2 text-sm font-medium text-zinc-700 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl dark:bg-white/8 dark:text-zinc-200">
                 {credits ?? "—"} credits
               </div>
+            ) : null}
+            {billingEnabled ? (
+              <button
+                onClick={() => router.push((credits ?? 0) > 0 ? "/credits" : "/pricing")}
+                className="rounded-full bg-white/78 px-4 py-2 text-sm font-medium text-zinc-700 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:hover:text-white"
+              >
+                {(credits ?? 0) > 0 ? "Get credits" : "Buy credits"}
+              </button>
             ) : null}
             <button
               onClick={toggleTheme}
@@ -542,10 +575,14 @@ export default function GeneratePage() {
                         className="text-[34px] leading-none text-zinc-900 dark:text-white"
                         style={{ fontFamily: titleFont }}
                       >
-                        Compose a new image
+                        {isRestoringSeries
+                          ? "Restoring previous variations"
+                          : "Compose a new image"}
                       </p>
                       <p className="mt-4 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
-                        {studioStatus.helperText}
+                        {isRestoringSeries
+                          ? "We are bringing your previous remix series back onto the stage."
+                          : studioStatus.helperText}
                       </p>
                     </div>
                   </div>

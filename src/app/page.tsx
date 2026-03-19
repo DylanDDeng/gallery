@@ -11,11 +11,13 @@ import UserMenu from "@/components/UserMenu";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
 import { hydrateImageDimensions } from "@/lib/image-dimensions";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import type { ImagePrompt } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
 export default function Home() {
+  const billingEnabled = isBillingEnabled();
   const [images, setImages] = useState<ImagePrompt[]>(() => useAppStore.getState().allImages);
   const [isLoading, setIsLoading] = useState(() => useAppStore.getState().allImages.length === 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -320,6 +322,14 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
+            {billingEnabled && (
+              <a
+                href="/pricing"
+                className="hidden rounded-full px-3 py-1.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 sm:inline-flex"
+              >
+                Pricing
+              </a>
+            )}
             <UserMenu />
             <button
               onClick={toggleTheme}

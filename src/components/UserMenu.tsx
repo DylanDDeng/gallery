@@ -111,28 +111,49 @@ export default function UserMenu() {
             )}
           </div>
           {billingEnabled && (
-            <a
-              href="/credits"
-              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <>
+              <a
+                href="/credits"
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5-1.343 5-3-2.239-3-5-3zm0 0V6m0 8v2m-7-5v2c0 1.657 3.134 3 7 3s7-1.343 7-3v-2"
-                />
-              </svg>
-              <span>Credits</span>
-              <span className="ml-auto rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] dark:bg-zinc-700">
-                {credits ?? "—"} credits
-              </span>
-            </a>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5-1.343 5-3-2.239-3-5-3zm0 0V6m0 8v2m-7-5v2c0 1.657 3.134 3 7 3s7-1.343 7-3v-2"
+                  />
+                </svg>
+                <span>Credits</span>
+                <span className="ml-auto rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] dark:bg-zinc-700">
+                  {credits ?? "—"} credits
+                </span>
+              </a>
+              <a
+                href="/pricing"
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 7h18M6 12h12M9 17h6"
+                  />
+                </svg>
+                <span>Pricing</span>
+              </a>
+            </>
           )}
           <button
             onClick={() => {
