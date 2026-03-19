@@ -37,6 +37,46 @@ const SIZES = [
   { id: "3K", label: "3K", width: 3072, height: 3072 },
 ] as const;
 
+function getTaskPresentation(
+  status: GenerationTask["status"] | "idle"
+): {
+  label: string;
+  badgeClassName: string;
+  helperText: string;
+} {
+  switch (status) {
+    case "completed":
+      return {
+        label: "Rendered",
+        badgeClassName:
+          "bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300",
+        helperText: "A fresh image has landed in the studio.",
+      };
+    case "failed":
+      return {
+        label: "Interrupted",
+        badgeClassName:
+          "bg-rose-500/12 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300",
+        helperText: "The render stopped before completion.",
+      };
+    case "processing":
+    case "queued":
+      return {
+        label: "Developing",
+        badgeClassName:
+          "bg-amber-500/12 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-300",
+        helperText: "The next composition is taking shape.",
+      };
+    default:
+      return {
+        label: "Awaiting prompt",
+        badgeClassName:
+          "bg-zinc-900/6 text-zinc-600 ring-1 ring-zinc-900/10 dark:bg-white/8 dark:text-zinc-300 dark:ring-white/10",
+        helperText: "Start with a prompt and the studio will stage the result here.",
+      };
+  }
+}
+
 export default function GeneratePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,13 +97,12 @@ export default function GeneratePage() {
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
-  const [draftLoaded, setDraftLoaded] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<(typeof MODELS)[number]["id"]>(
-    MODELS[0].id
-  );
-  const [selectedSize, setSelectedSize] = useState<(typeof SIZES)[number]["id"]>(
-    SIZES[1].id
-  );
+  const [selectedModel, setSelectedModel] = useState<
+    (typeof MODELS)[number]["id"]
+  >(MODELS[0].id);
+  const [selectedSize, setSelectedSize] = useState<
+    (typeof SIZES)[number]["id"]
+  >(SIZES[1].id);
 
   const fetchCredits = useCallback(async () => {
     try {
@@ -72,27 +111,27 @@ export default function GeneratePage() {
       if (res.ok) {
         setCredits(json.credits);
       }
-    } catch (error) {
-      console.error("Error fetching credits:", error);
+    } catch (fetchError) {
+      console.error("Error fetching credits:", fetchError);
     }
   }, []);
 
-  // Check if user has API key configured
   const checkApiKey = useCallback(async () => {
     try {
       const res = await fetch("/api/user/api-keys");
       const json = await res.json();
       if (res.ok) {
-        const hasDoubao = json.data?.some((k: { provider: string }) => k.provider === "doubao");
+        const hasDoubao = json.data?.some(
+          (key: { provider: string }) => key.provider === "doubao"
+        );
         setHasApiKey(hasDoubao || false);
       }
-    } catch (error) {
-      console.error("Error checking API key:", error);
+    } catch (checkError) {
+      console.error("Error checking API key:", checkError);
       setHasApiKey(false);
     }
   }, []);
 
-  // Fetch recent tasks
   const fetchRecentTasks = useCallback(async () => {
     try {
       const res = await fetch("/api/generations?limit=5");
@@ -100,8 +139,8 @@ export default function GeneratePage() {
       if (res.ok) {
         setRecentTasks(json.data || []);
       }
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
+    } catch (fetchError) {
+      console.error("Error fetching tasks:", fetchError);
     }
   }, []);
 
@@ -110,23 +149,26 @@ export default function GeneratePage() {
       router.push("/");
       return;
     }
+
     if (selfServiceApiKeysEnabled) {
       void checkApiKey();
     } else {
       setHasApiKey(true);
     }
+
     if (billingEnabled) {
       void fetchCredits();
     }
+
     void fetchRecentTasks();
   }, [
     billingEnabled,
-    user,
-    router,
     checkApiKey,
     fetchCredits,
     fetchRecentTasks,
+    router,
     selfServiceApiKeysEnabled,
+    user,
   ]);
 
   useEffect(() => {
@@ -135,7 +177,6 @@ export default function GeneratePage() {
     if (!isRemixMode) {
       setRemixDraft(null);
       setPrompt("");
-      setDraftLoaded(true);
       return;
     }
 
@@ -143,14 +184,12 @@ export default function GeneratePage() {
     if (draft && (!sourceImageId || draft.sourceImageId === sourceImageId)) {
       setRemixDraft(draft);
       setPrompt(draft.prompt);
-      setDraftLoaded(true);
       return;
     }
 
     if (!sourceImageId) {
       setRemixDraft(null);
       setPrompt("");
-      setDraftLoaded(true);
       return;
     }
 
@@ -169,7 +208,10 @@ export default function GeneratePage() {
         if (!sourceImage) {
           throw new Error("Failed to load source image");
         }
-        const promptFromImage = sourceImage.prompt || sourceImage.prompt_zh || sourceImage.prompt_ja;
+
+        const promptFromImage =
+          sourceImage.prompt || sourceImage.prompt_zh || sourceImage.prompt_ja;
+
         const nextDraft: RemixGenerationDraft = {
           mode: "remix",
           sourceImageId,
@@ -189,9 +231,6 @@ export default function GeneratePage() {
         if (!isActive) return;
         setRemixDraft(null);
         setPrompt("");
-      } finally {
-        if (!isActive) return;
-        setDraftLoaded(true);
       }
     };
 
@@ -214,8 +253,8 @@ export default function GeneratePage() {
     });
   }, [isRemixMode, prompt, remixDraft]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!prompt.trim() || submitting) return;
 
     setSubmitting(true);
@@ -254,11 +293,9 @@ export default function GeneratePage() {
       if (billingEnabled) {
         void fetchCredits();
       }
-
-      // Refresh recent tasks
       void fetchRecentTasks();
-    } catch (err) {
-      console.error("Error creating generation:", err);
+    } catch (submitError) {
+      console.error("Error creating generation:", submitError);
       setError("An error occurred. Please try again.");
       if (billingEnabled) {
         void fetchCredits();
@@ -268,422 +305,347 @@ export default function GeneratePage() {
     }
   };
 
-  const handleDownload = (url: string) => {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `generated-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   if (!user) {
     return null;
   }
 
+  const creditCount = credits ?? 0;
+  const generateDisabled =
+    submitting ||
+    !prompt.trim() ||
+    (selfServiceApiKeysEnabled && !hasApiKey) ||
+    (billingEnabled && creditCount < 1);
+  const studioStatus = getTaskPresentation(
+    submitting ? "processing" : currentTask?.status ?? "idle"
+  );
+  const visibleRecentTasks = recentTasks.slice(0, 4);
+  const titleFont =
+    '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif';
+  const sourceImageUrl = remixDraft?.sourceImage?.url || null;
+  const resultImageUrl = currentTask?.result_url || null;
+  const showComparisonStage = isRemixMode && Boolean(sourceImageUrl);
+  const toolbarDisabled = generateDisabled;
+
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/")}
-              className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
-            >
-              &larr; Back to gallery
-            </button>
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-              {isRemixMode ? "Remix from image" : "Generate"}
-            </h1>
-          </div>
+    <div className="min-h-screen overflow-hidden bg-[#f3efe9] text-zinc-900 dark:bg-[#111215] dark:text-zinc-100">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.9),rgba(243,239,233,0.75)_38%,rgba(243,239,233,0.94)_72%)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05),rgba(17,18,21,0.82)_38%,rgba(17,18,21,0.96)_72%)]" />
+      {sourceImageUrl ? (
+        <div
+          className="pointer-events-none fixed left-[6%] top-8 h-[78vh] w-[28vw] rounded-[48px] opacity-30 blur-[70px]"
+          style={{ background: `center / cover no-repeat url(${sourceImageUrl})` }}
+        />
+      ) : null}
+      {(resultImageUrl || sourceImageUrl) ? (
+        <div
+          className="pointer-events-none fixed right-[6%] top-10 h-[78vh] w-[28vw] rounded-[48px] opacity-30 blur-[70px]"
+          style={{ background: `center / cover no-repeat url(${resultImageUrl || sourceImageUrl})` }}
+        />
+      ) : null}
+
+      <main className="relative mx-auto flex min-h-screen max-w-[1460px] flex-col px-4 pb-8 pt-6 sm:px-6 lg:px-8">
+        <div className="z-20 flex items-center justify-between gap-3">
           <button
-            onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
+            onClick={() => router.push("/")}
+            className="rounded-full bg-white/78 px-4 py-2 text-sm font-medium text-zinc-600 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
           >
-            {theme === "light" ? (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            ) : (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            )}
+            &larr; Back to gallery
           </button>
-        </div>
-      </header>
 
-      <div className="mx-auto max-w-[800px] px-6 py-8">
-        {/* API Key Warning */}
-        {selfServiceApiKeysEnabled && hasApiKey === false && (
-          <div className="mb-6 rounded-xl bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
-            <p className="font-medium">API Key not configured</p>
-            <p className="mt-1">Please configure your Doubao API key in{" "}
-              <button
-                onClick={() => router.push("/settings")}
-                className="underline hover:no-underline"
-              >
-                Settings
-              </button>
-              {" "}to start generating images.
-            </p>
-          </div>
-        )}
-
-        {billingEnabled ? (
-          <div className="mb-6 flex items-center justify-between rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
-                Credits
-              </p>
-              <p className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-                {credits ?? "—"}
-              </p>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Each generation costs 1 credit.
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            {billingEnabled ? (
+              <div className="rounded-full bg-white/78 px-4 py-2 text-sm font-medium text-zinc-700 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl dark:bg-white/8 dark:text-zinc-200">
+                {credits ?? "—"} credits
+              </div>
+            ) : null}
             <button
-              onClick={() => router.push("/credits")}
-              className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              onClick={toggleTheme}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/78 text-zinc-500 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
             >
-              Buy Credits
+              {theme === "light" ? (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
             </button>
           </div>
-        ) : selfServiceApiKeysEnabled ? (
-          <div className="mb-6 rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
-              API-key mode
-            </p>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-              Generation currently uses your own configured Doubao API key. Credits and purchases are disabled.
-            </p>
-          </div>
-        ) : null}
+        </div>
 
-        {isRemixMode && draftLoaded && remixDraft && (
-          <div className="mb-6 rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
-            <div className="flex gap-4">
-              <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl ring-1 ring-zinc-200 dark:ring-white/10">
-                {remixDraft.sourceImage?.url ? (
+        <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center">
+          <div className="rounded-full bg-white/54 px-4 py-1 text-[11px] uppercase tracking-[0.28em] text-zinc-500 backdrop-blur-xl dark:bg-white/6 dark:text-zinc-400">
+            {isRemixMode ? "Remix studio" : "Generate studio"}
+          </div>
+        </div>
+
+        <div className="relative flex flex-1 items-center justify-center pb-56 pt-10 sm:pb-64 lg:pb-72">
+          {showComparisonStage ? (
+            <div className="flex w-full max-w-[1080px] items-start justify-center gap-5 sm:gap-8">
+              <div className="relative w-[34%] min-w-[220px] max-w-[360px]">
+                <div className="absolute inset-0 rounded-[32px] bg-white/28 blur-2xl" />
+                <div className="relative overflow-hidden rounded-[32px] bg-white/78 shadow-[0_20px_70px_rgba(35,25,15,0.12)] ring-1 ring-white/50 backdrop-blur-xl dark:bg-white/8 dark:ring-white/10">
+                  {sourceImageUrl ? (
+                    <Image
+                      src={sourceImageUrl}
+                      alt=""
+                      width={900}
+                      height={1200}
+                      unoptimized
+                      className="h-auto w-full object-cover"
+                    />
+                  ) : (
+                    <div className="aspect-[4/5] w-full bg-white/30 dark:bg-white/6" />
+                  )}
+                </div>
+              </div>
+
+              <div className="relative w-[40%] min-w-[240px] max-w-[420px] translate-y-5">
+                <div className="absolute inset-0 rounded-[34px] bg-white/28 blur-2xl" />
+                <div className="relative overflow-hidden rounded-[34px] bg-white/86 shadow-[0_24px_80px_rgba(35,25,15,0.14)] ring-1 ring-white/60 backdrop-blur-xl dark:bg-white/10 dark:ring-white/10">
+                  {resultImageUrl ? (
+                    <Image
+                      src={resultImageUrl}
+                      alt="Generated result"
+                      width={960}
+                      height={1200}
+                      unoptimized
+                      className="h-auto w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex aspect-[4/5] items-center justify-center bg-white/40 px-8 text-center dark:bg-white/6">
+                      <div>
+                        <p
+                          className="text-2xl text-zinc-900 dark:text-white"
+                          style={{ fontFamily: titleFont }}
+                        >
+                          {submitting ? "Developing the next frame" : "Your next image appears here"}
+                        </p>
+                        <p className="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                          {studioStatus.helperText}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="relative w-full max-w-[840px]">
+              <div className="absolute inset-0 rounded-[36px] bg-white/28 blur-2xl" />
+              <div className="relative overflow-hidden rounded-[36px] bg-white/84 shadow-[0_24px_80px_rgba(35,25,15,0.12)] ring-1 ring-white/55 backdrop-blur-xl dark:bg-white/8 dark:ring-white/10">
+                {resultImageUrl ? (
                   <Image
-                    src={remixDraft.sourceImage.url}
-                    alt=""
-                    fill
-                    sizes="80px"
+                    src={resultImageUrl}
+                    alt="Generated result"
+                    width={1400}
+                    height={1200}
                     unoptimized
-                    className="object-cover"
+                    className="h-auto w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] text-zinc-400 dark:bg-zinc-800">
-                    No image
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
-                  Remix Studio
-                </p>
-                <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {remixDraft.sourceImage?.author || "Unknown author"} · {remixDraft.sourceImage?.model || "Unknown model"}
-                </p>
-                <p className="mt-1 line-clamp-3 text-sm text-zinc-600 dark:text-zinc-300">
-                  {remixDraft.sourceImage?.prompt || "Original prompt unavailable."}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setPrompt(remixDraft.prompt)}
-                    className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
-                  >
-                    Use original prompt
-                  </button>
-                  <button
-                    onClick={() => router.push("/")}
-                    className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                  >
-                    Back to gallery
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Generate Form */}
-        <form onSubmit={(e) => void handleSubmit(e)} className="mb-8">
-          <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900 p-6 ring-1 ring-zinc-200 dark:ring-white/10">
-            <label className="mb-2 block text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-              Prompt
-            </label>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the image you want to generate..."
-              rows={4}
-              className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500 resize-none"
-            />
-
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                  Model
-                </p>
-                <div className="space-y-2">
-                  {MODELS.map((model) => {
-                    const isActive = selectedModel === model.id;
-                    return (
-                      <button
-                        key={model.id}
-                        type="button"
-                        onClick={() => setSelectedModel(model.id)}
-                        className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
-                          isActive
-                            ? "border-zinc-900 bg-zinc-100 text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-100"
-                            : "border-transparent bg-white text-zinc-700 hover:border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700"
-                        }`}
+                  <div className="flex aspect-[4/3] items-center justify-center px-10 text-center">
+                    <div>
+                      <p
+                        className="text-[34px] leading-none text-zinc-900 dark:text-white"
+                        style={{ fontFamily: titleFont }}
                       >
-                        <div
-                          className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
-                            isActive
-                              ? "border-zinc-900 dark:border-zinc-100"
-                              : "border-zinc-300 dark:border-zinc-600"
-                          }`}
-                        >
-                          {isActive && (
-                            <div className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">{model.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                  Size
-                </p>
-                <div className="space-y-2">
-                  {SIZES.map((size) => {
-                    const isActive = selectedSize === size.id;
-                    return (
-                      <button
-                        key={size.id}
-                        type="button"
-                        onClick={() => setSelectedSize(size.id)}
-                        className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
-                          isActive
-                            ? "border-zinc-900 bg-zinc-100 text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-100"
-                            : "border-transparent bg-white text-zinc-700 hover:border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700"
-                        }`}
-                      >
-                        <div
-                          className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
-                            isActive
-                              ? "border-zinc-900 dark:border-zinc-100"
-                              : "border-zinc-300 dark:border-zinc-600"
-                          }`}
-                        >
-                          {isActive && (
-                            <div className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">{size.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {error && (
-              <div className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500 dark:text-red-400">
-                {error}
-              </div>
-            )}
-
-            <div className="mt-4 flex items-center justify-end">
-              <button
-                type="submit"
-                disabled={
-                  submitting ||
-                  !prompt.trim() ||
-                  (selfServiceApiKeysEnabled && !hasApiKey) ||
-                  (billingEnabled && (credits ?? 0) < 1)
-                }
-                className="flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-6 py-2.5 text-sm font-semibold text-white dark:text-zinc-900 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50"
-              >
-                {submitting ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-zinc-900/30 dark:border-t-zinc-900" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Generate
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </form>
-
-        {/* Current Task */}
-        {currentTask && (
-          <div className="mb-8">
-            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">Current Generation</h2>
-            <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 ring-1 ring-zinc-200 dark:ring-white/10">
-              <div className="flex items-start gap-4">
-                {currentTask.status === "completed" && currentTask.result_url ? (
-                  <div className="relative group">
-                    <img
-                      src={currentTask.result_url}
-                      alt="Generated"
-                      className="h-32 w-32 rounded-lg object-cover"
-                    />
-                    <button
-                      onClick={() => handleDownload(currentTask.result_url!)}
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                  </div>
-                ) : currentTask.status === "failed" ? (
-                  <div className="h-32 w-32 rounded-lg bg-red-500/10 flex items-center justify-center">
-                    <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                ) : (
-                  <div className="h-32 w-32 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+                        Compose a new image
+                      </p>
+                      <p className="mt-4 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                        {studioStatus.helperText}
+                      </p>
+                    </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                      currentTask.status === "completed"
-                        ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
-                        : currentTask.status === "failed"
-                        ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                        : "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
-                    }`}>
-                      {currentTask.status === "processing" && "Processing"}
-                      {currentTask.status === "completed" && "Completed"}
-                      {currentTask.status === "failed" && "Failed"}
-                    </span>
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                      {new Date(currentTask.created_at).toLocaleTimeString()}
-                    </span>
-                    {billingEnabled && (currentTask.credits_cost ?? 0) > 0 && (
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                        {currentTask.credits_cost ?? 1} credit
-                        {(currentTask.credits_cost ?? 1) !== 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 mb-1">
-                    {currentTask.prompt}
-                  </p>
-
-                  {currentTask.status === "completed" && currentTask.result_url && (
-                    <button
-                      onClick={() => handleDownload(currentTask.result_url!)}
-                      className="mt-2 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Download
-                    </button>
-                  )}
-
-                  {currentTask.status === "failed" && currentTask.error_message && (
-                    <p className="text-xs text-red-500 dark:text-red-400">
-                      {currentTask.error_message}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center">
+            <div className="pointer-events-auto w-full max-w-[980px] rounded-[30px] bg-white/90 shadow-[0_24px_80px_rgba(33,24,15,0.16)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10">
+              <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.26em] text-zinc-400 dark:text-zinc-500">
+                      {isRemixMode ? "Remix from image" : "Prompt composer"}
                     </p>
-                  )}
+                    <p
+                      className="mt-2 text-[26px] leading-none text-zinc-900 dark:text-white"
+                      style={{ fontFamily: titleFont }}
+                    >
+                      {isRemixMode ? "Refine the original into something new" : "Write the frame you want to see"}
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                    {studioStatus.label}
+                  </div>
                 </div>
-              </div>
+
+                {selfServiceApiKeysEnabled && hasApiKey === false ? (
+                  <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                    Configure your Doubao API key in Settings before rendering from this studio.
+                  </div>
+                ) : null}
+
+                {error ? (
+                  <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
+                    {error}
+                  </div>
+                ) : null}
+
+                <textarea
+                  value={prompt}
+                  onChange={(event) => setPrompt(event.target.value)}
+                  placeholder="Describe the image you want to generate..."
+                  rows={7}
+                  className="mt-5 w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                />
+
+                <div className="mt-5 flex flex-col gap-3 border-t border-black/6 pt-4 dark:border-white/8 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isRemixMode && remixDraft) {
+                          setPrompt(remixDraft.prompt);
+                        }
+                      }}
+                      className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
+                    >
+                      Use original prompt
+                    </button>
+                    {MODELS.map((model) => {
+                      const isActive = selectedModel === model.id;
+                      return (
+                        <button
+                          key={model.id}
+                          type="button"
+                          onClick={() => setSelectedModel(model.id)}
+                          className={`rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+                            isActive
+                              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                              : "bg-black/5 text-zinc-600 hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
+                          }`}
+                        >
+                          {model.name}
+                        </button>
+                      );
+                    })}
+                    {SIZES.map((size) => {
+                      const isActive = selectedSize === size.id;
+                      return (
+                        <button
+                          key={size.id}
+                          type="button"
+                          onClick={() => setSelectedSize(size.id)}
+                          className={`rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+                            isActive
+                              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                              : "bg-black/5 text-zinc-600 hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
+                          }`}
+                        >
+                          {size.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 lg:justify-end">
+                    {billingEnabled ? (
+                      <div className="rounded-full bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                        x1 credit
+                      </div>
+                    ) : null}
+                    <button
+                      type="submit"
+                      disabled={toolbarDisabled}
+                      className="flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    >
+                      {submitting ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-zinc-900/30 dark:border-t-zinc-900" />
+                          Rendering...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          {isRemixMode ? "Generate variation" : "Generate image"}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </form>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Recent Tasks */}
-        {recentTasks.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Recent Generations</h2>
+        {visibleRecentTasks.length > 0 ? (
+          <section className="mt-8">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-400 dark:text-zinc-500">
+                  Archive
+                </p>
+                <h3
+                  className="mt-2 text-[24px] leading-none text-zinc-900 dark:text-zinc-100"
+                  style={{ fontFamily: titleFont }}
+                >
+                  Recent renders
+                </h3>
+              </div>
               <button
                 onClick={() => router.push("/history")}
-                className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="rounded-full bg-white/78 px-4 py-2 text-xs font-medium text-zinc-600 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
               >
-                View all &rarr;
+                View all
               </button>
             </div>
-            <div className="space-y-3">
-              {recentTasks.slice(0, 3).map((task) => (
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {visibleRecentTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 p-3 ring-1 ring-zinc-200 dark:ring-white/10"
+                  className="overflow-hidden rounded-[24px] bg-white/76 shadow-[0_18px_60px_rgba(33,24,15,0.08)] ring-1 ring-white/55 backdrop-blur-xl dark:bg-white/6 dark:ring-white/8"
                 >
                   {task.status === "completed" && task.result_url ? (
-                    <div className="relative group flex-shrink-0">
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={task.result_url}
                         alt=""
-                        className="h-12 w-12 rounded-lg object-cover"
+                        className="h-full w-full object-cover"
                       />
-                      <button
-                        onClick={() => handleDownload(task.result_url!)}
-                        className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      </button>
                     </div>
                   ) : (
-                    <div className="h-12 w-12 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                    <div className="flex aspect-[4/3] items-center justify-center bg-white/50 text-zinc-500 dark:bg-white/4 dark:text-zinc-300">
                       {task.status === "failed" ? (
-                        <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-7.938 4h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       ) : (
-                        <div className="h-4 w-4 animate-spin rounded-full border border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+                        <div className="h-4 w-4 animate-spin rounded-full border border-zinc-300 border-t-zinc-900 dark:border-white/20 dark:border-t-white" />
                       )}
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300 truncate">
+                  <div className="p-4">
+                    <p className="line-clamp-2 text-sm font-medium text-zinc-800 dark:text-zinc-100">
                       {task.prompt}
                     </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
                       {new Date(task.created_at).toLocaleString()}
                     </p>
-                    {billingEnabled && (task.credits_cost ?? 0) > 0 && (
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                        {task.credits_cost ?? 1} credit
-                        {(task.credits_cost ?? 1) !== 1 ? "s" : ""}
-                      </p>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-      </div>
+          </section>
+        ) : null}
+      </main>
     </div>
   );
 }
