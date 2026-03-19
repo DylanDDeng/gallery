@@ -92,7 +92,6 @@ export default function GeneratePage() {
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [currentTask, setCurrentTask] = useState<GenerationTask | null>(null);
-  const [recentTasks, setRecentTasks] = useState<GenerationTask[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
@@ -132,18 +131,6 @@ export default function GeneratePage() {
     }
   }, []);
 
-  const fetchRecentTasks = useCallback(async () => {
-    try {
-      const res = await fetch("/api/generations?limit=5");
-      const json = await res.json();
-      if (res.ok) {
-        setRecentTasks(json.data || []);
-      }
-    } catch (fetchError) {
-      console.error("Error fetching tasks:", fetchError);
-    }
-  }, []);
-
   useEffect(() => {
     if (!user) {
       router.push("/");
@@ -159,13 +146,10 @@ export default function GeneratePage() {
     if (billingEnabled) {
       void fetchCredits();
     }
-
-    void fetchRecentTasks();
   }, [
     billingEnabled,
     checkApiKey,
     fetchCredits,
-    fetchRecentTasks,
     router,
     selfServiceApiKeysEnabled,
     user,
@@ -279,7 +263,6 @@ export default function GeneratePage() {
         if (selfServiceApiKeysEnabled && json.error?.includes("API key")) {
           setHasApiKey(false);
         }
-        void fetchRecentTasks();
         if (billingEnabled) {
           void fetchCredits();
         }
@@ -293,7 +276,6 @@ export default function GeneratePage() {
       if (billingEnabled) {
         void fetchCredits();
       }
-      void fetchRecentTasks();
     } catch (submitError) {
       console.error("Error creating generation:", submitError);
       setError("An error occurred. Please try again.");
@@ -318,7 +300,6 @@ export default function GeneratePage() {
   const studioStatus = getTaskPresentation(
     submitting ? "processing" : currentTask?.status ?? "idle"
   );
-  const visibleRecentTasks = recentTasks.slice(0, 4);
   const titleFont =
     '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif';
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
@@ -380,12 +361,12 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center pb-56 pt-10 sm:pb-64 lg:pb-72">
+        <div className="relative flex flex-1 items-center justify-center pb-72 pt-12 sm:pb-80 lg:pb-[22rem]">
           {showComparisonStage ? (
             <div className="flex w-full max-w-[1080px] items-start justify-center gap-5 sm:gap-8">
-              <div className="relative w-[34%] min-w-[220px] max-w-[360px]">
+              <div className="group relative w-[34%] min-w-[220px] max-w-[360px]">
                 <div className="absolute inset-0 rounded-[32px] bg-white/28 blur-2xl" />
-                <div className="relative overflow-hidden rounded-[32px] bg-white/78 shadow-[0_20px_70px_rgba(35,25,15,0.12)] ring-1 ring-white/50 backdrop-blur-xl dark:bg-white/8 dark:ring-white/10">
+                <div className="relative overflow-hidden rounded-[32px] bg-white/78 shadow-[0_20px_70px_rgba(35,25,15,0.12)] ring-1 ring-white/50 backdrop-blur-xl transition-all duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.015] group-hover:shadow-[0_28px_90px_rgba(35,25,15,0.18)] group-hover:ring-white/75 dark:bg-white/8 dark:ring-white/10 dark:group-hover:ring-white/20">
                   {sourceImageUrl ? (
                     <Image
                       src={sourceImageUrl}
@@ -393,17 +374,22 @@ export default function GeneratePage() {
                       width={900}
                       height={1200}
                       unoptimized
-                      className="h-auto w-full object-cover"
+                      className="h-auto w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                     />
                   ) : (
                     <div className="aspect-[4/5] w-full bg-white/30 dark:bg-white/6" />
                   )}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
+                      Reference
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="relative w-[40%] min-w-[240px] max-w-[420px] translate-y-5">
+              <div className="group relative w-[40%] min-w-[240px] max-w-[420px] translate-y-5">
                 <div className="absolute inset-0 rounded-[34px] bg-white/28 blur-2xl" />
-                <div className="relative overflow-hidden rounded-[34px] bg-white/86 shadow-[0_24px_80px_rgba(35,25,15,0.14)] ring-1 ring-white/60 backdrop-blur-xl dark:bg-white/10 dark:ring-white/10">
+                <div className="relative overflow-hidden rounded-[34px] bg-white/86 shadow-[0_24px_80px_rgba(35,25,15,0.14)] ring-1 ring-white/60 backdrop-blur-xl transition-all duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.015] group-hover:shadow-[0_30px_95px_rgba(35,25,15,0.2)] group-hover:ring-white/80 dark:bg-white/10 dark:ring-white/10 dark:group-hover:ring-white/20">
                   {resultImageUrl ? (
                     <Image
                       src={resultImageUrl}
@@ -411,7 +397,7 @@ export default function GeneratePage() {
                       width={960}
                       height={1200}
                       unoptimized
-                      className="h-auto w-full object-cover"
+                      className="h-auto w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                     />
                   ) : (
                     <div className="flex aspect-[4/5] items-center justify-center bg-white/40 px-8 text-center dark:bg-white/6">
@@ -428,6 +414,11 @@ export default function GeneratePage() {
                       </div>
                     </div>
                   )}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
+                      Result
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -463,8 +454,8 @@ export default function GeneratePage() {
             </div>
           )}
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center">
-            <div className="pointer-events-auto w-full max-w-[980px] rounded-[30px] bg-white/90 shadow-[0_24px_80px_rgba(33,24,15,0.16)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10">
+          <div className="pointer-events-none absolute inset-x-0 -bottom-4 flex justify-center sm:-bottom-6">
+            <div className="pointer-events-auto w-full max-w-[1120px] rounded-[30px] bg-white/90 shadow-[0_24px_80px_rgba(33,24,15,0.16)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10">
               <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -499,8 +490,8 @@ export default function GeneratePage() {
                   value={prompt}
                   onChange={(event) => setPrompt(event.target.value)}
                   placeholder="Describe the image you want to generate..."
-                  rows={7}
-                  className="mt-5 w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                  rows={5}
+                  className="mt-4 w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
                 />
 
                 <div className="mt-5 flex flex-col gap-3 border-t border-black/6 pt-4 dark:border-white/8 lg:flex-row lg:items-center lg:justify-between">
@@ -584,67 +575,6 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        {visibleRecentTasks.length > 0 ? (
-          <section className="mt-8">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-400 dark:text-zinc-500">
-                  Archive
-                </p>
-                <h3
-                  className="mt-2 text-[24px] leading-none text-zinc-900 dark:text-zinc-100"
-                  style={{ fontFamily: titleFont }}
-                >
-                  Recent renders
-                </h3>
-              </div>
-              <button
-                onClick={() => router.push("/history")}
-                className="rounded-full bg-white/78 px-4 py-2 text-xs font-medium text-zinc-600 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
-              >
-                View all
-              </button>
-            </div>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {visibleRecentTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="overflow-hidden rounded-[24px] bg-white/76 shadow-[0_18px_60px_rgba(33,24,15,0.08)] ring-1 ring-white/55 backdrop-blur-xl dark:bg-white/6 dark:ring-white/8"
-                >
-                  {task.status === "completed" && task.result_url ? (
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={task.result_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex aspect-[4/3] items-center justify-center bg-white/50 text-zinc-500 dark:bg-white/4 dark:text-zinc-300">
-                      {task.status === "failed" ? (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-7.938 4h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                      ) : (
-                        <div className="h-4 w-4 animate-spin rounded-full border border-zinc-300 border-t-zinc-900 dark:border-white/20 dark:border-t-white" />
-                      )}
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <p className="line-clamp-2 text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                      {task.prompt}
-                    </p>
-                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                      {new Date(task.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </main>
     </div>
   );
