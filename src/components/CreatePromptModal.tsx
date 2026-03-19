@@ -146,14 +146,14 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
                     onClick={() => setSelectedModel(model.id)}
                     className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
                       selectedModel === model.id
-                        ? "bg-purple-500/10 border border-purple-500/50 text-purple-600 dark:text-purple-400"
+                        ? "bg-zinc-100 border border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-100 dark:text-zinc-100"
                         : "bg-zinc-50 dark:bg-zinc-800 border border-transparent text-zinc-700 dark:text-zinc-300 hover:border-zinc-200 dark:hover:border-zinc-700"
                     }`}
                   >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      selectedModel === model.id ? "border-purple-500" : "border-zinc-300 dark:border-zinc-600"
+                      selectedModel === model.id ? "border-zinc-900 dark:border-zinc-100" : "border-zinc-300 dark:border-zinc-600"
                     }`}>
-                      {selectedModel === model.id && <div className="w-2 h-2 rounded-full bg-purple-500" />}
+                      {selectedModel === model.id && <div className="w-2 h-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />}
                     </div>
                     <span className="text-sm font-medium">{model.name}</span>
                   </button>
@@ -173,14 +173,14 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
                     onClick={() => setSelectedSize(size.id)}
                     className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
                       selectedSize === size.id
-                        ? "bg-purple-500/10 border border-purple-500/50 text-purple-600 dark:text-purple-400"
+                        ? "bg-zinc-100 border border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-100 dark:text-zinc-100"
                         : "bg-zinc-50 dark:bg-zinc-800 border border-transparent text-zinc-700 dark:text-zinc-300 hover:border-zinc-200 dark:hover:border-zinc-700"
                     }`}
                   >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      selectedSize === size.id ? "border-purple-500" : "border-zinc-300 dark:border-zinc-600"
+                      selectedSize === size.id ? "border-zinc-900 dark:border-zinc-100" : "border-zinc-300 dark:border-zinc-600"
                     }`}>
-                      {selectedSize === size.id && <div className="w-2 h-2 rounded-full bg-purple-500" />}
+                      {selectedSize === size.id && <div className="w-2 h-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />}
                     </div>
                     <span className="text-sm font-medium">{size.label}</span>
                   </button>
@@ -200,7 +200,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
           <button
             onClick={handleGenerate}
             disabled={generating || !prompt.trim()}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold text-lg shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full rounded-2xl bg-zinc-900 py-4 text-lg font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             {generating ? (
               <span className="flex items-center justify-center gap-2">
