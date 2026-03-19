@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   isBillingEnabled,
   isSelfServiceApiKeysEnabled,
 } from "@/lib/billing-feature";
+import {
+  readRemixGenerationDraft,
+  saveRemixGenerationDraft,
+  type RemixGenerationDraft,
+} from "@/lib/generation-draft";
 import { useAppStore } from "@/store";
+import type { ImagePrompt } from "@/lib/types";
 
 interface GenerationTask {
   id: string;
@@ -19,13 +26,28 @@ interface GenerationTask {
   created_at: string;
 }
 
+const MODELS = [
+  { id: "doubao-seedream-5-0-260128", name: "Seedream 5.0" },
+  { id: "seedream-v3", name: "Seedream v3" },
+] as const;
+
+const SIZES = [
+  { id: "1K", label: "1K", width: 1024, height: 1024 },
+  { id: "2K", label: "2K", width: 2048, height: 2048 },
+  { id: "3K", label: "3K", width: 3072, height: 3072 },
+] as const;
+
 export default function GeneratePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const billingEnabled = isBillingEnabled();
   const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
+  const isRemixMode = searchParams.get("mode") === "remix";
+  const sourceImageId = searchParams.get("sourceImageId");
+  const returnTo = searchParams.get("returnTo") ?? "gallery";
 
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -34,6 +56,14 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
+  const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<(typeof MODELS)[number]["id"]>(
+    MODELS[0].id
+  );
+  const [selectedSize, setSelectedSize] = useState<(typeof SIZES)[number]["id"]>(
+    SIZES[1].id
+  );
 
   const fetchCredits = useCallback(async () => {
     try {
@@ -99,6 +129,91 @@ export default function GeneratePage() {
     selfServiceApiKeysEnabled,
   ]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    if (!isRemixMode) {
+      setRemixDraft(null);
+      setPrompt("");
+      setDraftLoaded(true);
+      return;
+    }
+
+    const draft = readRemixGenerationDraft();
+    if (draft && (!sourceImageId || draft.sourceImageId === sourceImageId)) {
+      setRemixDraft(draft);
+      setPrompt(draft.prompt);
+      setDraftLoaded(true);
+      return;
+    }
+
+    if (!sourceImageId) {
+      setRemixDraft(null);
+      setPrompt("");
+      setDraftLoaded(true);
+      return;
+    }
+
+    let isActive = true;
+
+    const hydrateDraft = async () => {
+      try {
+        const res = await fetch(`/api/images/${encodeURIComponent(sourceImageId)}`);
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.error || "Failed to load source image");
+        }
+
+        const sourceImage = json as ImagePrompt;
+        if (!sourceImage) {
+          throw new Error("Failed to load source image");
+        }
+        const promptFromImage = sourceImage.prompt || sourceImage.prompt_zh || sourceImage.prompt_ja;
+        const nextDraft: RemixGenerationDraft = {
+          mode: "remix",
+          sourceImageId,
+          prompt: promptFromImage,
+          promptLang: "en",
+          sourceImage,
+          returnTo: returnTo === "original" ? "original" : "gallery",
+          returnImageId: searchParams.get("returnImageId") || sourceImageId,
+          createdAt: Date.now(),
+        };
+
+        if (!isActive) return;
+
+        setRemixDraft(nextDraft);
+        setPrompt(promptFromImage);
+      } catch {
+        if (!isActive) return;
+        setRemixDraft(null);
+        setPrompt("");
+      } finally {
+        if (!isActive) return;
+        setDraftLoaded(true);
+      }
+    };
+
+    void hydrateDraft();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isRemixMode, returnTo, searchParams, sourceImageId, user]);
+
+  useEffect(() => {
+    if (!isRemixMode || !remixDraft) {
+      return;
+    }
+
+    saveRemixGenerationDraft({
+      ...remixDraft,
+      prompt,
+      sourceImage: remixDraft.sourceImage,
+    });
+  }, [isRemixMode, prompt, remixDraft]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() || submitting) return;
@@ -111,7 +226,11 @@ export default function GeneratePage() {
       const res = await fetch("/api/generations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim() }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          model: selectedModel,
+          size: selectedSize,
+        }),
       });
 
       const json = await res.json();
@@ -129,7 +248,9 @@ export default function GeneratePage() {
       }
 
       setCurrentTask(json.task);
-      setPrompt("");
+      if (!isRemixMode) {
+        setPrompt("");
+      }
       if (billingEnabled) {
         void fetchCredits();
       }
@@ -170,10 +291,12 @@ export default function GeneratePage() {
               onClick={() => router.push("/")}
               className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
             >
-              &larr; Back to site
+              &larr; Back to gallery
             </button>
             <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Generate</h1>
+            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+              {isRemixMode ? "Remix from image" : "Generate"}
+            </h1>
           </div>
           <button
             onClick={toggleTheme}
@@ -240,6 +363,54 @@ export default function GeneratePage() {
           </div>
         ) : null}
 
+        {isRemixMode && draftLoaded && remixDraft && (
+          <div className="mb-6 rounded-2xl bg-zinc-50 px-5 py-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-white/10">
+            <div className="flex gap-4">
+              <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl ring-1 ring-zinc-200 dark:ring-white/10">
+                {remixDraft.sourceImage?.url ? (
+                  <Image
+                    src={remixDraft.sourceImage.url}
+                    alt=""
+                    fill
+                    sizes="80px"
+                    unoptimized
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-zinc-100 text-[10px] text-zinc-400 dark:bg-zinc-800">
+                    No image
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
+                  Remix Studio
+                </p>
+                <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {remixDraft.sourceImage?.author || "Unknown author"} · {remixDraft.sourceImage?.model || "Unknown model"}
+                </p>
+                <p className="mt-1 line-clamp-3 text-sm text-zinc-600 dark:text-zinc-300">
+                  {remixDraft.sourceImage?.prompt || "Original prompt unavailable."}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setPrompt(remixDraft.prompt)}
+                    className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  >
+                    Use original prompt
+                  </button>
+                  <button
+                    onClick={() => router.push("/")}
+                    className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                  >
+                    Back to gallery
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Generate Form */}
         <form onSubmit={(e) => void handleSubmit(e)} className="mb-8">
           <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900 p-6 ring-1 ring-zinc-200 dark:ring-white/10">
@@ -253,6 +424,80 @@ export default function GeneratePage() {
               rows={4}
               className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500 resize-none"
             />
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                  Model
+                </p>
+                <div className="space-y-2">
+                  {MODELS.map((model) => {
+                    const isActive = selectedModel === model.id;
+                    return (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => setSelectedModel(model.id)}
+                        className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                          isActive
+                            ? "border-zinc-900 bg-zinc-100 text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-100"
+                            : "border-transparent bg-white text-zinc-700 hover:border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700"
+                        }`}
+                      >
+                        <div
+                          className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
+                            isActive
+                              ? "border-zinc-900 dark:border-zinc-100"
+                              : "border-zinc-300 dark:border-zinc-600"
+                          }`}
+                        >
+                          {isActive && (
+                            <div className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
+                          )}
+                        </div>
+                        <span className="text-sm font-medium">{model.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                  Size
+                </p>
+                <div className="space-y-2">
+                  {SIZES.map((size) => {
+                    const isActive = selectedSize === size.id;
+                    return (
+                      <button
+                        key={size.id}
+                        type="button"
+                        onClick={() => setSelectedSize(size.id)}
+                        className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                          isActive
+                            ? "border-zinc-900 bg-zinc-100 text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-100"
+                            : "border-transparent bg-white text-zinc-700 hover:border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700"
+                        }`}
+                      >
+                        <div
+                          className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
+                            isActive
+                              ? "border-zinc-900 dark:border-zinc-100"
+                              : "border-zinc-300 dark:border-zinc-600"
+                          }`}
+                        >
+                          {isActive && (
+                            <div className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
+                          )}
+                        </div>
+                        <span className="text-sm font-medium">{size.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
             {error && (
               <div className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500 dark:text-red-400">

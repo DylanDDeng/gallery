@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { isBillingEnabled } from "@/lib/billing-feature";
+import {
+  buildRemixGenerateUrl,
+  saveRemixGenerationDraft,
+} from "@/lib/generation-draft";
 import { useAppStore } from "@/store";
-import CreatePromptModal from "./CreatePromptModal";
 
 export default function ImageModal() {
   const router = useRouter();
@@ -15,14 +17,10 @@ export default function ImageModal() {
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFavorite = useAppStore((s) => s.isFavorite);
   const user = useAppStore((s) => s.user);
-  const credits = useAppStore((s) => s.credits);
-  const fetchCredits = useAppStore((s) => s.fetchCredits);
   const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
   const thumbnailRef = useRef<HTMLDivElement>(null);
   const [promptLang, setPromptLang] = useState("en");
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const billingEnabled = isBillingEnabled();
 
   // Keyboard navigation
   useEffect(() => {
@@ -106,28 +104,31 @@ export default function ImageModal() {
     }
   };
 
-  const handleOpenCreateModal = async () => {
+  const handleOpenRemixStudio = async () => {
     if (!user) {
       setShowLoginPrompt(true);
       return;
     }
 
-    if (billingEnabled) {
-      let currentCredits = credits;
+    saveRemixGenerationDraft({
+      mode: "remix",
+      sourceImageId: selectedImage.id,
+      prompt: promptText,
+      promptLang,
+      sourceImage: selectedImage,
+      returnTo: "gallery",
+      returnImageId: selectedImage.id,
+      createdAt: Date.now(),
+    });
 
-      if (currentCredits === null) {
-        await fetchCredits();
-        currentCredits = useAppStore.getState().credits;
-      }
-
-      if ((currentCredits ?? 0) < 1) {
-        setSelectedImage(null);
-        router.push("/credits");
-        return;
-      }
-    }
-
-    setShowCreateModal(true);
+    setSelectedImage(null);
+    router.push(
+      buildRemixGenerateUrl({
+        sourceImageId: selectedImage.id,
+        returnTo: "gallery",
+        returnImageId: selectedImage.id,
+      })
+    );
   };
 
   return (
@@ -259,13 +260,13 @@ export default function ImageModal() {
             <div className="flex-shrink-0 border-t border-zinc-200 dark:border-white/5 p-4">
               <div className="flex gap-2">
                 <button
-                  onClick={() => void handleOpenCreateModal()}
+                  onClick={() => void handleOpenRemixStudio()}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  Create with Prompt
+                  Remix in Studio
                 </button>
                 <button
                   onClick={() => toggleFavorite(selectedImage.id)}
@@ -326,13 +327,6 @@ export default function ImageModal() {
         </div>
       </div>
 
-      {/* Create Prompt Modal */}
-      {showCreateModal && (
-        <CreatePromptModal
-          initialPrompt={promptText}
-          onClose={() => setShowCreateModal(false)}
-        />
-      )}
     </>
   );
 }

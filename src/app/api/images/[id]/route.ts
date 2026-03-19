@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/admin";
+import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createClient as createServerClient } from "@/lib/supabase-server";
 
@@ -19,6 +20,26 @@ async function ensureAdmin() {
   }
 
   return null;
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  const { data, error } = await supabase
+    .from("images")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    const status = error.code === "PGRST116" ? 404 : 500;
+    return NextResponse.json({ error: error.message }, { status });
+  }
+
+  return NextResponse.json(data);
 }
 
 export async function DELETE(
