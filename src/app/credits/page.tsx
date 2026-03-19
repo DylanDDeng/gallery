@@ -13,28 +13,15 @@ function CreditsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAppStore((s) => s.user);
+  const authInitialized = useAppStore((s) => s.authInitialized);
+  const credits = useAppStore((s) => s.credits);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const fetchCredits = useAppStore((s) => s.fetchCredits);
   const billingEnabled = isBillingEnabled();
 
-  const [credits, setCredits] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<CreditPackageCatalogItem["id"] | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  const fetchCredits = useCallback(async () => {
-    try {
-      const res = await fetch("/api/credits");
-      const json = await res.json();
-      if (res.ok) {
-        setCredits(json.credits);
-      }
-    } catch (error) {
-      console.error("Error fetching credits:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const waitForOrderCompletion = useCallback(
     async (orderId: string) => {
@@ -110,8 +97,12 @@ function CreditsContent() {
   }, [billingEnabled, fetchCredits, router, searchParams, waitForOrderCompletion]);
 
   useEffect(() => {
+    if (!authInitialized) {
+      return;
+    }
+
     if (!user) {
-      router.push("/");
+      router.replace("/");
       return;
     }
 
@@ -119,9 +110,7 @@ function CreditsContent() {
       router.replace("/");
       return;
     }
-
-    void fetchCredits();
-  }, [billingEnabled, user, router, fetchCredits]);
+  }, [authInitialized, billingEnabled, user, router]);
 
   const handlePurchase = async (pkg: CreditPackageCatalogItem) => {
     if (!user) {
@@ -197,7 +186,7 @@ function CreditsContent() {
         {/* Balance Card */}
         <div className="mb-8 rounded-2xl bg-zinc-900 dark:bg-zinc-800 p-8 text-center">
           <p className="text-sm font-medium text-zinc-400 dark:text-zinc-500 mb-2">Your Balance</p>
-          {loading ? (
+          {credits === null ? (
             <div className="h-12 w-32 mx-auto bg-zinc-700 dark:bg-zinc-700 rounded-lg animate-pulse" />
           ) : (
             <p className="text-5xl font-bold text-white">{credits ?? 0}</p>

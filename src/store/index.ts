@@ -25,6 +25,7 @@ interface AppState {
   theme: "light" | "dark";
   // Auth
   user: User | null;
+  authInitialized: boolean;
   favoritesLoaded: boolean;
   showLoginPrompt: boolean;
   // Credits
@@ -42,6 +43,7 @@ interface AppState {
   toggleTheme: () => void;
   // Auth actions
   setUser: (user: User | null) => void;
+  setAuthInitialized: (initialized: boolean) => void;
   fetchFavorites: () => Promise<void>;
   setShowLoginPrompt: (show: boolean) => void;
   setCredits: (credits: number | null) => void;
@@ -60,6 +62,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   theme: "light",
   // Auth
   user: null,
+  authInitialized: false,
   favoritesLoaded: false,
   showLoginPrompt: false,
   // Credits
@@ -136,6 +139,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Auth actions
   setUser: (user) => set({ user }),
+  setAuthInitialized: (initialized) => set({ authInitialized: initialized }),
 
   fetchFavorites: async () => {
     const { user } = get();

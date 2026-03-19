@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { isBillingEnabled, isSelfServiceApiKeysEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
@@ -112,8 +113,9 @@ export default function UserMenu() {
           </div>
           {billingEnabled && (
             <>
-              <a
+              <Link
                 href="/credits"
+                onClick={() => setOpen(false)}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
               >
                 <svg
@@ -133,9 +135,10 @@ export default function UserMenu() {
                 <span className="ml-auto rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] dark:bg-zinc-700">
                   {credits ?? "—"} credits
                 </span>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/pricing"
+                onClick={() => setOpen(false)}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
               >
                 <svg
@@ -152,7 +155,7 @@ export default function UserMenu() {
                   />
                 </svg>
                 <span>Pricing</span>
-              </a>
+              </Link>
             </>
           )}
           <button
@@ -178,8 +181,9 @@ export default function UserMenu() {
           </button>
           {selfServiceApiKeysEnabled && (
             <>
-              <a
+              <Link
                 href="/settings"
+                onClick={() => setOpen(false)}
                 className="flex w-full items-center gap-2.5 text-left px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,7 +191,7 @@ export default function UserMenu() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 Settings
-              </a>
+              </Link>
               <div className="border-t border-zinc-100 dark:border-zinc-700" />
             </>
           )}
