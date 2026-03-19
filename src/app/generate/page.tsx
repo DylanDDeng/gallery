@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -92,16 +92,19 @@ export default function GeneratePage() {
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [currentTask, setCurrentTask] = useState<GenerationTask | null>(null);
+  const [stagedTasks, setStagedTasks] = useState<GenerationTask[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<
     (typeof MODELS)[number]["id"]
   >(MODELS[0].id);
   const [selectedSize, setSelectedSize] = useState<
     (typeof SIZES)[number]["id"]
   >(SIZES[1].id);
+  const stageRailRef = useRef<HTMLDivElement>(null);
 
   const fetchCredits = useCallback(async () => {
     try {
@@ -237,6 +240,11 @@ export default function GeneratePage() {
     });
   }, [isRemixMode, prompt, remixDraft]);
 
+  useEffect(() => {
+    setCurrentTask(null);
+    setStagedTasks([]);
+  }, [isRemixMode, sourceImageId]);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!prompt.trim() || submitting) return;
@@ -270,6 +278,10 @@ export default function GeneratePage() {
       }
 
       setCurrentTask(json.task);
+      setStagedTasks((previous) => [
+        ...previous.filter((task) => task.id !== json.task.id),
+        json.task,
+      ].slice(0, 5));
       if (!isRemixMode) {
         setPrompt("");
       }
@@ -303,9 +315,30 @@ export default function GeneratePage() {
   const titleFont =
     '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif';
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
-  const resultImageUrl = currentTask?.result_url || null;
+  const renderedTasks = stagedTasks.filter((task) => task.result_url);
+  const primaryTask =
+    renderedTasks.at(-1) ||
+    (currentTask?.status === "completed" && currentTask.result_url ? currentTask : null);
+  const activeTaskId = hoveredTaskId ?? primaryTask?.id ?? null;
+  const resultImageUrl = primaryTask?.result_url || null;
   const showComparisonStage = isRemixMode && Boolean(sourceImageUrl);
   const toolbarDisabled = generateDisabled;
+  const hasRenderedResults = renderedTasks.length > 0;
+
+  const handleStageWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    const rail = stageRailRef.current;
+    if (!rail) return;
+
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+      return;
+    }
+
+    event.preventDefault();
+    rail.scrollBy({
+      left: event.deltaY,
+      behavior: "auto",
+    });
+  };
 
   return (
     <div className="min-h-screen overflow-hidden bg-[#f3efe9] text-zinc-900 dark:bg-[#111215] dark:text-zinc-100">
@@ -361,23 +394,27 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center pb-72 pt-12 sm:pb-80 lg:pb-[22rem]">
-          {showComparisonStage ? (
-            <div className="flex w-full max-w-[1080px] items-start justify-center gap-5 sm:gap-8">
-              <div className="group relative w-[34%] min-w-[220px] max-w-[360px]">
+        <div className="relative flex flex-1 items-center justify-center pb-[22rem] pt-12 sm:pb-[24rem] lg:pb-[26rem]">
+          <div
+            ref={stageRailRef}
+            onWheel={handleStageWheel}
+            className="flex w-full max-w-[1240px] items-end gap-5 overflow-x-auto pb-4 pl-2 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {showComparisonStage ? (
+              <div className="group relative flex-shrink-0">
                 <div className="absolute inset-0 rounded-[32px] bg-white/28 blur-2xl" />
                 <div className="relative overflow-hidden rounded-[32px] bg-white/78 shadow-[0_20px_70px_rgba(35,25,15,0.12)] ring-1 ring-white/50 backdrop-blur-xl transition-all duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.015] group-hover:shadow-[0_28px_90px_rgba(35,25,15,0.18)] group-hover:ring-white/75 dark:bg-white/8 dark:ring-white/10 dark:group-hover:ring-white/20">
                   {sourceImageUrl ? (
                     <Image
                       src={sourceImageUrl}
                       alt=""
-                      width={900}
+                      width={720}
                       height={1200}
                       unoptimized
-                      className="h-auto w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                      className="h-auto w-[280px] sm:w-[320px] lg:w-[360px] object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                     />
                   ) : (
-                    <div className="aspect-[4/5] w-full bg-white/30 dark:bg-white/6" />
+                    <div className="aspect-[4/5] w-[280px] sm:w-[320px] lg:w-[360px] bg-white/30 dark:bg-white/6" />
                   )}
                   <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                     <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
@@ -386,57 +423,71 @@ export default function GeneratePage() {
                   </div>
                 </div>
               </div>
+            ) : null}
 
-              <div className="group relative w-[40%] min-w-[240px] max-w-[420px] translate-y-5">
-                <div className="absolute inset-0 rounded-[34px] bg-white/28 blur-2xl" />
-                <div className="relative overflow-hidden rounded-[34px] bg-white/86 shadow-[0_24px_80px_rgba(35,25,15,0.14)] ring-1 ring-white/60 backdrop-blur-xl transition-all duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.015] group-hover:shadow-[0_30px_95px_rgba(35,25,15,0.2)] group-hover:ring-white/80 dark:bg-white/10 dark:ring-white/10 dark:group-hover:ring-white/20">
-                  {resultImageUrl ? (
-                    <Image
-                      src={resultImageUrl}
-                      alt="Generated result"
-                      width={960}
-                      height={1200}
-                      unoptimized
-                      className="h-auto w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                    />
-                  ) : (
-                    <div className="flex aspect-[4/5] items-center justify-center bg-white/40 px-8 text-center dark:bg-white/6">
-                      <div>
-                        <p
-                          className="text-2xl text-zinc-900 dark:text-white"
-                          style={{ fontFamily: titleFont }}
-                        >
-                          {submitting ? "Developing the next frame" : "Your next image appears here"}
-                        </p>
-                        <p className="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
-                          {studioStatus.helperText}
-                        </p>
+            {hasRenderedResults ? (
+              renderedTasks.map((task, index) => {
+                const isLatest = task.id === primaryTask?.id;
+                const isActiveCard = task.id === activeTaskId;
+                const tilt = isActiveCard ? 0 : index % 2 === 0 ? -2.5 : -1.5;
+                const widthClass = isActiveCard
+                  ? "w-[300px] sm:w-[360px] lg:w-[420px]"
+                  : "w-[184px] sm:w-[208px] lg:w-[230px]";
+
+                return (
+                  <div
+                    key={task.id}
+                    className="group relative z-0 flex-shrink-0 transition-[z-index] duration-300 hover:z-20"
+                    onMouseEnter={() => setHoveredTaskId(task.id)}
+                    onMouseLeave={() => setHoveredTaskId(null)}
+                    onFocus={() => setHoveredTaskId(task.id)}
+                    onBlur={() => setHoveredTaskId(null)}
+                    style={{
+                      transform: `rotate(${tilt}deg)`,
+                      marginLeft: index === 0 ? "0px" : "-6px",
+                    }}
+                  >
+                    <div className={`absolute inset-0 rounded-[28px] ${isLatest ? "bg-white/28 blur-2xl" : "bg-white/18 blur-xl"}`} />
+                    <div
+                      className={`relative overflow-hidden rounded-[28px] backdrop-blur-xl transition-all duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.015] ${
+                        isActiveCard
+                          ? "bg-white/86 shadow-[0_24px_80px_rgba(35,25,15,0.16)] ring-1 ring-white/65 dark:bg-white/10 dark:ring-white/12"
+                          : "bg-white/68 shadow-[0_16px_44px_rgba(35,25,15,0.14)] ring-1 ring-white/55 group-hover:shadow-[0_26px_68px_rgba(35,25,15,0.2)] group-hover:ring-white/80 dark:bg-white/8 dark:ring-white/10 dark:group-hover:ring-white/18"
+                      }`}
+                    >
+                      <Image
+                        src={task.result_url!}
+                        alt="Generated result"
+                        width={960}
+                        height={1200}
+                        unoptimized
+                        className={`${widthClass} h-auto object-cover transition-all duration-700 ease-out group-hover:scale-[1.03] ${
+                          isActiveCard
+                            ? ""
+                            : "brightness-[0.9] saturate-[0.84] contrast-[0.94] group-hover:brightness-100 group-hover:saturate-100 group-hover:contrast-100"
+                        }`}
+                      />
+                      {!isActiveCard ? (
+                        <div className="pointer-events-none absolute inset-0 bg-white/14 opacity-100 backdrop-blur-[1.5px] transition-all duration-300 group-hover:bg-white/0 group-hover:opacity-0 group-hover:backdrop-blur-0" />
+                      ) : null}
+                      <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
+                          {isActiveCard
+                            ? isLatest
+                              ? "Latest result"
+                              : "Inspecting pass"
+                            : "Earlier pass"}
+                        </span>
                       </div>
                     </div>
-                  )}
-                  <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
-                      Result
-                    </span>
                   </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="relative w-full max-w-[840px]">
-              <div className="absolute inset-0 rounded-[36px] bg-white/28 blur-2xl" />
-              <div className="relative overflow-hidden rounded-[36px] bg-white/84 shadow-[0_24px_80px_rgba(35,25,15,0.12)] ring-1 ring-white/55 backdrop-blur-xl dark:bg-white/8 dark:ring-white/10">
-                {resultImageUrl ? (
-                  <Image
-                    src={resultImageUrl}
-                    alt="Generated result"
-                    width={1400}
-                    height={1200}
-                    unoptimized
-                    className="h-auto w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex aspect-[4/3] items-center justify-center px-10 text-center">
+                );
+              })
+            ) : (
+              <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 rounded-[36px] bg-white/28 blur-2xl" />
+                <div className="relative overflow-hidden rounded-[36px] bg-white/84 shadow-[0_24px_80px_rgba(35,25,15,0.12)] ring-1 ring-white/55 backdrop-blur-xl dark:bg-white/8 dark:ring-white/10">
+                  <div className="flex aspect-[4/5] w-[300px] sm:w-[360px] lg:w-[420px] items-center justify-center px-10 text-center">
                     <div>
                       <p
                         className="text-[34px] leading-none text-zinc-900 dark:text-white"
@@ -449,13 +500,13 @@ export default function GeneratePage() {
                       </p>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          <div className="pointer-events-none absolute inset-x-0 -bottom-4 flex justify-center sm:-bottom-6">
-            <div className="pointer-events-auto w-full max-w-[1120px] rounded-[30px] bg-white/90 shadow-[0_24px_80px_rgba(33,24,15,0.16)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10">
+          <div className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center sm:bottom-14">
+            <div className="pointer-events-auto w-full max-w-[1120px] rounded-[30px] bg-white/90 shadow-[0_44px_125px_rgba(33,24,15,0.24)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10 dark:shadow-[0_36px_125px_rgba(0,0,0,0.46)]">
               <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
