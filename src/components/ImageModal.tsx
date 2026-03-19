@@ -2,19 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 import CreatePromptModal from "./CreatePromptModal";
 
 export default function ImageModal() {
+  const router = useRouter();
   const selectedImage = useAppStore((s) => s.selectedImage);
   const allImages = useAppStore((s) => s.allImages);
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFavorite = useAppStore((s) => s.isFavorite);
+  const user = useAppStore((s) => s.user);
+  const credits = useAppStore((s) => s.credits);
+  const fetchCredits = useAppStore((s) => s.fetchCredits);
+  const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
   const thumbnailRef = useRef<HTMLDivElement>(null);
   const [promptLang, setPromptLang] = useState("en");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const billingEnabled = isBillingEnabled();
 
   // Keyboard navigation
   useEffect(() => {
@@ -96,6 +104,30 @@ export default function ImageModal() {
     } catch (error) {
       console.error("Download failed:", error);
     }
+  };
+
+  const handleOpenCreateModal = async () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    if (billingEnabled) {
+      let currentCredits = credits;
+
+      if (currentCredits === null) {
+        await fetchCredits();
+        currentCredits = useAppStore.getState().credits;
+      }
+
+      if ((currentCredits ?? 0) < 1) {
+        setSelectedImage(null);
+        router.push("/credits");
+        return;
+      }
+    }
+
+    setShowCreateModal(true);
   };
 
   return (
@@ -227,7 +259,7 @@ export default function ImageModal() {
             <div className="flex-shrink-0 border-t border-zinc-200 dark:border-white/5 p-4">
               <div className="flex gap-2">
                 <button
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => void handleOpenCreateModal()}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 
 interface CreatePromptModalProps {
@@ -20,12 +22,16 @@ const SIZES = [
 ];
 
 export default function CreatePromptModal({ initialPrompt, onClose }: CreatePromptModalProps) {
+  const router = useRouter();
   const [prompt, setPrompt] = useState(initialPrompt);
   const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
   const [selectedSize, setSelectedSize] = useState(SIZES[1].id);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
+  const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
+  const fetchCredits = useAppStore((s) => s.fetchCredits);
+  const billingEnabled = isBillingEnabled();
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -47,6 +53,19 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
       const json = await res.json();
 
       if (!res.ok) {
+        if (res.status === 401) {
+          onClose();
+          setShowLoginPrompt(true);
+          return;
+        }
+
+        if (billingEnabled && res.status === 402) {
+          onClose();
+          await fetchCredits();
+          router.push("/credits");
+          return;
+        }
+
         setError(json.error || "Generation failed");
         return;
       }
