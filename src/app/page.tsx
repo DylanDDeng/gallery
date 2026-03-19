@@ -10,6 +10,7 @@ import SearchModal from "@/components/SearchModal";
 import UserMenu from "@/components/UserMenu";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
+import { hydrateImageDimensions } from "@/lib/image-dimensions";
 import type { ImagePrompt } from "@/lib/types";
 
 const PAGE_SIZE = 20;
@@ -109,7 +110,7 @@ export default function Home() {
       }
 
       return {
-        data: (json.data ?? []) as ImagePrompt[],
+        data: await hydrateImageDimensions((json.data ?? []) as ImagePrompt[]),
         hasMore: Boolean(json.hasMore),
       };
     },

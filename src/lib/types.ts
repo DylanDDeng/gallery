@@ -8,8 +8,8 @@ export interface ImagePrompt {
   model: string;
   category: string;
   tags: string[];
-  width: number;
-  height: number;
+  width: number | null;
+  height: number | null;
   created_at: string;
   tweet_url?: string;
 }

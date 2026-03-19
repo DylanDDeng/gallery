@@ -16,7 +16,7 @@ export default function ImageCard({ image }: ImageCardProps) {
   const [aspectRatio, setAspectRatio] = useState<number | null>(
     image.width && image.height ? image.width / image.height : null
   );
-  const [loaded, setLoaded] = useState(false);
+  const [isDecoded, setIsDecoded] = useState(false);
 
   const summary = image.model || "AI Generated Image";
 
@@ -27,11 +27,11 @@ export default function ImageCard({ image }: ImageCardProps) {
     if (!aspectRatio && img.naturalWidth && img.naturalHeight) {
       setAspectRatio(img.naturalWidth / img.naturalHeight);
     }
-    setLoaded(true);
+    setIsDecoded(true);
   };
 
   const handleError = () => {
-    setLoaded(true);
+    setIsDecoded(true);
   };
 
   const style: React.CSSProperties = aspectRatio
@@ -52,21 +52,17 @@ export default function ImageCard({ image }: ImageCardProps) {
           alt={summary}
           width={image.width || 768}
           height={image.height || 1024}
-          className={`h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.03] group-hover:brightness-110 ${
-            loaded ? "opacity-100" : "opacity-0"
-          }`}
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03] group-hover:brightness-110"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           unoptimized
           onLoad={handleLoad}
           onError={handleError}
         />
-        {!loaded && (
-          <div className="absolute inset-0 animate-pulse bg-zinc-100 dark:bg-zinc-800">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 dark:border-zinc-600 border-t-zinc-400 dark:border-t-zinc-400" />
-            </div>
-          </div>
-        )}
+        <div
+          className={`pointer-events-none absolute inset-0 bg-zinc-100 dark:bg-zinc-800 transition-opacity duration-200 ${
+            isDecoded ? "opacity-0" : "opacity-100"
+          }`}
+        />
         <div className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           {image.author && (
             <a

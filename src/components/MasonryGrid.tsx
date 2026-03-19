@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useEffect, useMemo, useState } from "react";
+import { RefObject, useMemo } from "react";
 import ImageCard from "./ImageCard";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
@@ -12,14 +12,6 @@ interface MasonryGridProps {
   sentinelRef?: RefObject<HTMLDivElement | null>;
 }
 
-function getColumnCount(width: number) {
-  if (width >= 1536) return 5;
-  if (width >= 1280) return 4;
-  if (width >= 1024) return 3;
-  if (width >= 640) return 2;
-  return 1;
-}
-
 export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRef }: MasonryGridProps) {
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const favorites = useAppStore((s) => s.favorites);
@@ -27,16 +19,6 @@ export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRe
   const activeCategory = useAppStore((s) => s.activeCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
   const activeModel = useAppStore((s) => s.activeModel);
-  const [columnCount, setColumnCount] = useState(() =>
-    typeof window === "undefined" ? 1 : getColumnCount(window.innerWidth)
-  );
-
-  useEffect(() => {
-    const handleResize = () => setColumnCount(getColumnCount(window.innerWidth));
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const filteredImages = useMemo(() => {
     if (!showFavoritesOnly) {
@@ -45,22 +27,6 @@ export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRe
 
     return images.filter((img) => favorites.includes(img.id));
   }, [favorites, images, showFavoritesOnly]);
-
-  const columns = useMemo(() => {
-    const nextColumns = Array.from({ length: columnCount }, () => [] as ImagePrompt[]);
-    const heights = Array.from({ length: columnCount }, () => 0);
-
-    filteredImages.forEach((image) => {
-      const estimatedHeight =
-        image.width && image.height ? image.height / image.width : 4 / 3;
-      const shortestColumnIndex = heights.indexOf(Math.min(...heights));
-
-      nextColumns[shortestColumnIndex].push(image);
-      heights[shortestColumnIndex] += estimatedHeight + 0.12;
-    });
-
-    return nextColumns;
-  }, [columnCount, filteredImages]);
 
   const hasActiveFeedFilters =
     Boolean(searchQuery) ||
@@ -102,15 +68,10 @@ export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRe
 
   return (
     <>
-      <div
-        className="grid items-start gap-3"
-        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
-      >
-        {columns.map((column, index) => (
-          <div key={index} className="flex flex-col gap-3">
-            {column.map((image) => (
-              <ImageCard key={image.id} image={image} />
-            ))}
+      <div className="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
+        {filteredImages.map((image) => (
+          <div key={image.id} className="mb-3 break-inside-avoid">
+            <ImageCard image={image} />
           </div>
         ))}
       </div>
