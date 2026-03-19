@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
@@ -9,7 +9,7 @@ interface ImageCardProps {
   image: ImagePrompt;
 }
 
-export default function ImageCard({ image }: ImageCardProps) {
+function ImageCard({ image }: ImageCardProps) {
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFavorite = useAppStore((s) => s.isFavorite);
@@ -108,3 +108,5 @@ export default function ImageCard({ image }: ImageCardProps) {
     </div>
   );
 }
+
+export default memo(ImageCard);
