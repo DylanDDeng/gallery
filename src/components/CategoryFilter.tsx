@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/store";
 import { CATEGORIES, MODELS } from "@/lib/constants";
 
@@ -27,12 +27,104 @@ export default function CategoryFilter() {
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const toggleShowFavoritesOnly = useAppStore((s) => s.toggleShowFavoritesOnly);
   const allImages = useAppStore((s) => s.allImages);
+  const searchQuery = useAppStore((s) => s.searchQuery);
+  const favorites = useAppStore((s) => s.favorites);
+  const favoritesLoaded = useAppStore((s) => s.favoritesLoaded);
   const activeModel = useAppStore((s) => s.activeModel);
   const setActiveModel = useAppStore((s) => s.setActiveModel);
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [fetchedCategorySlugs, setFetchedCategorySlugs] = useState<string[]>([]);
 
-  const visibleCategories = CATEGORIES.filter((cat) => cat.slug !== "all");
+  const favoriteIdsParam = showFavoritesOnly ? favorites.join(",") : "";
+  const hasFavoriteSelection = favoriteIdsParam.length > 0;
+  const fallbackCategorySlugs = useMemo(
+    () => Array.from(new Set(allImages.map((image) => image.category).filter(Boolean))),
+    [allImages]
+  );
+
+  useEffect(() => {
+    if (showFavoritesOnly && !favoritesLoaded) {
+      return;
+    }
+
+    if (showFavoritesOnly && !hasFavoriteSelection) {
+      if (activeCategory !== "all") {
+        setActiveCategory("all");
+      }
+      return;
+    }
+
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    const trimmedSearchQuery = searchQuery.trim();
+
+    if (trimmedSearchQuery) {
+      params.set("search", trimmedSearchQuery);
+    }
+
+    if (activeModel !== "all") {
+      params.set("model", activeModel);
+    }
+
+    if (activeTimeFilter !== "all") {
+      params.set("time", activeTimeFilter);
+    }
+
+    if (favoriteIdsParam) {
+      params.set("ids", favoriteIdsParam);
+    }
+
+    fetch(`/api/categories?${params.toString()}`, { signal: controller.signal })
+      .then(async (res) => {
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.error || "Failed to load categories");
+        }
+
+        const nextCategorySlugs = Array.isArray(json.data)
+          ? json.data.map((category: { slug: string }) => category.slug)
+          : [];
+
+        setFetchedCategorySlugs(nextCategorySlugs);
+
+        if (activeCategory !== "all" && !nextCategorySlugs.includes(activeCategory)) {
+          setActiveCategory("all");
+        }
+      })
+      .catch(() => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setFetchedCategorySlugs(fallbackCategorySlugs);
+
+        if (activeCategory !== "all" && !fallbackCategorySlugs.includes(activeCategory)) {
+          setActiveCategory("all");
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    activeCategory,
+    activeModel,
+    activeTimeFilter,
+    fallbackCategorySlugs,
+    hasFavoriteSelection,
+    favoriteIdsParam,
+    favoritesLoaded,
+    searchQuery,
+    setActiveCategory,
+    showFavoritesOnly,
+  ]);
+
+  const availableCategorySlugs =
+    showFavoritesOnly && !hasFavoriteSelection ? [] : fetchedCategorySlugs;
+
+  const visibleCategories = CATEGORIES.filter(
+    (cat) => cat.slug !== "all" && availableCategorySlugs.includes(cat.slug)
+  );
   const availableModels = [...MODELS];
 
   const isAll = activeCategory === "all" && activeTimeFilter === "all" && activeModel === "all" && hasInteracted;
