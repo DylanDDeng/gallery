@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { createClient } from "@/lib/supabase-browser";
 import { useAppStore } from "@/store";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const setUser = useAppStore((s) => s.setUser);
   const fetchFavorites = useAppStore((s) => s.fetchFavorites);
+  const fetchCredits = useAppStore((s) => s.fetchCredits);
   const [initialized, setInitialized] = useState(false);
+  const billingEnabled = isBillingEnabled();
 
   useEffect(() => {
     const supabase = createClient();
@@ -17,8 +20,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setUser(user as Parameters<typeof setUser>[0] | null);
       if (user) {
         fetchFavorites();
+        if (billingEnabled) {
+          void fetchCredits();
+        }
       } else {
-        useAppStore.setState({ favorites: [], favoritesLoaded: true });
+        useAppStore.setState({
+          favorites: [],
+          favoritesLoaded: true,
+          credits: null,
+        });
       }
       setInitialized(true);
     });
@@ -28,13 +38,20 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setUser(user as Parameters<typeof setUser>[0] | null);
       if (user) {
         fetchFavorites();
+        if (billingEnabled) {
+          void fetchCredits();
+        }
       } else {
-        useAppStore.setState({ favorites: [], favoritesLoaded: true });
+        useAppStore.setState({
+          favorites: [],
+          favoritesLoaded: true,
+          credits: null,
+        });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [setUser, fetchFavorites]);
+  }, [billingEnabled, setUser, fetchCredits, fetchFavorites]);
 
   // Prevent rendering until we've checked for an existing session
   // This prevents flash of unauthenticated state

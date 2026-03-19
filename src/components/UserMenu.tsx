@@ -1,18 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { isSelfServiceApiKeysEnabled } from "@/lib/billing-feature";
+import { isBillingEnabled, isSelfServiceApiKeysEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 import { createClient } from "@/lib/supabase-browser";
 
 export default function UserMenu() {
   const user = useAppStore((s) => s.user);
+  const credits = useAppStore((s) => s.credits);
   const favorites = useAppStore((s) => s.favorites);
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const toggleShowFavoritesOnly = useAppStore((s) => s.toggleShowFavoritesOnly);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
+  const billingEnabled = isBillingEnabled();
 
   const avatarUrl =
     user?.user_metadata?.avatar_url ||
@@ -107,6 +109,16 @@ export default function UserMenu() {
                 {user.email}
               </p>
             )}
+            {billingEnabled && (
+              <div className="mt-3 rounded-lg bg-zinc-50 px-3 py-2 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-700">
+                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+                  Credits
+                </p>
+                <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {credits ?? "—"}
+                </p>
+              </div>
+            )}
           </div>
           <button
             onClick={() => {
@@ -129,15 +141,6 @@ export default function UserMenu() {
               </span>
             )}
           </button>
-          <a
-            href="/generate"
-            className="flex w-full items-center gap-2.5 text-left px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            Generate
-          </a>
           {selfServiceApiKeysEnabled && (
             <>
               <a

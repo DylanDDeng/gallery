@@ -44,6 +44,8 @@ interface AppState {
   setUser: (user: User | null) => void;
   fetchFavorites: () => Promise<void>;
   setShowLoginPrompt: (show: boolean) => void;
+  setCredits: (credits: number | null) => void;
+  fetchCredits: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
