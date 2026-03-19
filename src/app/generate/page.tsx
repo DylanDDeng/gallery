@@ -19,6 +19,7 @@ interface GenerationTask {
   id: string;
   prompt: string;
   model: string;
+  source_image_id?: string | null;
   status: "queued" | "processing" | "completed" | "failed" | "cancelled";
   result_url?: string;
   error_message?: string;
@@ -134,6 +135,23 @@ export default function GeneratePage() {
     }
   }, []);
 
+  const fetchRemixSeries = useCallback(
+    async (nextSourceImageId: string) => {
+      const res = await fetch(
+        `/api/generations?status=completed&sourceImageId=${encodeURIComponent(nextSourceImageId)}&limit=20`
+      );
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to load remix series");
+      }
+
+      const tasks = Array.isArray(json.data) ? (json.data as GenerationTask[]) : [];
+      return [...tasks].reverse();
+    },
+    []
+  );
+
   useEffect(() => {
     if (!user) {
       router.push("/");
@@ -242,8 +260,32 @@ export default function GeneratePage() {
 
   useEffect(() => {
     setCurrentTask(null);
-    setStagedTasks([]);
-  }, [isRemixMode, sourceImageId]);
+    setHoveredTaskId(null);
+
+    if (!isRemixMode || !sourceImageId || !user?.id) {
+      setStagedTasks([]);
+      return;
+    }
+
+    let isActive = true;
+
+    const hydrateSeries = async () => {
+      try {
+        const tasks = await fetchRemixSeries(sourceImageId);
+        if (!isActive) return;
+        setStagedTasks(tasks);
+      } catch {
+        if (!isActive) return;
+        setStagedTasks([]);
+      }
+    };
+
+    void hydrateSeries();
+
+    return () => {
+      isActive = false;
+    };
+  }, [fetchRemixSeries, isRemixMode, sourceImageId, user?.id]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -261,6 +303,7 @@ export default function GeneratePage() {
           prompt: prompt.trim(),
           model: selectedModel,
           size: selectedSize,
+          sourceImageId: isRemixMode ? sourceImageId : null,
         }),
       });
 
@@ -278,10 +321,16 @@ export default function GeneratePage() {
       }
 
       setCurrentTask(json.task);
-      setStagedTasks((previous) => [
-        ...previous.filter((task) => task.id !== json.task.id),
-        json.task,
-      ].slice(0, 5));
+
+      if (isRemixMode && sourceImageId && json.task.result_url) {
+        setStagedTasks((previous) =>
+          [
+            ...previous.filter((task) => task.id !== json.task.id),
+            json.task as GenerationTask,
+          ].slice(-10)
+        );
+      }
+
       if (!isRemixMode) {
         setPrompt("");
       }

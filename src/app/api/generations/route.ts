@@ -50,6 +50,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
+    const sourceImageId = searchParams.get("sourceImageId");
     const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20"), 1), 50);
     const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
 
@@ -62,6 +63,10 @@ export async function GET(request: Request) {
 
     if (status && status !== "all") {
       query = query.eq("status", status);
+    }
+
+    if (sourceImageId) {
+      query = query.eq("source_image_id", sourceImageId);
     }
 
     const { data: tasks, error } = await query;
@@ -93,7 +98,12 @@ export async function POST(request: Request) {
     const billingEnabled = isBillingEnabled();
     const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
     const body = await request.json();
-    const { prompt, model = "doubao-seedream-5-0-260128", size = "2K" } = body;
+    const {
+      prompt,
+      model = "doubao-seedream-5-0-260128",
+      size = "2K",
+      sourceImageId,
+    } = body;
 
     if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
       return NextResponse.json(
@@ -141,6 +151,10 @@ export async function POST(request: Request) {
         user_id: user.id,
         prompt: prompt.trim(),
         model,
+        source_image_id:
+          typeof sourceImageId === "string" && sourceImageId.trim().length > 0
+            ? sourceImageId.trim()
+            : null,
         status: "processing",
         credits_cost: billingEnabled ? GENERATION_COST : 0,
       })
