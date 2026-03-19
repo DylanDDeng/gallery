@@ -109,17 +109,31 @@ export default function UserMenu() {
                 {user.email}
               </p>
             )}
-            {billingEnabled && (
-              <div className="mt-3 rounded-lg bg-zinc-50 px-3 py-2 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-700">
-                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                  Credits
-                </p>
-                <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {credits ?? "—"}
-                </p>
-              </div>
-            )}
           </div>
+          {billingEnabled && (
+            <a
+              href="/credits"
+              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5-1.343 5-3-2.239-3-5-3zm0 0V6m0 8v2m-7-5v2c0 1.657 3.134 3 7 3s7-1.343 7-3v-2"
+                />
+              </svg>
+              <span>Credits</span>
+              <span className="ml-auto rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] dark:bg-zinc-700">
+                {credits ?? "—"} credits
+              </span>
+            </a>
+          )}
           <button
             onClick={() => {
               toggleShowFavoritesOnly();
