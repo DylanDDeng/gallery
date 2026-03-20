@@ -615,12 +615,14 @@ export default function GeneratePage() {
                     <p className="text-[10px] uppercase tracking-[0.26em] text-zinc-400 dark:text-zinc-500">
                       {isRemixMode ? "Remix from image" : "Prompt composer"}
                     </p>
-                    <p
-                      className="mt-2 text-[26px] leading-none text-zinc-900 dark:text-white"
-                      style={{ fontFamily: titleFont }}
-                    >
-                      {isRemixMode ? "Refine the original into something new" : "Write the frame you want to see"}
-                    </p>
+                    {!isRemixMode ? (
+                      <p
+                        className="mt-2 text-[26px] leading-none text-zinc-900 dark:text-white"
+                        style={{ fontFamily: titleFont }}
+                      >
+                        Write the frame you want to see
+                      </p>
+                    ) : null}
                   </div>
                   <div className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
                     {studioStatus.label}
