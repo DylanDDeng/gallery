@@ -12,7 +12,6 @@ interface CreatePromptModalProps {
 
 const MODELS = [
   { id: "doubao-seedream-5-0-260128", name: "Seedream 5.0" },
-  { id: "seedream-v3", name: "Seedream v3" },
 ];
 
 const SIZES = [

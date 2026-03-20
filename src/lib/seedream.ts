@@ -50,7 +50,7 @@ export class SeedreamClient {
       headers: this.headers,
       body: JSON.stringify({
         prompt: params.prompt,
-        model: params.model || "seedream-v3",
+        model: params.model || "doubao-seedream-5-0-260128",
         width: params.width || 1024,
         height: params.height || 1024,
         num_images: params.num_images || 1,
