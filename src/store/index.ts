@@ -16,6 +16,7 @@ interface User {
 interface AppState {
   selectedImage: ImagePrompt | null;
   allImages: ImagePrompt[];
+  defaultFeedHasMore: boolean;
   searchQuery: string;
   activeCategory: string;
   activeTimeFilter: "all" | "today" | "week" | "month";
@@ -33,6 +34,7 @@ interface AppState {
   // Actions
   setSelectedImage: (image: ImagePrompt | null) => void;
   setAllImages: (images: ImagePrompt[]) => void;
+  setDefaultFeedHasMore: (hasMore: boolean) => void;
   setSearchQuery: (query: string) => void;
   setActiveCategory: (category: string) => void;
   setActiveTimeFilter: (filter: "all" | "today" | "week" | "month") => void;
@@ -53,6 +55,7 @@ interface AppState {
 export const useAppStore = create<AppState>((set, get) => ({
   selectedImage: null,
   allImages: [],
+  defaultFeedHasMore: false,
   searchQuery: "",
   activeCategory: "all",
   activeTimeFilter: "all",
@@ -70,6 +73,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSelectedImage: (image) => set({ selectedImage: image }),
   setAllImages: (images) => set({ allImages: images }),
+  setDefaultFeedHasMore: (hasMore) => set({ defaultFeedHasMore: hasMore }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setActiveCategory: (category) => set({ activeCategory: category }),
   setActiveTimeFilter: (filter) => set({ activeTimeFilter: filter }),

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import Providers from "@/components/Providers";
+import { isBillingEnabled } from "@/lib/billing-feature";
+import { createClient as createServerClient } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,11 +30,41 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let initialCredits: number | null = null;
+
+  if (user && isBillingEnabled()) {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("credits")
+      .eq("id", user.id)
+      .single();
+
+    initialCredits = profile?.credits ?? 0;
+  }
+
+  const initialUser = user
+    ? {
+        id: user.id,
+        email: user.email,
+        user_metadata: {
+          name: user.user_metadata?.name,
+          avatar_url: user.user_metadata?.avatar_url,
+          full_name: user.user_metadata?.full_name,
+          picture: user.user_metadata?.picture,
+        },
+      }
+    : null;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -55,7 +88,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-        <Providers>{children}</Providers>
+        <Providers initialUser={initialUser} initialCredits={initialCredits}>
+          {children}
+        </Providers>
         <Script
           defer
           src="https://cloud.umami.is/script.js"

@@ -85,6 +85,7 @@ export default function GeneratePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAppStore((s) => s.user);
+  const credits = useAppStore((s) => s.credits);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const billingEnabled = isBillingEnabled();
@@ -99,7 +100,6 @@ export default function GeneratePage() {
   const [stagedTasks, setStagedTasks] = useState<RemixSeriesItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
-  const [credits, setCredits] = useState<number | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
@@ -110,18 +110,6 @@ export default function GeneratePage() {
     (typeof SIZES)[number]["id"]
   >(SIZES[1].id);
   const stageRailRef = useRef<HTMLDivElement>(null);
-
-  const fetchCredits = useCallback(async () => {
-    try {
-      const res = await fetch("/api/credits");
-      const json = await res.json();
-      if (res.ok) {
-        setCredits(json.credits);
-      }
-    } catch (fetchError) {
-      console.error("Error fetching credits:", fetchError);
-    }
-  }, []);
 
   const checkApiKey = useCallback(async () => {
     try {
@@ -170,13 +158,9 @@ export default function GeneratePage() {
       setHasApiKey(true);
     }
 
-    if (billingEnabled) {
-      void fetchCredits();
-    }
   }, [
     billingEnabled,
     checkApiKey,
-    fetchCredits,
     router,
     selfServiceApiKeysEnabled,
     user,
@@ -329,9 +313,6 @@ export default function GeneratePage() {
         if (selfServiceApiKeysEnabled && json.error?.includes("API key")) {
           setHasApiKey(false);
         }
-        if (billingEnabled) {
-          void fetchCredits();
-        }
         return;
       }
 
@@ -359,15 +340,9 @@ export default function GeneratePage() {
       if (!isRemixMode) {
         setPrompt("");
       }
-      if (billingEnabled) {
-        void fetchCredits();
-      }
     } catch (submitError) {
       console.error("Error creating generation:", submitError);
       setError("An error occurred. Please try again.");
-      if (billingEnabled) {
-        void fetchCredits();
-      }
     } finally {
       setSubmitting(false);
     }

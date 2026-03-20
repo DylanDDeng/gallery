@@ -19,7 +19,7 @@ export default function ImageModal() {
   const user = useAppStore((s) => s.user);
   const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
   const thumbnailRef = useRef<HTMLDivElement>(null);
-  const [promptLang, setPromptLang] = useState("en");
+  const [promptLang, setPromptLang] = useState<"en" | "zh" | "ja">("en");
   const [copied, setCopied] = useState(false);
 
   // Keyboard navigation

@@ -40,27 +40,13 @@ export async function GET() {
 
         return NextResponse.json({
           credits: newProfile?.credits ?? 0,
-          transactions: [],
         });
       }
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    // Get recent transactions
-    const { data: transactions, error: txError } = await supabaseAdmin
-      .from("credit_transactions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (txError) {
-      return NextResponse.json({ error: txError.message }, { status: 500 });
-    }
-
     return NextResponse.json({
       credits: profile?.credits ?? 0,
-      transactions: transactions ?? [],
     });
   } catch (error) {
     console.error("Error fetching credits:", error);

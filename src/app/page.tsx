@@ -17,23 +17,37 @@ import type { ImagePrompt } from "@/lib/types";
 const PAGE_SIZE = 20;
 
 export default function Home() {
+  const storeState = useAppStore.getState();
+  const initialIsDefaultFeed =
+    !storeState.searchQuery.trim() &&
+    storeState.activeCategory === "all" &&
+    storeState.activeTimeFilter === "all" &&
+    storeState.activeModel === "all" &&
+    !storeState.showFavoritesOnly;
   const billingEnabled = isBillingEnabled();
-  const [images, setImages] = useState<ImagePrompt[]>(() => useAppStore.getState().allImages);
-  const [isLoading, setIsLoading] = useState(() => useAppStore.getState().allImages.length === 0);
+  const [images, setImages] = useState<ImagePrompt[]>(() => storeState.allImages);
+  const [isLoading, setIsLoading] = useState(() => storeState.allImages.length === 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState(() =>
+    initialIsDefaultFeed ? storeState.defaultFeedHasMore : false
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
   const imagesRef = useRef<ImagePrompt[]>([]);
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(false);
-  const initialLoadRef = useRef(useAppStore.getState().allImages.length === 0);
+  const initialLoadRef = useRef(storeState.allImages.length === 0);
   const feedVersionRef = useRef(0);
-  const defaultFeedImagesRef = useRef<ImagePrompt[]>(useAppStore.getState().allImages);
-  const defaultFeedHasMoreRef = useRef(false);
+  const defaultFeedImagesRef = useRef<ImagePrompt[]>(
+    initialIsDefaultFeed ? storeState.allImages : []
+  );
+  const defaultFeedHasMoreRef = useRef(
+    initialIsDefaultFeed ? storeState.defaultFeedHasMore : false
+  );
   const setAllImages = useAppStore((s) => s.setAllImages);
+  const setDefaultFeedHasMore = useAppStore((s) => s.setDefaultFeedHasMore);
   const searchQuery = useAppStore((s) => s.searchQuery);
   const activeCategory = useAppStore((s) => s.activeCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
@@ -141,6 +155,7 @@ export default function Home() {
       if (isDefaultFeed) {
         defaultFeedImagesRef.current = accumulated;
         defaultFeedHasMoreRef.current = more;
+        setDefaultFeedHasMore(more);
       }
     } catch {
       // silently fail — user still sees what was loaded
@@ -157,6 +172,7 @@ export default function Home() {
     isLoading,
     isDefaultFeed,
     setAllImages,
+    setDefaultFeedHasMore,
     showFavoritesOnly,
   ]);
 
@@ -197,6 +213,7 @@ export default function Home() {
       setImages([]);
       setAllImages([]);
       setHasMore(false);
+      setDefaultFeedHasMore(false);
       setIsLoading(false);
       setIsLoadingMore(false);
       setIsRefreshing(false);
@@ -241,6 +258,7 @@ export default function Home() {
           if (isDefaultFeed) {
             defaultFeedImagesRef.current = data;
             defaultFeedHasMoreRef.current = more;
+            setDefaultFeedHasMore(more);
           }
           return;
         }
@@ -253,6 +271,7 @@ export default function Home() {
         if (isDefaultFeed) {
           defaultFeedImagesRef.current = MOCK_IMAGES;
           defaultFeedHasMoreRef.current = false;
+          setDefaultFeedHasMore(false);
         }
       })
       .catch(() => {
@@ -273,6 +292,10 @@ export default function Home() {
           setAllImages([]);
         }
         setHasMore(false);
+        if (isDefaultFeed) {
+          defaultFeedHasMoreRef.current = false;
+          setDefaultFeedHasMore(false);
+        }
       })
       .finally(() => {
         if (feedVersion !== feedVersionRef.current) return;
@@ -293,6 +316,7 @@ export default function Home() {
     fetchPage,
     isDefaultFeed,
     setAllImages,
+    setDefaultFeedHasMore,
     showFavoritesOnly,
   ]);
 

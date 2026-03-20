@@ -18,7 +18,23 @@ export interface RemixGenerationDraft extends GenerationSourceContext {
   createdAt: number;
 }
 
+export interface RemixSeriesItem {
+  id: string;
+  result_url: string;
+  prompt: string;
+  model: string;
+  created_at: string;
+  source_image_id?: string | null;
+}
+
+export interface RemixContextSnapshot {
+  sourceImage: Partial<ImagePrompt>;
+  tasks: RemixSeriesItem[];
+  savedAt: number;
+}
+
 const DRAFT_STORAGE_KEY = "aestara:generation-draft";
+const REMIX_CONTEXT_KEY_PREFIX = "aestara:remix-context";
 
 function hasWindow() {
   return typeof window !== "undefined";
@@ -39,6 +55,26 @@ function writeStorageValue(value: string) {
 
   try {
     window.sessionStorage.setItem(DRAFT_STORAGE_KEY, value);
+  } catch {
+    // Ignore storage failures and keep the page usable.
+  }
+}
+
+function readNamespacedStorageValue(key: string): string | null {
+  if (!hasWindow()) return null;
+
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeNamespacedStorageValue(key: string, value: string) {
+  if (!hasWindow()) return;
+
+  try {
+    window.sessionStorage.setItem(key, value);
   } catch {
     // Ignore storage failures and keep the page usable.
   }
@@ -91,6 +127,75 @@ export function clearGenerationDraft() {
   } catch {
     // Ignore storage failures and keep the page usable.
   }
+}
+
+function buildRemixContextStorageKey(userId: string, sourceImageId: string) {
+  return `${REMIX_CONTEXT_KEY_PREFIX}:${userId}:${sourceImageId}`;
+}
+
+export function readRemixContextSnapshot(
+  userId: string,
+  sourceImageId: string
+): RemixContextSnapshot | null {
+  if (!userId || !sourceImageId) {
+    return null;
+  }
+
+  const raw = readNamespacedStorageValue(
+    buildRemixContextStorageKey(userId, sourceImageId)
+  );
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as RemixContextSnapshot;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+
+    const tasks = Array.isArray(parsed.tasks)
+      ? parsed.tasks.filter((task): task is RemixSeriesItem => {
+          if (!task || typeof task !== "object") return false;
+          const candidate = task as Partial<RemixSeriesItem>;
+          return (
+            typeof candidate.id === "string" &&
+            typeof candidate.result_url === "string" &&
+            typeof candidate.prompt === "string" &&
+            typeof candidate.model === "string" &&
+            typeof candidate.created_at === "string"
+          );
+        })
+      : [];
+
+    return {
+      sourceImage:
+        parsed.sourceImage && typeof parsed.sourceImage === "object"
+          ? parsed.sourceImage
+          : {},
+      tasks,
+      savedAt:
+        typeof parsed.savedAt === "number" ? parsed.savedAt : Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveRemixContextSnapshot(
+  userId: string,
+  sourceImageId: string,
+  snapshot: RemixContextSnapshot
+) {
+  if (!userId || !sourceImageId) {
+    return;
+  }
+
+  writeNamespacedStorageValue(
+    buildRemixContextStorageKey(userId, sourceImageId),
+    JSON.stringify(snapshot)
+  );
 }
 
 function firstNonEmpty(...values: Array<string | null | undefined>) {
