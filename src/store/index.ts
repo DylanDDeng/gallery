@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type { ImagePrompt } from "@/lib/types";
 import { createClient } from "@/lib/supabase-browser";
 
+const CREDITS_DEBUG_PREFIX = "[credits-debug]";
+
 interface User {
   id: string;
   email?: string;
@@ -168,6 +170,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Credits actions
   setCredits: (credits: number | null) =>
     set((state) => ({
+      ...(console.info(
+        CREDITS_DEBUG_PREFIX,
+        "setCredits",
+        {
+          from: state.credits,
+          to: credits,
+          fromVersion: state.creditsVersion,
+          toVersion: state.creditsVersion + 1,
+        }
+      ),
+      {}),
       credits,
       creditsVersion: state.creditsVersion + 1,
     })),
@@ -175,6 +188,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { user, creditsVersion } = get();
     if (!user) {
       set((state) => ({
+        ...(console.info(
+          CREDITS_DEBUG_PREFIX,
+          "fetchCredits:no-user",
+          {
+            currentCredits: state.credits,
+            fromVersion: state.creditsVersion,
+            toVersion: state.creditsVersion + 1,
+          }
+        ),
+        {}),
         credits: null,
         creditsVersion: state.creditsVersion + 1,
       }));
@@ -183,6 +206,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const requestUserId = user.id;
     const requestVersion = creditsVersion;
+    console.info(CREDITS_DEBUG_PREFIX, "fetchCredits:start", {
+      requestUserId,
+      requestVersion,
+      currentCredits: get().credits,
+    });
 
     try {
       const res = await fetch("/api/credits");
@@ -193,16 +221,44 @@ export const useAppStore = create<AppState>((set, get) => ({
           currentState.user?.id !== requestUserId ||
           currentState.creditsVersion !== requestVersion
         ) {
+          console.info(CREDITS_DEBUG_PREFIX, "fetchCredits:stale-skip", {
+            requestUserId,
+            requestVersion,
+            responseCredits: json.credits,
+            currentUserId: currentState.user?.id ?? null,
+            currentVersion: currentState.creditsVersion,
+            currentCredits: currentState.credits,
+          });
           return;
         }
 
         set((state) => ({
+          ...(console.info(
+            CREDITS_DEBUG_PREFIX,
+            "fetchCredits:apply",
+            {
+              requestUserId,
+              requestVersion,
+              responseCredits: json.credits,
+              fromCredits: state.credits,
+              fromVersion: state.creditsVersion,
+              toVersion: state.creditsVersion + 1,
+            }
+          ),
+          {}),
           credits: json.credits,
           creditsVersion: state.creditsVersion + 1,
         }));
+      } else {
+        console.warn(CREDITS_DEBUG_PREFIX, "fetchCredits:error-response", {
+          requestUserId,
+          requestVersion,
+          status: res.status,
+          body: json,
+        });
       }
     } catch (error) {
-      console.error("Error fetching credits:", error);
+      console.error(CREDITS_DEBUG_PREFIX, "fetchCredits:exception", error);
     }
   },
 }));

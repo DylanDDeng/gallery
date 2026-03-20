@@ -5,6 +5,8 @@ import { isBillingEnabled } from "@/lib/billing-feature";
 import { createClient } from "@/lib/supabase-browser";
 import { useAppStore } from "@/store";
 
+const CREDITS_DEBUG_PREFIX = "[credits-debug]";
+
 type InitialUser = {
   id: string;
   email?: string;
@@ -33,6 +35,11 @@ export default function AuthProvider({
   const bootstrappedRef = useRef(false);
 
   if (!bootstrappedRef.current) {
+    console.info(CREDITS_DEBUG_PREFIX, "auth:bootstrap", {
+      initialUserId: initialUser?.id ?? null,
+      initialCredits,
+      billingEnabled,
+    });
     useAppStore.setState((state) => ({
       user: initialUser,
       authInitialized: true,
@@ -51,6 +58,10 @@ export default function AuthProvider({
     // Check for existing session on mount
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (cancelled) return;
+      console.info(CREDITS_DEBUG_PREFIX, "auth:getUser", {
+        userId: user?.id ?? null,
+        billingEnabled,
+      });
       setUser(user as Parameters<typeof setUser>[0] | null);
       if (user) {
         fetchFavorites();
@@ -58,6 +69,7 @@ export default function AuthProvider({
           void fetchCredits();
         }
       } else {
+        console.info(CREDITS_DEBUG_PREFIX, "auth:getUser:clear-credits");
         useAppStore.setState((state) => ({
           favorites: [],
           favoritesLoaded: true,
@@ -71,6 +83,10 @@ export default function AuthProvider({
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return;
       const user = session?.user ?? null;
+      console.info(CREDITS_DEBUG_PREFIX, "auth:onAuthStateChange", {
+        eventUserId: user?.id ?? null,
+        billingEnabled,
+      });
       setUser(user as Parameters<typeof setUser>[0] | null);
       if (user) {
         fetchFavorites();
@@ -78,6 +94,7 @@ export default function AuthProvider({
           void fetchCredits();
         }
       } else {
+        console.info(CREDITS_DEBUG_PREFIX, "auth:onAuthStateChange:clear-credits");
         useAppStore.setState((state) => ({
           favorites: [],
           favoritesLoaded: true,

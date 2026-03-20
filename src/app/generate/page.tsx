@@ -18,6 +18,8 @@ import {
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
 
+const CREDITS_DEBUG_PREFIX = "[credits-debug]";
+
 interface GenerationTask {
   id: string;
   prompt: string;
@@ -297,6 +299,14 @@ export default function GeneratePage() {
     const shouldOptimisticallyDeduct =
       billingEnabled && typeof credits === "number" && credits > 0;
 
+    console.info(CREDITS_DEBUG_PREFIX, "generate:submit:start", {
+      mode: isRemixMode ? "remix" : "new",
+      credits,
+      shouldOptimisticallyDeduct,
+      selectedSize,
+      selectedModel,
+    });
+
     if (shouldOptimisticallyDeduct) {
       setCredits(credits - 1);
     }
@@ -314,6 +324,12 @@ export default function GeneratePage() {
       });
 
       const json = await res.json();
+      console.info(CREDITS_DEBUG_PREFIX, "generate:submit:response", {
+        status: res.status,
+        ok: res.ok,
+        remainingCredits: json.remainingCredits ?? null,
+        taskId: json.task?.id ?? null,
+      });
 
       if (!res.ok) {
         if (billingEnabled && (shouldOptimisticallyDeduct || res.status === 402)) {
@@ -359,6 +375,7 @@ export default function GeneratePage() {
         setPrompt("");
       }
     } catch (submitError) {
+      console.error(CREDITS_DEBUG_PREFIX, "generate:submit:exception", submitError);
       if (billingEnabled && shouldOptimisticallyDeduct) {
         await fetchCredits();
       }

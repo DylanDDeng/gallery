@@ -10,6 +10,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { DoubaoClient } from "@/lib/doubao";
 
 const GENERATION_COST = 1;
+const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 
 // Storage bucket name
 const STORAGE_BUCKET = "generations";
@@ -214,6 +215,12 @@ export async function POST(request: Request) {
       } else {
         remainingCredits = profileAfterDeduction?.credits ?? null;
       }
+
+      console.info(CREDITS_DEBUG_PREFIX, "api/generations:deducted", {
+        userId: user.id,
+        taskId: task.id,
+        remainingCredits,
+      });
     }
 
     // Call Doubao API
@@ -348,6 +355,7 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    console.error(CREDITS_DEBUG_PREFIX, "api/generations:exception", error);
     console.error("Error creating generation:", error);
     return NextResponse.json(
       { error: "Internal server error" },
