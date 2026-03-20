@@ -31,6 +31,7 @@ interface AppState {
   showLoginPrompt: boolean;
   // Credits
   credits: number | null;
+  creditsVersion: number;
   // Actions
   setSelectedImage: (image: ImagePrompt | null) => void;
   setAllImages: (images: ImagePrompt[]) => void;
@@ -70,6 +71,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   showLoginPrompt: false,
   // Credits
   credits: null,
+  creditsVersion: 0,
 
   setSelectedImage: (image) => set({ selectedImage: image }),
   setAllImages: (images) => set({ allImages: images }),
@@ -164,18 +166,40 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setShowLoginPrompt: (show) => set({ showLoginPrompt: show }),
   // Credits actions
-  setCredits: (credits: number | null) => set({ credits }),
+  setCredits: (credits: number | null) =>
+    set((state) => ({
+      credits,
+      creditsVersion: state.creditsVersion + 1,
+    })),
   fetchCredits: async () => {
-    const { user } = get();
+    const { user, creditsVersion } = get();
     if (!user) {
-      set({ credits: null });
+      set((state) => ({
+        credits: null,
+        creditsVersion: state.creditsVersion + 1,
+      }));
       return;
     }
+
+    const requestUserId = user.id;
+    const requestVersion = creditsVersion;
+
     try {
       const res = await fetch("/api/credits");
       const json = await res.json();
       if (res.ok) {
-        set({ credits: json.credits });
+        const currentState = get();
+        if (
+          currentState.user?.id !== requestUserId ||
+          currentState.creditsVersion !== requestVersion
+        ) {
+          return;
+        }
+
+        set((state) => ({
+          credits: json.credits,
+          creditsVersion: state.creditsVersion + 1,
+        }));
       }
     } catch (error) {
       console.error("Error fetching credits:", error);

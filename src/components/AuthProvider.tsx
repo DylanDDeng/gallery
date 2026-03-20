@@ -37,6 +37,7 @@ export default function AuthProvider({
       user: initialUser,
       authInitialized: true,
       credits: billingEnabled ? initialCredits : null,
+      creditsVersion: billingEnabled ? state.creditsVersion + 1 : state.creditsVersion,
       favoritesLoaded: initialUser ? state.favoritesLoaded : true,
       favorites: initialUser ? state.favorites : [],
     }));
@@ -57,11 +58,12 @@ export default function AuthProvider({
           void fetchCredits();
         }
       } else {
-        useAppStore.setState({
+        useAppStore.setState((state) => ({
           favorites: [],
           favoritesLoaded: true,
           credits: null,
-        });
+          creditsVersion: state.creditsVersion + 1,
+        }));
       }
       setAuthInitialized(true);
     });
@@ -76,11 +78,12 @@ export default function AuthProvider({
           void fetchCredits();
         }
       } else {
-        useAppStore.setState({
+        useAppStore.setState((state) => ({
           favorites: [],
           favoritesLoaded: true,
           credits: null,
-        });
+          creditsVersion: state.creditsVersion + 1,
+        }));
       }
       setAuthInitialized(true);
     });

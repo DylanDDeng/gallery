@@ -71,7 +71,6 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
 
         if (billingEnabled && res.status === 402) {
           onClose();
-          await fetchCredits();
           router.push("/credits");
           return;
         }
