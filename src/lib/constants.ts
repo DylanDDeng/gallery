@@ -385,9 +385,6 @@ export const CATEGORIES = [
 export const MODELS = [
   "Nano Banana Pro",
   "Nano Banana 2",
-  "Flux Pro",
-  "Midjourney v6",
-  "SDXL",
   "GPT Image 1.5",
   "Grok Imagine",
   "Seedream 4.5",
