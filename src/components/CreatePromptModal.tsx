@@ -27,8 +27,10 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
   const [selectedSize, setSelectedSize] = useState(SIZES[1].id);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const credits = useAppStore((s) => s.credits);
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
+  const setCredits = useAppStore((s) => s.setCredits);
   const fetchCredits = useAppStore((s) => s.fetchCredits);
   const billingEnabled = isBillingEnabled();
 
@@ -37,6 +39,12 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
 
     setGenerating(true);
     setError(null);
+    const shouldOptimisticallyDeduct =
+      billingEnabled && typeof credits === "number" && credits > 0;
+
+    if (shouldOptimisticallyDeduct) {
+      setCredits(credits - 1);
+    }
 
     try {
       const res = await fetch("/api/generations", {
@@ -52,6 +60,9 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
       const json = await res.json();
 
       if (!res.ok) {
+        if (billingEnabled && (shouldOptimisticallyDeduct || res.status === 402)) {
+          await fetchCredits();
+        }
         if (res.status === 401) {
           onClose();
           setShowLoginPrompt(true);
@@ -67,6 +78,14 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
 
         setError(json.error || "Generation failed");
         return;
+      }
+
+      if (billingEnabled) {
+        if (typeof json.remainingCredits === "number") {
+          setCredits(json.remainingCredits);
+        } else {
+          void fetchCredits();
+        }
       }
 
       // Close modal and show the generated image
@@ -88,6 +107,9 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
         });
       }
     } catch (err) {
+      if (billingEnabled && shouldOptimisticallyDeduct) {
+        await fetchCredits();
+      }
       console.error("Generation error:", err);
       setError("An error occurred. Please try again.");
     } finally {

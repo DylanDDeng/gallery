@@ -168,6 +168,8 @@ export async function POST(request: Request) {
       );
     }
 
+    let remainingCredits: number | null = null;
+
     if (billingEnabled) {
       const { data: deductResult, error: deductError } = await supabaseAdmin.rpc(
         "deduct_credits",
@@ -195,6 +197,22 @@ export async function POST(request: Request) {
           { error: "Insufficient credits" },
           { status: 402 }
         );
+      }
+
+      const { data: profileAfterDeduction, error: profileAfterDeductionError } =
+        await supabaseAdmin
+          .from("profiles")
+          .select("credits")
+          .eq("id", user.id)
+          .single();
+
+      if (profileAfterDeductionError) {
+        console.warn(
+          "Error fetching credits after deduction:",
+          profileAfterDeductionError
+        );
+      } else {
+        remainingCredits = profileAfterDeduction?.credits ?? null;
       }
     }
 
@@ -294,6 +312,7 @@ export async function POST(request: Request) {
             result_url: imageUrl,
             credits_cost: billingEnabled ? GENERATION_COST : 0,
           },
+          remainingCredits,
         },
         { status: 201 }
       );
@@ -324,6 +343,7 @@ export async function POST(request: Request) {
           credits_cost: billingEnabled ? GENERATION_COST : 0,
         },
         downloadUrl: finalUrl,
+        remainingCredits,
       },
       { status: 201 }
     );

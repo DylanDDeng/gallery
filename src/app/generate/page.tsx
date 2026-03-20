@@ -85,6 +85,8 @@ export default function GeneratePage() {
   const searchParams = useSearchParams();
   const user = useAppStore((s) => s.user);
   const credits = useAppStore((s) => s.credits);
+  const setCredits = useAppStore((s) => s.setCredits);
+  const fetchCredits = useAppStore((s) => s.fetchCredits);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const billingEnabled = isBillingEnabled();
@@ -292,6 +294,12 @@ export default function GeneratePage() {
     setSubmitting(true);
     setError(null);
     setCurrentTask(null);
+    const shouldOptimisticallyDeduct =
+      billingEnabled && typeof credits === "number" && credits > 0;
+
+    if (shouldOptimisticallyDeduct) {
+      setCredits(credits - 1);
+    }
 
     try {
       const res = await fetch("/api/generations", {
@@ -308,11 +316,22 @@ export default function GeneratePage() {
       const json = await res.json();
 
       if (!res.ok) {
+        if (billingEnabled && (shouldOptimisticallyDeduct || res.status === 402)) {
+          await fetchCredits();
+        }
         setError(json.error || "Failed to create generation");
         if (selfServiceApiKeysEnabled && json.error?.includes("API key")) {
           setHasApiKey(false);
         }
         return;
+      }
+
+      if (billingEnabled) {
+        if (typeof json.remainingCredits === "number") {
+          setCredits(json.remainingCredits);
+        } else {
+          void fetchCredits();
+        }
       }
 
       setCurrentTask(json.task);
@@ -340,6 +359,9 @@ export default function GeneratePage() {
         setPrompt("");
       }
     } catch (submitError) {
+      if (billingEnabled && shouldOptimisticallyDeduct) {
+        await fetchCredits();
+      }
       console.error("Error creating generation:", submitError);
       setError("An error occurred. Please try again.");
     } finally {
