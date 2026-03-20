@@ -730,9 +730,6 @@ export default function GeneratePage() {
                         />
                       </svg>
                     </div>
-                    <div className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-600 dark:bg-white/8 dark:text-zinc-300">
-                      {selectedOutputSize.size}
-                    </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-3 lg:justify-end">
