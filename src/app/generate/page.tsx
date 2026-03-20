@@ -16,6 +16,13 @@ import {
   type RemixSeriesItem,
 } from "@/lib/generation-draft";
 import { useAppStore } from "@/store";
+import {
+  ASPECT_RATIO_OPTIONS,
+  OUTPUT_RESOLUTIONS,
+  getOutputSize,
+  type AspectRatio,
+  type OutputResolution,
+} from "@/lib/generation-size-options";
 import type { ImagePrompt } from "@/lib/types";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
@@ -34,12 +41,6 @@ interface GenerationTask {
 
 const MODELS = [
   { id: "doubao-seedream-5-0-260128", name: "Seedream-5.0-Lite" },
-] as const;
-
-const SIZES = [
-  { id: "1K", label: "1K", width: 1024, height: 1024 },
-  { id: "2K", label: "2K", width: 2048, height: 2048 },
-  { id: "3K", label: "3K", width: 3072, height: 3072 },
 ] as const;
 
 function getTaskPresentation(
@@ -109,10 +110,10 @@ export default function GeneratePage() {
   const [selectedModel, setSelectedModel] = useState<
     (typeof MODELS)[number]["id"]
   >(MODELS[0].id);
-  const [selectedSize, setSelectedSize] = useState<
-    (typeof SIZES)[number]["id"]
-  >(SIZES[1].id);
+  const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
   const stageRailRef = useRef<HTMLDivElement>(null);
+  const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
 
   const checkApiKey = useCallback(async () => {
     try {
@@ -303,7 +304,9 @@ export default function GeneratePage() {
       mode: isRemixMode ? "remix" : "new",
       credits,
       shouldOptimisticallyDeduct,
-      selectedSize,
+      selectedResolution,
+      selectedAspectRatio,
+      outputSize: selectedOutputSize.size,
       selectedModel,
     });
 
@@ -318,7 +321,7 @@ export default function GeneratePage() {
         body: JSON.stringify({
           prompt: prompt.trim(),
           model: selectedModel,
-          size: selectedSize,
+          size: selectedOutputSize.size,
           sourceImageId: isRemixMode ? sourceImageId : null,
         }),
       });
@@ -664,22 +667,20 @@ export default function GeneratePage() {
                       );
                     })}
                     <div className="relative">
-                      <label htmlFor="render-size" className="sr-only">
-                        Render size
+                      <label htmlFor="render-aspect-ratio" className="sr-only">
+                        Aspect ratio
                       </label>
                       <select
-                        id="render-size"
-                        value={selectedSize}
+                        id="render-aspect-ratio"
+                        value={selectedAspectRatio}
                         onChange={(event) =>
-                          setSelectedSize(
-                            event.target.value as (typeof SIZES)[number]["id"]
-                          )
+                          setSelectedAspectRatio(event.target.value as AspectRatio)
                         }
                         className="appearance-none rounded-full bg-black/5 px-3 py-2 pr-9 text-xs font-medium text-zinc-700 outline-none transition-colors hover:bg-black/10 focus:bg-black/10 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:focus:bg-white/12"
                       >
-                        {SIZES.map((size) => (
-                          <option key={size.id} value={size.id}>
-                            {size.label}
+                        {ASPECT_RATIO_OPTIONS.map((ratio) => (
+                          <option key={ratio.id} value={ratio.id}>
+                            {ratio.label}
                           </option>
                         ))}
                       </select>
@@ -696,6 +697,41 @@ export default function GeneratePage() {
                           d="M19 9l-7 7-7-7"
                         />
                       </svg>
+                    </div>
+                    <div className="relative">
+                      <label htmlFor="render-resolution" className="sr-only">
+                        Resolution
+                      </label>
+                      <select
+                        id="render-resolution"
+                        value={selectedResolution}
+                        onChange={(event) =>
+                          setSelectedResolution(event.target.value as OutputResolution)
+                        }
+                        className="appearance-none rounded-full bg-black/5 px-3 py-2 pr-9 text-xs font-medium text-zinc-700 outline-none transition-colors hover:bg-black/10 focus:bg-black/10 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:focus:bg-white/12"
+                      >
+                        {OUTPUT_RESOLUTIONS.map((resolution) => (
+                          <option key={resolution.id} value={resolution.id}>
+                            {resolution.label}
+                          </option>
+                        ))}
+                      </select>
+                      <svg
+                        className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                    <div className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-600 dark:bg-white/8 dark:text-zinc-300">
+                      {selectedOutputSize.size}
                     </div>
                   </div>
 

@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { isBillingEnabled } from "@/lib/billing-feature";
+import {
+  ASPECT_RATIO_OPTIONS,
+  OUTPUT_RESOLUTIONS,
+  getOutputSize,
+  type AspectRatio,
+  type OutputResolution,
+} from "@/lib/generation-size-options";
 import { useAppStore } from "@/store";
 
 interface CreatePromptModalProps {
@@ -14,17 +21,12 @@ const MODELS = [
   { id: "doubao-seedream-5-0-260128", name: "Seedream-5.0-Lite" },
 ];
 
-const SIZES = [
-  { id: "1K", label: "1K", width: 1024, height: 1024 },
-  { id: "2K", label: "2K", width: 2048, height: 2048 },
-  { id: "3K", label: "3K", width: 3072, height: 3072 },
-];
-
 export default function CreatePromptModal({ initialPrompt, onClose }: CreatePromptModalProps) {
   const router = useRouter();
   const [prompt, setPrompt] = useState(initialPrompt);
   const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
-  const [selectedSize, setSelectedSize] = useState(SIZES[1].id);
+  const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const credits = useAppStore((s) => s.credits);
@@ -33,6 +35,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
   const setCredits = useAppStore((s) => s.setCredits);
   const fetchCredits = useAppStore((s) => s.fetchCredits);
   const billingEnabled = isBillingEnabled();
+  const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -53,7 +56,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
         body: JSON.stringify({
           prompt: prompt.trim(),
           model: selectedModel,
-          size: selectedSize,
+          size: selectedOutputSize.size,
         }),
       });
 
@@ -87,7 +90,6 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
         }
       }
 
-      // Close modal and show the generated image
       onClose();
       if (json.task) {
         setSelectedImage({
@@ -100,8 +102,8 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
           model: selectedModel,
           category: "generated",
           tags: [],
-          width: SIZES.find(s => s.id === selectedSize)?.width || 2048,
-          height: SIZES.find(s => s.id === selectedSize)?.height || 2048,
+          width: selectedOutputSize.width,
+          height: selectedOutputSize.height,
           created_at: new Date().toISOString(),
         });
       }
@@ -118,12 +120,9 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
       <div className="relative z-10 w-full max-w-2xl mx-4 rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Create from Prompt</h2>
           <button
@@ -136,9 +135,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Prompt Input */}
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
               Prompt
@@ -152,9 +149,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
             />
           </div>
 
-          {/* Model & Size */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Model */}
+          <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Model
@@ -181,42 +176,53 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
               </div>
             </div>
 
-            {/* Size */}
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Size
+              <label htmlFor="modal-aspect-ratio" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                Aspect ratio
               </label>
-              <div className="space-y-2">
-                {SIZES.map((size) => (
-                  <button
-                    key={size.id}
-                    onClick={() => setSelectedSize(size.id)}
-                    className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
-                      selectedSize === size.id
-                        ? "bg-zinc-100 border border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-100 dark:text-zinc-100"
-                        : "bg-zinc-50 dark:bg-zinc-800 border border-transparent text-zinc-700 dark:text-zinc-300 hover:border-zinc-200 dark:hover:border-zinc-700"
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      selectedSize === size.id ? "border-zinc-900 dark:border-zinc-100" : "border-zinc-300 dark:border-zinc-600"
-                    }`}>
-                      {selectedSize === size.id && <div className="w-2 h-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />}
-                    </div>
-                    <span className="text-sm font-medium">{size.label}</span>
-                  </button>
+              <select
+                id="modal-aspect-ratio"
+                value={selectedAspectRatio}
+                onChange={(event) => setSelectedAspectRatio(event.target.value as AspectRatio)}
+                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+              >
+                {ASPECT_RATIO_OPTIONS.map((ratio) => (
+                  <option key={ratio.id} value={ratio.id}>
+                    {ratio.label}
+                  </option>
                 ))}
-              </div>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="modal-resolution" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                Resolution
+              </label>
+              <select
+                id="modal-resolution"
+                value={selectedResolution}
+                onChange={(event) => setSelectedResolution(event.target.value as OutputResolution)}
+                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+              >
+                {OUTPUT_RESOLUTIONS.map((resolution) => (
+                  <option key={resolution.id} value={resolution.id}>
+                    {resolution.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Error */}
+          <div className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800/60 dark:text-zinc-300 dark:ring-zinc-700">
+            Output size: {selectedAspectRatio} · {selectedResolution} · {selectedOutputSize.size}
+          </div>
+
           {error && (
             <div className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-500 dark:text-red-400">
               {error}
             </div>
           )}
 
-          {/* Generate Button */}
           <button
             onClick={handleGenerate}
             disabled={generating || !prompt.trim()}
