@@ -646,17 +646,6 @@ export default function GeneratePage() {
 
                 <div className="mt-5 flex flex-col gap-3 border-t border-black/6 pt-4 dark:border-white/8 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isRemixMode && remixDraft) {
-                          setPrompt(remixDraft.prompt);
-                        }
-                      }}
-                      className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
-                    >
-                      Use original prompt
-                    </button>
                     {MODELS.map((model) => {
                       const isActive = selectedModel === model.id;
                       return (
@@ -674,23 +663,40 @@ export default function GeneratePage() {
                         </button>
                       );
                     })}
-                    {SIZES.map((size) => {
-                      const isActive = selectedSize === size.id;
-                      return (
-                        <button
-                          key={size.id}
-                          type="button"
-                          onClick={() => setSelectedSize(size.id)}
-                          className={`rounded-full px-3 py-2 text-xs font-medium transition-colors ${
-                            isActive
-                              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                              : "bg-black/5 text-zinc-600 hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
-                          }`}
-                        >
-                          {size.label}
-                        </button>
-                      );
-                    })}
+                    <div className="relative">
+                      <label htmlFor="render-size" className="sr-only">
+                        Render size
+                      </label>
+                      <select
+                        id="render-size"
+                        value={selectedSize}
+                        onChange={(event) =>
+                          setSelectedSize(
+                            event.target.value as (typeof SIZES)[number]["id"]
+                          )
+                        }
+                        className="appearance-none rounded-full bg-black/5 px-3 py-2 pr-9 text-xs font-medium text-zinc-700 outline-none transition-colors hover:bg-black/10 focus:bg-black/10 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:focus:bg-white/12"
+                      >
+                        {SIZES.map((size) => (
+                          <option key={size.id} value={size.id}>
+                            {size.label}
+                          </option>
+                        ))}
+                      </select>
+                      <svg
+                        className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-3 lg:justify-end">
