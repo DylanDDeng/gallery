@@ -33,7 +33,7 @@ interface GenerationTask {
 }
 
 const MODELS = [
-  { id: "doubao-seedream-5-0-260128", name: "Seedream 5.0" },
+  { id: "doubao-seedream-5-0-260128", name: "Seedream-5.0-Lite" },
 ] as const;
 
 const SIZES = [
