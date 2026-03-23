@@ -8,6 +8,7 @@ import {
   isSelfServiceApiKeysEnabled,
 } from "@/lib/billing-feature";
 import {
+  clearGenerationDraft,
   parseGenerationDraftFromSearchParams,
   readRemixContextSnapshot,
   readRemixGenerationDraft,
@@ -383,9 +384,29 @@ export default function GeneratePage() {
     [prompt, user]
   );
 
+  const handleClearReferenceImage = useCallback(() => {
+    setRemixDraft((previous) => {
+      if (!previous) {
+        return null;
+      }
+
+      return {
+        ...previous,
+        sourceImageId: undefined,
+        sourceImage: undefined,
+      };
+    });
+
+    clearGenerationDraft();
+
+    if (typeof window !== "undefined" && window.location.pathname === "/generate") {
+      window.history.replaceState(window.history.state, "", "/generate");
+    }
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!prompt.trim() || submitting || (isRemixMode && !remixDraft?.sourceImage?.url)) {
+    if (!prompt.trim() || submitting) {
       return;
     }
 
@@ -417,8 +438,10 @@ export default function GeneratePage() {
           prompt: prompt.trim(),
           model: selectedModel,
           size: selectedOutputSize.size,
-          sourceImageId: isRemixMode ? (remixDraft?.sourceImageId ?? sourceImageId) : null,
-          sourceImageUrl: isRemixMode ? remixDraft?.sourceImage?.url ?? null : null,
+          sourceImageId: remixDraft?.sourceImage?.url
+            ? (remixDraft?.sourceImageId ?? sourceImageId)
+            : null,
+          sourceImageUrl: remixDraft?.sourceImage?.url ?? null,
         }),
       });
 
@@ -521,12 +544,11 @@ export default function GeneratePage() {
   }
 
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
-  const missingRemixSource = isRemixMode && !sourceImageUrl;
+  const hasReferenceImage = Boolean(sourceImageUrl);
   const creditCount = credits ?? 0;
   const generateDisabled =
     submitting ||
     !prompt.trim() ||
-    missingRemixSource ||
     (selfServiceApiKeysEnabled && !hasApiKey) ||
     (billingEnabled && creditCount < 1);
   const studioStatus = getTaskPresentation(
@@ -540,7 +562,7 @@ export default function GeneratePage() {
     (currentTask?.status === "completed" && currentTask.result_url ? currentTask : null);
   const activeTaskId = hoveredTaskId ?? primaryTask?.id ?? null;
   const resultImageUrl = primaryTask?.result_url || null;
-  const showComparisonStage = isRemixMode && Boolean(sourceImageUrl);
+  const showComparisonStage = hasReferenceImage;
   const toolbarDisabled = generateDisabled;
   const hasRenderedResults = renderedTasks.length > 0;
 
@@ -617,7 +639,7 @@ export default function GeneratePage() {
 
         <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center">
           <div className="rounded-full bg-white/54 px-4 py-1 text-[11px] uppercase tracking-[0.28em] text-zinc-500 backdrop-blur-xl dark:bg-white/6 dark:text-zinc-400">
-            {isRemixMode ? "Remix studio" : "Generate studio"}
+            {hasReferenceImage ? "Remix studio" : "Generate studio"}
           </div>
         </div>
 
@@ -768,9 +790,9 @@ export default function GeneratePage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.26em] text-zinc-400 dark:text-zinc-500">
-                      {isRemixMode ? "Remix from image" : "Prompt composer"}
+                      {hasReferenceImage ? "Image-guided prompt" : "Prompt composer"}
                     </p>
-                    {!isRemixMode ? (
+                    {!hasReferenceImage ? (
                       <p
                         className="mt-2 text-[26px] leading-none text-zinc-900 dark:text-white"
                         style={{ fontFamily: titleFont }}
@@ -785,67 +807,48 @@ export default function GeneratePage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {isRemixMode ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handlePickReferenceImage}
-                        disabled={isUploadingReference}
-                        className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-black/10 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:hover:text-white"
-                      >
-                        {isUploadingReference
-                          ? "Uploading reference..."
-                          : sourceImageUrl
-                            ? "Replace reference image"
-                            : "Upload reference image"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => router.push("/generate")}
-                        className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
-                      >
-                        Switch to prompt-only mode
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => router.push("/generate?mode=remix")}
-                      className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:hover:text-white"
-                    >
-                      Use a reference image
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handlePickReferenceImage}
+                    disabled={isUploadingReference}
+                    className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-black/10 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:hover:text-white"
+                  >
+                    {isUploadingReference
+                      ? "Uploading reference..."
+                      : hasReferenceImage
+                        ? "Replace reference image"
+                        : "Add reference image"}
+                  </button>
                 </div>
 
-                {isRemixMode ? (
+                {hasReferenceImage ? (
                   <div className="mt-4 flex items-center gap-3 rounded-2xl border border-black/6 bg-black/[0.025] p-3 dark:border-white/8 dark:bg-white/[0.03]">
                     <div className="h-16 w-16 overflow-hidden rounded-2xl bg-black/5 dark:bg-white/8">
-                      {sourceImageUrl ? (
-                        <Image
-                          src={sourceImageUrl}
-                          alt="Reference image"
-                          width={128}
-                          height={128}
-                          unoptimized
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                          Empty
-                        </div>
-                      )}
+                      <Image
+                        src={sourceImageUrl!}
+                        alt="Reference image"
+                        width={128}
+                        height={128}
+                        unoptimized
+                        className="h-full w-full object-cover"
+                      />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-zinc-800 dark:text-zinc-100">
-                        Reference image input
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
-                        {sourceImageUrl
-                          ? "This image will be sent to Seedream as the single-image input."
-                          : "Upload one image to start a single-image remix."}
+                        Reference image
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleClearReferenceImage}
+                      className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-zinc-500 transition-colors hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
+                      aria-label="Remove reference image"
+                      title="Remove reference image"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l12 12M18 6L6 18" />
+                      </svg>
+                    </button>
                   </div>
                 ) : null}
 
@@ -858,12 +861,6 @@ export default function GeneratePage() {
                 {error ? (
                   <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
                     {error}
-                  </div>
-                ) : null}
-
-                {missingRemixSource ? (
-                  <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-                    This remix needs a reference image before it can be rendered.
                   </div>
                 ) : null}
 
@@ -981,7 +978,7 @@ export default function GeneratePage() {
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
-                          {isRemixMode ? "Generate variation" : "Generate image"}
+                          {hasReferenceImage ? "Generate variation" : "Generate image"}
                         </>
                       )}
                     </button>
