@@ -110,6 +110,7 @@ export default function GeneratePage() {
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
+  const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<
     (typeof MODELS)[number]["id"]
   >(MODELS[0].id);
@@ -486,6 +487,35 @@ export default function GeneratePage() {
     }
   };
 
+  const handleDownloadTask = useCallback(async (task: RemixSeriesItem) => {
+    if (!task.result_url || downloadingTaskId === task.id) {
+      return;
+    }
+
+    setDownloadingTaskId(task.id);
+    try {
+      const response = await fetch(task.result_url);
+      if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `remix-${task.id}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (downloadError) {
+      console.error("Error downloading generated image:", downloadError);
+      setError("Failed to download the generated image. Please try again.");
+    } finally {
+      setDownloadingTaskId((current) => (current === task.id ? null : current));
+    }
+  }, [downloadingTaskId]);
+
   if (!user) {
     return null;
   }
@@ -667,7 +697,7 @@ export default function GeneratePage() {
                       {!isActiveCard ? (
                         <div className="pointer-events-none absolute inset-0 bg-white/14 opacity-100 backdrop-blur-[1.5px] transition-all duration-300 group-hover:bg-white/0 group-hover:opacity-0 group-hover:backdrop-blur-0" />
                       ) : null}
-                      <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                         <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
                           {isActiveCard
                             ? isLatest
@@ -675,6 +705,25 @@ export default function GeneratePage() {
                               : "Inspecting pass"
                             : "Earlier pass"}
                         </span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleDownloadTask(task);
+                          }}
+                          disabled={downloadingTaskId === task.id}
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/65 disabled:cursor-not-allowed disabled:opacity-60"
+                          aria-label="Download generated image"
+                          title="Download image"
+                        >
+                          {downloadingTaskId === task.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                          ) : (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" />
+                            </svg>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
