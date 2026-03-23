@@ -219,14 +219,14 @@ export default function GeneratePage() {
   }, [isRemixMode, searchParams, sourceImageId, user]);
 
   useEffect(() => {
-    setCurrentTask(null);
     setHoveredTaskId(null);
 
     if (!isRemixMode || !sourceImageId || !user?.id) {
-      setStagedTasks([]);
       setIsRestoringSeries(false);
       return;
     }
+
+    setCurrentTask(null);
 
     const draft = readRemixGenerationDraft();
     const snapshot = readRemixContextSnapshot(user.id, sourceImageId);
