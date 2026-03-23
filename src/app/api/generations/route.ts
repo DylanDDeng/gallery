@@ -104,6 +104,7 @@ export async function POST(request: Request) {
       model = "doubao-seedream-5-0-260128",
       size = "2K",
       sourceImageId,
+      sourceImageUrl,
     } = body;
 
     if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
@@ -111,6 +112,32 @@ export async function POST(request: Request) {
         { error: "Prompt is required" },
         { status: 400 }
       );
+    }
+
+    const normalizedSourceImageId =
+      typeof sourceImageId === "string" && sourceImageId.trim().length > 0
+        ? sourceImageId.trim()
+        : null;
+    let resolvedSourceImageUrl =
+      typeof sourceImageUrl === "string" && sourceImageUrl.trim().length > 0
+        ? sourceImageUrl.trim()
+        : null;
+
+    if (normalizedSourceImageId && !resolvedSourceImageUrl) {
+      const { data: sourceImage, error: sourceImageError } = await supabaseAdmin
+        .from("images")
+        .select("url")
+        .eq("id", normalizedSourceImageId)
+        .single();
+
+      if (sourceImageError || !sourceImage?.url) {
+        return NextResponse.json(
+          { error: "Source image not found" },
+          { status: 400 }
+        );
+      }
+
+      resolvedSourceImageUrl = sourceImage.url;
     }
 
     let apiKey: string;
@@ -152,10 +179,7 @@ export async function POST(request: Request) {
         user_id: user.id,
         prompt: prompt.trim(),
         model,
-        source_image_id:
-          typeof sourceImageId === "string" && sourceImageId.trim().length > 0
-            ? sourceImageId.trim()
-            : null,
+        source_image_id: normalizedSourceImageId,
         status: "processing",
         credits_cost: billingEnabled ? GENERATION_COST : 0,
       })
@@ -232,6 +256,8 @@ export async function POST(request: Request) {
         prompt: prompt.trim(),
         model,
         size,
+        image: resolvedSourceImageUrl || undefined,
+        outputFormat: "png",
         watermark: false,
       });
     } catch (apiError) {

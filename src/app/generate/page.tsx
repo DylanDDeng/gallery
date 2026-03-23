@@ -8,6 +8,7 @@ import {
   isSelfServiceApiKeysEnabled,
 } from "@/lib/billing-feature";
 import {
+  parseGenerationDraftFromSearchParams,
   readRemixContextSnapshot,
   readRemixGenerationDraft,
   saveRemixContextSnapshot,
@@ -16,6 +17,7 @@ import {
   type RemixSeriesItem,
 } from "@/lib/generation-draft";
 import { useAppStore } from "@/store";
+import { createClient } from "@/lib/supabase-browser";
 import {
   ASPECT_RATIO_OPTIONS,
   OUTPUT_RESOLUTIONS,
@@ -107,12 +109,14 @@ export default function GeneratePage() {
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
+  const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [selectedModel, setSelectedModel] = useState<
     (typeof MODELS)[number]["id"]
   >(MODELS[0].id);
   const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
   const stageRailRef = useRef<HTMLDivElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
 
   const checkApiKey = useCallback(async () => {
@@ -179,18 +183,40 @@ export default function GeneratePage() {
       return;
     }
 
-    const draft = readRemixGenerationDraft();
-    if (!sourceImageId) {
+    const storedDraft = readRemixGenerationDraft();
+    const urlDraft = parseGenerationDraftFromSearchParams(
+      new URLSearchParams(searchParams.toString())
+    );
+    const draft =
+      storedDraft &&
+      (!sourceImageId ||
+        storedDraft.sourceImageId === sourceImageId ||
+        storedDraft.sourceImage?.id === sourceImageId)
+        ? storedDraft
+        : urlDraft?.mode === "remix"
+          ? {
+              mode: "remix" as const,
+              prompt: urlDraft.prompt ?? "",
+              promptLang: "en" as const,
+              createdAt: Date.now(),
+              sourceImageId: urlDraft.sourceImageId,
+              sourceImage: urlDraft.sourceImage,
+              returnTo: urlDraft.returnTo,
+              returnImageId: urlDraft.returnImageId,
+            }
+          : null;
+
+    if (!draft?.sourceImage?.url && !draft?.sourceImageId && !sourceImageId) {
       setRemixDraft(null);
       setPrompt("");
       return;
     }
 
-    if (draft && draft.sourceImageId === sourceImageId) {
+    if (draft) {
       setRemixDraft(draft);
       setPrompt(draft.prompt);
     }
-  }, [isRemixMode, sourceImageId, user]);
+  }, [isRemixMode, searchParams, sourceImageId, user]);
 
   useEffect(() => {
     setCurrentTask(null);
@@ -290,9 +316,77 @@ export default function GeneratePage() {
     });
   }, [isRemixMode, prompt, remixDraft]);
 
+  const handlePickReferenceImage = useCallback(() => {
+    referenceInputRef.current?.click();
+  }, []);
+
+  const handleReferenceFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+
+      if (!file || !user) {
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        setError("Please choose an image file.");
+        return;
+      }
+
+      setIsUploadingReference(true);
+      setError(null);
+
+      try {
+        const supabase = createClient();
+        const extension = file.name.includes(".")
+          ? file.name.split(".").pop()?.toLowerCase() || "png"
+          : "png";
+        const filePath = `${user.id}/reference-images/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+          .from("generations")
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from("generations")
+          .getPublicUrl(filePath);
+
+        setRemixDraft((previous) => ({
+          mode: "remix",
+          prompt: previous?.prompt ?? prompt,
+          promptLang: previous?.promptLang ?? "en",
+          createdAt: Date.now(),
+          sourceImageId: undefined,
+          sourceImage: {
+            ...previous?.sourceImage,
+            url: publicUrlData.publicUrl,
+            prompt: previous?.sourceImage?.prompt ?? file.name,
+          },
+          returnTo: previous?.returnTo ?? "gallery",
+          returnImageId: previous?.returnImageId,
+        }));
+      } catch (uploadError) {
+        console.error("Reference image upload failed:", uploadError);
+        setError("Failed to upload the reference image. Please try again.");
+      } finally {
+        setIsUploadingReference(false);
+      }
+    },
+    [prompt, user]
+  );
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!prompt.trim() || submitting) return;
+    if (!prompt.trim() || submitting || (isRemixMode && !remixDraft?.sourceImage?.url)) {
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -322,7 +416,8 @@ export default function GeneratePage() {
           prompt: prompt.trim(),
           model: selectedModel,
           size: selectedOutputSize.size,
-          sourceImageId: isRemixMode ? sourceImageId : null,
+          sourceImageId: isRemixMode ? (remixDraft?.sourceImageId ?? sourceImageId) : null,
+          sourceImageUrl: isRemixMode ? remixDraft?.sourceImage?.url ?? null : null,
         }),
       });
 
@@ -355,15 +450,17 @@ export default function GeneratePage() {
 
       setCurrentTask(json.task);
 
-      if (isRemixMode && sourceImageId && json.task.result_url) {
+      if (isRemixMode && json.task.result_url) {
         setStagedTasks((previous) => {
           const next = [
             ...previous.filter((task) => task.id !== json.task.id),
             json.task as RemixSeriesItem,
           ].slice(-10);
 
-          if (user?.id && remixDraft?.sourceImage) {
-            saveRemixContextSnapshot(user.id, sourceImageId, {
+          const snapshotSourceImageId = remixDraft?.sourceImageId ?? sourceImageId;
+
+          if (snapshotSourceImageId && user?.id && remixDraft?.sourceImage) {
+            saveRemixContextSnapshot(user.id, snapshotSourceImageId, {
               sourceImage: remixDraft.sourceImage,
               tasks: next,
               savedAt: Date.now(),
@@ -393,10 +490,13 @@ export default function GeneratePage() {
     return null;
   }
 
+  const sourceImageUrl = remixDraft?.sourceImage?.url || null;
+  const missingRemixSource = isRemixMode && !sourceImageUrl;
   const creditCount = credits ?? 0;
   const generateDisabled =
     submitting ||
     !prompt.trim() ||
+    missingRemixSource ||
     (selfServiceApiKeysEnabled && !hasApiKey) ||
     (billingEnabled && creditCount < 1);
   const studioStatus = getTaskPresentation(
@@ -404,7 +504,6 @@ export default function GeneratePage() {
   );
   const titleFont =
     '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif';
-  const sourceImageUrl = remixDraft?.sourceImage?.url || null;
   const renderedTasks = stagedTasks.filter((task) => task.result_url);
   const primaryTask =
     renderedTasks.at(-1) ||
@@ -610,6 +709,13 @@ export default function GeneratePage() {
           <div className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center sm:bottom-14">
             <div className="pointer-events-auto w-full max-w-[1120px] rounded-[30px] bg-white/90 shadow-[0_44px_125px_rgba(33,24,15,0.24)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10 dark:shadow-[0_36px_125px_rgba(0,0,0,0.46)]">
               <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
+                <input
+                  ref={referenceInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(event) => void handleReferenceFileChange(event)}
+                />
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.26em] text-zinc-400 dark:text-zinc-500">
@@ -629,6 +735,71 @@ export default function GeneratePage() {
                   </div>
                 </div>
 
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {isRemixMode ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handlePickReferenceImage}
+                        disabled={isUploadingReference}
+                        className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-black/10 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:hover:text-white"
+                      >
+                        {isUploadingReference
+                          ? "Uploading reference..."
+                          : sourceImageUrl
+                            ? "Replace reference image"
+                            : "Upload reference image"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push("/generate")}
+                        className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
+                      >
+                        Switch to prompt-only mode
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => router.push("/generate?mode=remix")}
+                      className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:hover:text-white"
+                    >
+                      Use a reference image
+                    </button>
+                  )}
+                </div>
+
+                {isRemixMode ? (
+                  <div className="mt-4 flex items-center gap-3 rounded-2xl border border-black/6 bg-black/[0.025] p-3 dark:border-white/8 dark:bg-white/[0.03]">
+                    <div className="h-16 w-16 overflow-hidden rounded-2xl bg-black/5 dark:bg-white/8">
+                      {sourceImageUrl ? (
+                        <Image
+                          src={sourceImageUrl}
+                          alt="Reference image"
+                          width={128}
+                          height={128}
+                          unoptimized
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+                          Empty
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-zinc-800 dark:text-zinc-100">
+                        Reference image input
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+                        {sourceImageUrl
+                          ? "This image will be sent to Seedream as the single-image input."
+                          : "Upload one image to start a single-image remix."}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+
                 {selfServiceApiKeysEnabled && hasApiKey === false ? (
                   <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
                     Configure your Doubao API key in Settings before rendering from this studio.
@@ -638,6 +809,12 @@ export default function GeneratePage() {
                 {error ? (
                   <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
                     {error}
+                  </div>
+                ) : null}
+
+                {missingRemixSource ? (
+                  <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                    This remix needs a reference image before it can be rendered.
                   </div>
                 ) : null}
 

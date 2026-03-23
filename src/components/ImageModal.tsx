@@ -125,6 +125,11 @@ export default function ImageModal() {
     router.push(
       buildRemixGenerateUrl({
         sourceImageId: selectedImage.id,
+        sourceImageUrl: selectedImage.url,
+        sourcePrompt: promptText,
+        sourceAuthor: selectedImage.author,
+        sourceModel: selectedImage.model,
+        sourceCategory: selectedImage.category,
         returnTo: "gallery",
         returnImageId: selectedImage.id,
       })

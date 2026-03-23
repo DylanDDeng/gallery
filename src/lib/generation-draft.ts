@@ -240,14 +240,42 @@ export function parseGenerationDraftFromSearchParams(
 }
 
 export function buildRemixGenerateUrl(context: {
-  sourceImageId: string;
+  sourceImageId?: string;
+  sourceImageUrl?: string;
+  sourcePrompt?: string;
+  sourceAuthor?: string;
+  sourceModel?: string;
+  sourceCategory?: string;
   returnTo?: GenerationReturnTarget;
   returnImageId?: string;
 }) {
   const params = new URLSearchParams({
     mode: "remix",
-    sourceImageId: context.sourceImageId,
   });
+
+  if (context.sourceImageId) {
+    params.set("sourceImageId", context.sourceImageId);
+  }
+
+  if (context.sourceImageUrl) {
+    params.set("sourceImageUrl", context.sourceImageUrl);
+  }
+
+  if (context.sourcePrompt) {
+    params.set("prompt", context.sourcePrompt);
+  }
+
+  if (context.sourceAuthor) {
+    params.set("sourceAuthor", context.sourceAuthor);
+  }
+
+  if (context.sourceModel) {
+    params.set("sourceModel", context.sourceModel);
+  }
+
+  if (context.sourceCategory) {
+    params.set("sourceCategory", context.sourceCategory);
+  }
 
   if (context.returnTo) {
     params.set("returnTo", context.returnTo);

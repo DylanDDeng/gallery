@@ -8,6 +8,8 @@ export interface DoubaoGenerateParams {
   prompt: string;
   model?: string;
   size?: string;
+  image?: string;
+  outputFormat?: "png" | "jpeg" | "webp";
   watermark?: boolean;
 }
 
@@ -36,6 +38,7 @@ export class DoubaoClient {
    * Generate an image using Doubao Seedream
    */
   async generate(params: DoubaoGenerateParams): Promise<DoubaoGenerateResponse> {
+    const image = params.image?.trim();
     const response = await fetch(this.endpoint, {
       method: "POST",
       headers: {
@@ -45,6 +48,8 @@ export class DoubaoClient {
       body: JSON.stringify({
         model: params.model || "doubao-seedream-5-0-260128",
         prompt: params.prompt,
+        ...(image ? { image } : {}),
+        output_format: params.outputFormat || "png",
         sequential_image_generation: "disabled",
         response_format: "url",
         size: params.size || "2K",
