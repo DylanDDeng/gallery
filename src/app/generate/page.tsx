@@ -18,7 +18,6 @@ import {
   type RemixSeriesItem,
 } from "@/lib/generation-draft";
 import { useAppStore } from "@/store";
-import { createClient } from "@/lib/supabase-browser";
 import {
   ASPECT_RATIO_OPTIONS,
   OUTPUT_RESOLUTIONS,
@@ -340,25 +339,22 @@ export default function GeneratePage() {
       setError(null);
 
       try {
-        const supabase = createClient();
-        const extension = file.name.includes(".")
-          ? file.name.split(".").pop()?.toLowerCase() || "png"
-          : "png";
-        const filePath = `${user.id}/reference-images/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-        const { error: uploadError } = await supabase.storage
-          .from("generations")
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
+        const formData = new FormData();
+        formData.append("file", file);
 
-        if (uploadError) {
-          throw uploadError;
+        const response = await fetch("/api/reference-images", {
+          method: "POST",
+          body: formData,
+        });
+        const json = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            typeof json.error === "string"
+              ? json.error
+              : "Failed to upload reference image"
+          );
         }
-
-        const { data: publicUrlData } = supabase.storage
-          .from("generations")
-          .getPublicUrl(filePath);
 
         setRemixDraft((previous) => ({
           mode: "remix",
@@ -368,7 +364,7 @@ export default function GeneratePage() {
           sourceImageId: undefined,
           sourceImage: {
             ...previous?.sourceImage,
-            url: publicUrlData.publicUrl,
+            url: json.url,
             prompt: previous?.sourceImage?.prompt ?? file.name,
           },
           returnTo: previous?.returnTo ?? "gallery",
@@ -376,7 +372,11 @@ export default function GeneratePage() {
         }));
       } catch (uploadError) {
         console.error("Reference image upload failed:", uploadError);
-        setError("Failed to upload the reference image. Please try again.");
+        setError(
+          uploadError instanceof Error
+            ? uploadError.message
+            : "Failed to upload the reference image. Please try again."
+        );
       } finally {
         setIsUploadingReference(false);
       }
