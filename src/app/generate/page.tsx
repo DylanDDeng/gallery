@@ -109,6 +109,7 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
+  const [canvasReferenceImage, setCanvasReferenceImage] = useState<Partial<ImagePrompt> | null>(null);
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
@@ -250,6 +251,9 @@ export default function GeneratePage() {
         returnImageId: searchParams.get("returnImageId") || sourceImageId,
         createdAt: Date.now(),
       });
+      if (snapshot.sourceImage.url) {
+        setCanvasReferenceImage(snapshot.sourceImage);
+      }
       setPrompt(snapshotPrompt);
       setStagedTasks(snapshot.tasks);
     } else {
@@ -288,6 +292,9 @@ export default function GeneratePage() {
         }
 
         setRemixDraft(nextDraft);
+        if (context.sourceImage.url) {
+          setCanvasReferenceImage(context.sourceImage);
+        }
         setPrompt(promptFromImage);
         setStagedTasks(context.tasks);
         saveRemixContextSnapshot(user.id, sourceImageId, {
@@ -331,6 +338,17 @@ export default function GeneratePage() {
       sourceImage: remixDraft.sourceImage,
     });
   }, [isRemixMode, prompt, remixDraft]);
+
+  useEffect(() => {
+    if (!isRemixMode) {
+      setCanvasReferenceImage(null);
+      return;
+    }
+
+    if (remixDraft?.sourceImage?.url) {
+      setCanvasReferenceImage(remixDraft.sourceImage);
+    }
+  }, [isRemixMode, remixDraft?.sourceImage]);
 
   const handlePickReferenceImage = useCallback(() => {
     referenceInputRef.current?.click();
@@ -393,6 +411,10 @@ export default function GeneratePage() {
           returnTo: previous?.returnTo ?? "gallery",
           returnImageId: previous?.returnImageId,
         }));
+        setCanvasReferenceImage({
+          url: json.url,
+          prompt: file.name,
+        });
 
         if (typeof window !== "undefined") {
           window.history.replaceState(
@@ -580,6 +602,7 @@ export default function GeneratePage() {
   }
 
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
+  const canvasReferenceImageUrl = canvasReferenceImage?.url || null;
   const hasReferenceImage = Boolean(sourceImageUrl);
   const creditCount = credits ?? 0;
   const generateDisabled =
@@ -598,11 +621,11 @@ export default function GeneratePage() {
   const canvasResultTasks = renderedTasks.length > 0 ? renderedTasks : latestStandaloneTask ? [latestStandaloneTask] : [];
   const resultImageUrl = canvasResultTasks.at(-1)?.result_url || null;
   const canvasCards: StudioCanvasCard[] = [
-    ...(sourceImageUrl
+    ...(canvasReferenceImageUrl
       ? [
           {
             id: "reference-card",
-            imageUrl: sourceImageUrl,
+            imageUrl: canvasReferenceImageUrl,
             label: "Reference",
             kind: "reference" as const,
           },
