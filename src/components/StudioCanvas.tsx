@@ -1,0 +1,165 @@
+"use client";
+
+import { useEffect } from "react";
+import Image from "next/image";
+import {
+  Background,
+  Controls,
+  MiniMap,
+  ReactFlow,
+  ReactFlowProvider,
+  useNodesState,
+  type Node,
+  type NodeProps,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+
+export interface StudioCanvasCard {
+  id: string;
+  imageUrl: string;
+  label: string;
+  kind: "reference" | "result";
+  onDownload?: () => void;
+}
+
+interface StudioCanvasProps {
+  cards: StudioCanvasCard[];
+  emptyTitle: string;
+  emptyDescription: string;
+}
+
+interface StudioCanvasNodeData extends Record<string, unknown> {
+  imageUrl: string;
+  label: string;
+  kind: "reference" | "result";
+  onDownload?: () => void;
+}
+
+function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
+  return (
+    <div className="group relative overflow-hidden rounded-[28px] border border-white/55 bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:border-white/10 dark:bg-white/8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+        <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
+          {data.label}
+        </span>
+        {data.kind === "result" && data.onDownload ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              data.onDownload?.();
+            }}
+            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/65"
+            aria-label="Download generated image"
+            title="Download image"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" />
+            </svg>
+          </button>
+        ) : null}
+      </div>
+      <Image
+        src={data.imageUrl}
+        alt={data.label}
+        width={960}
+        height={1200}
+        unoptimized
+        className={`h-auto object-cover ${
+          data.kind === "reference"
+            ? "w-[260px] sm:w-[300px] lg:w-[320px]"
+            : "w-[280px] sm:w-[340px] lg:w-[380px]"
+        }`}
+      />
+    </div>
+  );
+}
+
+const nodeTypes = {
+  studioCard: StudioCanvasNode,
+};
+
+function StudioCanvasInner({
+  cards,
+  emptyTitle,
+  emptyDescription,
+}: StudioCanvasProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<StudioCanvasNodeData>>([]);
+
+  useEffect(() => {
+    setNodes((current) => {
+      const existingPositions = new Map(
+        current.map((node) => [node.id, node.position])
+      );
+
+      return cards.map((card, index) => ({
+        id: card.id,
+        type: "studioCard",
+        position:
+          existingPositions.get(card.id) ||
+          (card.kind === "reference"
+            ? { x: -140, y: -40 }
+            : { x: 220 + index * 320, y: index % 2 === 0 ? -20 : 90 }),
+        draggable: true,
+        data: {
+          imageUrl: card.imageUrl,
+          label: card.label,
+          kind: card.kind,
+          onDownload: card.onDownload,
+        },
+      }));
+    });
+  }, [cards, setNodes]);
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(circle,rgba(39,39,42,0.12)_1px,transparent_1.4px)] [background-size:22px_22px] dark:bg-[radial-gradient(circle,rgba(244,244,245,0.09)_1px,transparent_1.4px)]">
+      <ReactFlow
+        nodes={nodes}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        fitView
+        minZoom={0.45}
+        maxZoom={1.6}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
+        panOnDrag
+        zoomOnScroll
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="rgba(161, 161, 170, 0.12)" gap={28} />
+        <MiniMap
+          pannable
+          zoomable
+          className="!bottom-4 !right-4 !h-24 !w-40 !rounded-2xl !border !border-white/55 !bg-white/78 !backdrop-blur-xl dark:!border-white/10 dark:!bg-[#14161b]/82"
+          nodeColor={(node) =>
+            node.data.kind === "reference" ? "rgba(244, 63, 94, 0.75)" : "rgba(59, 130, 246, 0.72)"
+          }
+        />
+        <Controls
+          position="bottom-left"
+          className="!bottom-4 !left-4 !overflow-hidden !rounded-2xl !border !border-white/55 !bg-white/78 !shadow-[0_18px_42px_rgba(35,25,15,0.12)] !backdrop-blur-xl dark:!border-white/10 dark:!bg-[#14161b]/82"
+        />
+      </ReactFlow>
+
+      {cards.length === 0 ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="rounded-[28px] border border-white/55 bg-white/84 px-10 py-8 text-center shadow-[0_20px_70px_rgba(35,25,15,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-[#15171c]/88">
+            <p className="text-[32px] leading-none text-zinc-900 dark:text-white">
+              {emptyTitle}
+            </p>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+              {emptyDescription}
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default function StudioCanvas(props: StudioCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <StudioCanvasInner {...props} />
+    </ReactFlowProvider>
+  );
+}

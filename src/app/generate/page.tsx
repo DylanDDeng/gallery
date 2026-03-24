@@ -25,6 +25,7 @@ import {
   type AspectRatio,
   type OutputResolution,
 } from "@/lib/generation-size-options";
+import StudioCanvas, { type StudioCanvasCard } from "@/components/StudioCanvas";
 import type { ImagePrompt } from "@/lib/types";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
@@ -107,7 +108,6 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
-  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
@@ -116,7 +116,6 @@ export default function GeneratePage() {
   >(MODELS[0].id);
   const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
-  const stageRailRef = useRef<HTMLDivElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
 
@@ -220,8 +219,6 @@ export default function GeneratePage() {
   }, [isRemixMode, searchParams, sourceImageId, user]);
 
   useEffect(() => {
-    setHoveredTaskId(null);
-
     if (!isRemixMode || !sourceImageId || !user?.id) {
       setIsRestoringSeries(false);
       return;
@@ -510,7 +507,7 @@ export default function GeneratePage() {
     }
   };
 
-  const handleDownloadTask = useCallback(async (task: RemixSeriesItem) => {
+  const handleDownloadTask = useCallback(async (task: { id: string; result_url?: string | null }) => {
     if (!task.result_url || downloadingTaskId === task.id) {
       return;
     }
@@ -557,29 +554,35 @@ export default function GeneratePage() {
   const titleFont =
     '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif';
   const renderedTasks = stagedTasks.filter((task) => task.result_url);
-  const primaryTask =
-    renderedTasks.at(-1) ||
-    (currentTask?.status === "completed" && currentTask.result_url ? currentTask : null);
-  const activeTaskId = hoveredTaskId ?? primaryTask?.id ?? null;
-  const resultImageUrl = primaryTask?.result_url || null;
-  const showComparisonStage = hasReferenceImage;
+  const latestStandaloneTask =
+    currentTask?.status === "completed" && currentTask.result_url ? currentTask : null;
+  const canvasResultTasks = renderedTasks.length > 0 ? renderedTasks : latestStandaloneTask ? [latestStandaloneTask] : [];
+  const resultImageUrl = canvasResultTasks.at(-1)?.result_url || null;
+  const canvasCards: StudioCanvasCard[] = [
+    ...(sourceImageUrl
+      ? [
+          {
+            id: "reference-card",
+            imageUrl: sourceImageUrl,
+            label: "Reference",
+            kind: "reference" as const,
+          },
+        ]
+      : []),
+    ...canvasResultTasks.map((task, index) => ({
+      id: task.id,
+      imageUrl: task.result_url!,
+      label:
+        index === canvasResultTasks.length - 1
+          ? "Latest result"
+          : `Variation ${index + 1}`,
+      kind: "result" as const,
+      onDownload: () => {
+        void handleDownloadTask(task);
+      },
+    })),
+  ];
   const toolbarDisabled = generateDisabled;
-  const hasRenderedResults = renderedTasks.length > 0;
-
-  const handleStageWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    const rail = stageRailRef.current;
-    if (!rail) return;
-
-    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
-      return;
-    }
-
-    event.preventDefault();
-    rail.scrollBy({
-      left: event.deltaY,
-      behavior: "auto",
-    });
-  };
 
   return (
     <div className="min-h-screen overflow-hidden bg-[#f3efe9] text-zinc-900 dark:bg-[#111215] dark:text-zinc-100">
@@ -597,8 +600,9 @@ export default function GeneratePage() {
         />
       ) : null}
 
-      <main className="relative mx-auto flex min-h-screen max-w-[1460px] flex-col px-4 pb-8 pt-6 sm:px-6 lg:px-8">
-        <div className="z-20 flex items-center justify-between gap-3">
+      <main className="relative min-h-screen overflow-hidden">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-4 pt-6 sm:px-6 lg:px-8">
+          <div className="pointer-events-auto flex items-center justify-between gap-3">
           <button
             onClick={() => router.push("/")}
             className="rounded-full bg-white/78 px-4 py-2 text-sm font-medium text-zinc-600 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
@@ -636,149 +640,28 @@ export default function GeneratePage() {
             </button>
           </div>
         </div>
+        </div>
 
-        <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center">
           <div className="rounded-full bg-white/54 px-4 py-1 text-[11px] uppercase tracking-[0.28em] text-zinc-500 backdrop-blur-xl dark:bg-white/6 dark:text-zinc-400">
             {hasReferenceImage ? "Remix studio" : "Generate studio"}
           </div>
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center pb-[22rem] pt-12 sm:pb-[24rem] lg:pb-[26rem]">
-          <div
-            ref={stageRailRef}
-            onWheel={handleStageWheel}
-            className="flex w-full max-w-[1240px] items-end gap-5 overflow-x-auto pb-4 pl-2 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {showComparisonStage ? (
-              <div className="group relative flex-shrink-0">
-                <div className="absolute inset-0 rounded-[32px] bg-white/28 blur-2xl" />
-                <div className="relative overflow-hidden rounded-[32px] bg-white/78 shadow-[0_20px_70px_rgba(35,25,15,0.12)] ring-1 ring-white/50 backdrop-blur-xl transition-all duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.015] group-hover:shadow-[0_28px_90px_rgba(35,25,15,0.18)] group-hover:ring-white/75 dark:bg-white/8 dark:ring-white/10 dark:group-hover:ring-white/20">
-                  {sourceImageUrl ? (
-                    <Image
-                      src={sourceImageUrl}
-                      alt=""
-                      width={720}
-                      height={1200}
-                      unoptimized
-                      className="h-auto w-[280px] sm:w-[320px] lg:w-[360px] object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                    />
-                  ) : (
-                    <div className="aspect-[4/5] w-[280px] sm:w-[320px] lg:w-[360px] bg-white/30 dark:bg-white/6" />
-                  )}
-                  <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
-                      Reference
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+        <div className="absolute inset-0">
+          <StudioCanvas
+            cards={canvasCards}
+            emptyTitle={isRestoringSeries ? "Restoring previous variations" : "Compose on the canvas"}
+            emptyDescription={
+              isRestoringSeries
+                ? "We are bringing your previous remix series back onto the canvas."
+                : "Move ideas around, attach a reference image when you need it, and let results accumulate as visual branches."
+            }
+          />
+        </div>
 
-            {hasRenderedResults ? (
-              renderedTasks.map((task, index) => {
-                const isLatest = task.id === primaryTask?.id;
-                const isActiveCard = task.id === activeTaskId;
-                const tilt = isActiveCard ? 0 : index % 2 === 0 ? -2.5 : -1.5;
-                const widthClass = isActiveCard
-                  ? "w-[300px] sm:w-[360px] lg:w-[420px]"
-                  : "w-[184px] sm:w-[208px] lg:w-[230px]";
-
-                return (
-                  <div
-                    key={task.id}
-                    className="group relative z-0 flex-shrink-0 transition-[z-index] duration-300 hover:z-20"
-                    onMouseEnter={() => setHoveredTaskId(task.id)}
-                    onMouseLeave={() => setHoveredTaskId(null)}
-                    onFocus={() => setHoveredTaskId(task.id)}
-                    onBlur={() => setHoveredTaskId(null)}
-                    style={{
-                      transform: `rotate(${tilt}deg)`,
-                      marginLeft: index === 0 ? "0px" : "-6px",
-                    }}
-                  >
-                    <div className={`absolute inset-0 rounded-[28px] ${isLatest ? "bg-white/28 blur-2xl" : "bg-white/18 blur-xl"}`} />
-                    <div
-                      className={`relative overflow-hidden rounded-[28px] backdrop-blur-xl transition-all duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.015] ${
-                        isActiveCard
-                          ? "bg-white/86 shadow-[0_24px_80px_rgba(35,25,15,0.16)] ring-1 ring-white/65 dark:bg-white/10 dark:ring-white/12"
-                          : "bg-white/68 shadow-[0_16px_44px_rgba(35,25,15,0.14)] ring-1 ring-white/55 group-hover:shadow-[0_26px_68px_rgba(35,25,15,0.2)] group-hover:ring-white/80 dark:bg-white/8 dark:ring-white/10 dark:group-hover:ring-white/18"
-                      }`}
-                    >
-                      <Image
-                        src={task.result_url!}
-                        alt="Generated result"
-                        width={960}
-                        height={1200}
-                        unoptimized
-                        className={`${widthClass} h-auto object-cover transition-all duration-700 ease-out group-hover:scale-[1.03] ${
-                          isActiveCard
-                            ? ""
-                            : "brightness-[0.9] saturate-[0.84] contrast-[0.94] group-hover:brightness-100 group-hover:saturate-100 group-hover:contrast-100"
-                        }`}
-                      />
-                      {!isActiveCard ? (
-                        <div className="pointer-events-none absolute inset-0 bg-white/14 opacity-100 backdrop-blur-[1.5px] transition-all duration-300 group-hover:bg-white/0 group-hover:opacity-0 group-hover:backdrop-blur-0" />
-                      ) : null}
-                      <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
-                          {isActiveCard
-                            ? isLatest
-                              ? "Latest result"
-                              : "Inspecting pass"
-                            : "Earlier pass"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void handleDownloadTask(task);
-                          }}
-                          disabled={downloadingTaskId === task.id}
-                          className="flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/65 disabled:cursor-not-allowed disabled:opacity-60"
-                          aria-label="Download generated image"
-                          title="Download image"
-                        >
-                          {downloadingTaskId === task.id ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                          ) : (
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 rounded-[36px] bg-white/28 blur-2xl" />
-                <div className="relative overflow-hidden rounded-[36px] bg-white/84 shadow-[0_24px_80px_rgba(35,25,15,0.12)] ring-1 ring-white/55 backdrop-blur-xl dark:bg-white/8 dark:ring-white/10">
-                  <div className="flex aspect-[4/5] w-[300px] sm:w-[360px] lg:w-[420px] items-center justify-center px-10 text-center">
-                    <div>
-                      <p
-                        className="text-[34px] leading-none text-zinc-900 dark:text-white"
-                        style={{ fontFamily: titleFont }}
-                      >
-                        {isRestoringSeries
-                          ? "Restoring previous variations"
-                          : "Compose a new image"}
-                      </p>
-                      <p className="mt-4 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
-                        {isRestoringSeries
-                          ? "We are bringing your previous remix series back onto the stage."
-                          : studioStatus.helperText}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="pointer-events-none absolute inset-x-0 bottom-12 flex justify-center sm:bottom-14">
-            <div className="pointer-events-auto w-full max-w-[1120px] rounded-[30px] bg-white/90 shadow-[0_44px_125px_rgba(33,24,15,0.24)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10 dark:shadow-[0_36px_125px_rgba(0,0,0,0.46)]">
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex justify-center px-4 sm:px-6">
+          <div className="pointer-events-auto w-full max-w-[960px] rounded-[32px] bg-white/88 shadow-[0_44px_125px_rgba(33,24,15,0.22)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10 dark:shadow-[0_36px_125px_rgba(0,0,0,0.46)]">
               <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
                 <input
                   ref={referenceInputRef}
@@ -987,7 +870,6 @@ export default function GeneratePage() {
               </form>
             </div>
           </div>
-        </div>
 
       </main>
     </div>
