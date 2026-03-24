@@ -706,14 +706,14 @@ export default function GeneratePage() {
 
                 {hasReferenceImage ? (
                   <div className="mt-4 flex items-center gap-3 rounded-2xl border border-black/6 bg-black/[0.025] p-3 dark:border-white/8 dark:bg-white/[0.03]">
-                    <div className="h-16 w-16 overflow-hidden rounded-2xl bg-black/5 dark:bg-white/8">
+                    <div className="flex h-16 w-16 items-center justify-center bg-black/5 dark:bg-white/8">
                       <Image
                         src={sourceImageUrl!}
                         alt="Reference image"
                         width={128}
                         height={128}
                         unoptimized
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     </div>
                     <div className="min-w-0 flex-1">

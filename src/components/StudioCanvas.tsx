@@ -37,7 +37,7 @@ interface StudioCanvasNodeData extends Record<string, unknown> {
 
 function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
   return (
-    <div className="group relative overflow-hidden rounded-[28px] border border-white/55 bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:border-white/10 dark:bg-white/8">
+    <div className="group relative border border-white/55 bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:border-white/10 dark:bg-white/8">
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
           {data.label}
@@ -65,7 +65,7 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
         width={960}
         height={1200}
         unoptimized
-        className={`h-auto object-cover ${
+        className={`block h-auto object-contain ${
           data.kind === "reference"
             ? "w-[260px] sm:w-[300px] lg:w-[320px]"
             : "w-[280px] sm:w-[340px] lg:w-[380px]"
