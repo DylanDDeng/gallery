@@ -8,6 +8,7 @@ import {
   isSelfServiceApiKeysEnabled,
 } from "@/lib/billing-feature";
 import {
+  buildRemixGenerateUrl,
   clearGenerationDraft,
   parseGenerationDraftFromSearchParams,
   readRemixContextSnapshot,
@@ -117,6 +118,7 @@ export default function GeneratePage() {
   const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
   const referenceInputRef = useRef<HTMLInputElement>(null);
+  const remixHydrationRequestRef = useRef(0);
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
 
   const checkApiKey = useCallback(async () => {
@@ -224,6 +226,7 @@ export default function GeneratePage() {
       return;
     }
 
+    const hydrationRequestId = ++remixHydrationRequestRef.current;
     setCurrentTask(null);
 
     const draft = readRemixGenerationDraft();
@@ -277,7 +280,12 @@ export default function GeneratePage() {
           createdAt: Date.now(),
         };
 
-        if (!isActive) return;
+        if (
+          !isActive ||
+          remixHydrationRequestRef.current !== hydrationRequestId
+        ) {
+          return;
+        }
 
         setRemixDraft(nextDraft);
         setPrompt(promptFromImage);
@@ -288,9 +296,19 @@ export default function GeneratePage() {
           savedAt: Date.now(),
         });
       } catch {
-        if (!isActive) return;
+        if (
+          !isActive ||
+          remixHydrationRequestRef.current !== hydrationRequestId
+        ) {
+          return;
+        }
       } finally {
-        if (!isActive) return;
+        if (
+          !isActive ||
+          remixHydrationRequestRef.current !== hydrationRequestId
+        ) {
+          return;
+        }
         setIsRestoringSeries(false);
       }
     };
@@ -332,16 +350,25 @@ export default function GeneratePage() {
         return;
       }
 
+      remixHydrationRequestRef.current += 1;
       setIsUploadingReference(true);
       setError(null);
 
       try {
-        const formData = new FormData();
-        formData.append("file", file);
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 60000);
 
         const response = await fetch("/api/reference-images", {
           method: "POST",
-          body: formData,
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            "x-file-name": encodeURIComponent(file.name),
+            "x-file-type": file.type,
+          },
+          body: file,
+          signal: controller.signal,
+        }).finally(() => {
+          window.clearTimeout(timeoutId);
         });
         const json = await response.json();
 
@@ -360,25 +387,37 @@ export default function GeneratePage() {
           createdAt: Date.now(),
           sourceImageId: undefined,
           sourceImage: {
-            ...previous?.sourceImage,
             url: json.url,
-            prompt: previous?.sourceImage?.prompt ?? file.name,
+            prompt: file.name,
           },
           returnTo: previous?.returnTo ?? "gallery",
           returnImageId: previous?.returnImageId,
         }));
+
+        if (typeof window !== "undefined") {
+          window.history.replaceState(
+            window.history.state,
+            "",
+            buildRemixGenerateUrl({
+              returnTo: returnTo === "original" ? "original" : "gallery",
+              returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
+            })
+          );
+        }
       } catch (uploadError) {
         console.error("Reference image upload failed:", uploadError);
         setError(
-          uploadError instanceof Error
-            ? uploadError.message
+          uploadError instanceof DOMException && uploadError.name === "AbortError"
+            ? "Reference upload timed out. Please try a smaller image."
+            : uploadError instanceof Error
+              ? uploadError.message
             : "Failed to upload the reference image. Please try again."
         );
       } finally {
         setIsUploadingReference(false);
       }
     },
-    [prompt, user]
+    [prompt, returnTo, searchParams, sourceImageId, user]
   );
 
   const handleClearReferenceImage = useCallback(() => {
