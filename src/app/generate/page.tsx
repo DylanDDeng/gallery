@@ -9,7 +9,6 @@ import {
 } from "@/lib/billing-feature";
 import {
   buildRemixGenerateUrl,
-  clearGenerationDraft,
   parseGenerationDraftFromSearchParams,
   readRemixContextSnapshot,
   readRemixGenerationDraft,
@@ -28,6 +27,7 @@ import {
 } from "@/lib/generation-size-options";
 import StudioCanvas, { type StudioCanvasCard } from "@/components/StudioCanvas";
 import type { ImagePrompt } from "@/lib/types";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase-browser";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 
@@ -46,6 +46,14 @@ interface GenerationTask {
 const MODELS = [
   { id: "doubao-seedream-5-0-260128", name: "Seedream-5.0-Lite" },
 ] as const;
+
+const REFERENCE_IMAGE_BUCKET = "generations";
+const ALLOWED_REFERENCE_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+]);
 
 function getTaskPresentation(
   status: GenerationTask["status"] | "idle"
@@ -368,35 +376,54 @@ export default function GeneratePage() {
         return;
       }
 
+      if (!ALLOWED_REFERENCE_MIME_TYPES.has(file.type)) {
+        setError("Please upload a PNG, JPEG, WEBP, or GIF image.");
+        return;
+      }
+
       remixHydrationRequestRef.current += 1;
       setIsUploadingReference(true);
       setError(null);
 
       try {
-        const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 60000);
+        const supabase = createBrowserSupabaseClient();
+        const {
+          data: { user: authUser },
+          error: authError,
+        } = await supabase.auth.getUser();
 
-        const response = await fetch("/api/reference-images", {
-          method: "POST",
-          headers: {
-            "Content-Type": file.type || "application/octet-stream",
-            "x-file-name": encodeURIComponent(file.name),
-            "x-file-type": file.type,
-          },
-          body: file,
-          signal: controller.signal,
-        }).finally(() => {
-          window.clearTimeout(timeoutId);
-        });
-        const json = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            typeof json.error === "string"
-              ? json.error
-              : "Failed to upload reference image"
-          );
+        if (authError) {
+          throw new Error(authError.message || "Please sign in again before uploading a reference image.");
         }
+
+        if (!authUser) {
+          throw new Error("Please sign in again before uploading a reference image.");
+        }
+
+        const extension = file.name.includes(".")
+          ? file.name.split(".").pop()?.toLowerCase() || "png"
+          : file.type === "image/jpeg"
+            ? "jpg"
+            : file.type === "image/webp"
+              ? "webp"
+              : file.type === "image/gif"
+                ? "gif"
+                : "png";
+        const filePath = `${authUser.id}/reference-images/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+          .from(REFERENCE_IMAGE_BUCKET)
+          .upload(filePath, file, {
+            contentType: file.type,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(uploadError.message || "Failed to upload reference image");
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from(REFERENCE_IMAGE_BUCKET).getPublicUrl(filePath);
 
         setRemixDraft((previous) => ({
           mode: "remix",
@@ -405,32 +432,29 @@ export default function GeneratePage() {
           createdAt: Date.now(),
           sourceImageId: undefined,
           sourceImage: {
-            url: json.url,
+            url: publicUrl,
             prompt: file.name,
           },
           returnTo: previous?.returnTo ?? "gallery",
           returnImageId: previous?.returnImageId,
         }));
         setCanvasReferenceImage({
-          url: json.url,
+          url: publicUrl,
           prompt: file.name,
         });
 
-        if (typeof window !== "undefined") {
-          window.history.replaceState(
-            window.history.state,
-            "",
-            buildRemixGenerateUrl({
-              returnTo: returnTo === "original" ? "original" : "gallery",
-              returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
-            })
-          );
-        }
+        router.replace(
+          buildRemixGenerateUrl({
+            returnTo: returnTo === "original" ? "original" : "gallery",
+            returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
+          })
+        );
       } catch (uploadError) {
         console.error("Reference image upload failed:", uploadError);
         setError(
-          uploadError instanceof DOMException && uploadError.name === "AbortError"
-            ? "Reference upload timed out. Please try a smaller image."
+          uploadError instanceof Error &&
+          /row-level security policy/i.test(uploadError.message)
+            ? "Your upload session is not authorized for storage. Please refresh and sign in again."
             : uploadError instanceof Error
               ? uploadError.message
             : "Failed to upload the reference image. Please try again."
@@ -443,6 +467,7 @@ export default function GeneratePage() {
   );
 
   const handleClearReferenceImage = useCallback(() => {
+    remixHydrationRequestRef.current += 1;
     setRemixDraft((previous) => {
       if (!previous) {
         return null;
@@ -455,12 +480,13 @@ export default function GeneratePage() {
       };
     });
 
-    clearGenerationDraft();
-
-    if (typeof window !== "undefined" && window.location.pathname === "/generate") {
-      window.history.replaceState(window.history.state, "", "/generate");
-    }
-  }, []);
+    router.replace(
+      buildRemixGenerateUrl({
+        returnTo: returnTo === "original" ? "original" : "gallery",
+        returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
+      })
+    );
+  }, [returnTo, router, searchParams, sourceImageId]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
