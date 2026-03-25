@@ -836,10 +836,7 @@ export default function GeneratePage() {
     ...canvasReferenceImages
       .filter((image): image is Partial<ImagePrompt> & { url: string } => Boolean(image.url))
       .map((image, index) => ({
-        id:
-          image.url === sourceImageUrl
-            ? "reference-card-active"
-            : `reference-card-${index}`,
+        id: `reference-card:${image.url}`,
         imageUrl: image.url,
         label: getReferenceImageLabel(image, index, sourceImageUrl),
         kind: "reference" as const,
