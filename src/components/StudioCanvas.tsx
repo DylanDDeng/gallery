@@ -34,6 +34,9 @@ interface StudioCanvasProps {
   emptyTitle: string;
   emptyDescription: string;
   focusCardId?: string | null;
+  onNodePositionsChange?: (
+    positions: Record<string, { x: number; y: number }>
+  ) => void;
 }
 
 interface StudioCanvasNodeData extends Record<string, unknown> {
@@ -117,9 +120,10 @@ function StudioCanvasInner({
   emptyTitle,
   emptyDescription,
   focusCardId,
+  onNodePositionsChange,
 }: StudioCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<StudioCanvasNodeData>>([]);
-  const { fitView, getNode } = useReactFlow();
+  const { fitView, getNode, getNodes } = useReactFlow();
   const focusedCardIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -154,6 +158,17 @@ function StudioCanvasInner({
       }));
     });
   }, [cards, setNodes]);
+
+  const handleNodeDragStop = () => {
+    if (!onNodePositionsChange) {
+      return;
+    }
+
+    const nextPositions = Object.fromEntries(
+      getNodes().map((node) => [node.id, node.position])
+    );
+    onNodePositionsChange(nextPositions);
+  };
 
   useEffect(() => {
     if (!focusCardId) {
@@ -191,6 +206,7 @@ function StudioCanvasInner({
         nodes={nodes}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
+        onNodeDragStop={handleNodeDragStop}
         fitView
         minZoom={0.45}
         maxZoom={1.6}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   buildRemixGenerateUrl,
+  readRemixGenerationDraft,
   saveRemixGenerationDraft,
 } from "@/lib/generation-draft";
 import { useAppStore } from "@/store";
@@ -110,16 +111,32 @@ export default function ImageModal() {
       return;
     }
 
-    saveRemixGenerationDraft({
-      mode: "remix",
-      sourceImageId: selectedImage.id,
-      prompt: promptText,
-      promptLang,
-      sourceImage: selectedImage,
-      returnTo: "gallery",
-      returnImageId: selectedImage.id,
-      createdAt: Date.now(),
-    });
+    const existingDraft = readRemixGenerationDraft();
+    const shouldReuseExistingDraft =
+      existingDraft?.sourceImageId === selectedImage.id &&
+      existingDraft.returnImageId === selectedImage.id &&
+      Boolean(existingDraft.sourceImage?.url) &&
+      existingDraft.sourceImage?.url !== selectedImage.url;
+
+    saveRemixGenerationDraft(
+      shouldReuseExistingDraft
+        ? {
+            ...existingDraft,
+            createdAt: Date.now(),
+            returnTo: "gallery",
+            returnImageId: selectedImage.id,
+          }
+        : {
+            mode: "remix",
+            sourceImageId: selectedImage.id,
+            prompt: promptText,
+            promptLang,
+            sourceImage: selectedImage,
+            returnTo: "gallery",
+            returnImageId: selectedImage.id,
+            createdAt: Date.now(),
+          }
+    );
 
     setSelectedImage(null);
     router.push(

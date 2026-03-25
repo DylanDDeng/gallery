@@ -9,6 +9,7 @@ import {
 } from "@/lib/billing-feature";
 import {
   buildRemixGenerateUrl,
+  type CanvasCardPosition,
   parseGenerationDraftFromSearchParams,
   readRemixContextSnapshot,
   readRemixGenerationDraft,
@@ -175,6 +176,7 @@ export default function GeneratePage() {
   const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
   const [pendingResultSlotId, setPendingResultSlotId] = useState<string | null>(null);
   const [taskCardSlotIds, setTaskCardSlotIds] = useState<Record<string, string>>({});
+  const [canvasCardPositions, setCanvasCardPositions] = useState<Record<string, CanvasCardPosition>>({});
   const [selectedModel, setSelectedModel] = useState<
     (typeof MODELS)[number]["id"]
   >(MODELS[0].id);
@@ -182,6 +184,7 @@ export default function GeneratePage() {
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const remixHydrationRequestRef = useRef(0);
+  const canPersistCanvasLayoutRef = useRef(false);
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
 
   const checkApiKey = useCallback(async () => {
@@ -288,10 +291,12 @@ export default function GeneratePage() {
 
   useEffect(() => {
     if (!isRemixMode || !sourceImageId || !user?.id) {
+      canPersistCanvasLayoutRef.current = false;
       setIsRestoringSeries(false);
       return;
     }
 
+    canPersistCanvasLayoutRef.current = false;
     const hydrationRequestId = ++remixHydrationRequestRef.current;
     setCurrentTask(null);
 
@@ -301,13 +306,13 @@ export default function GeneratePage() {
       new URLSearchParams(searchParams.toString())
     );
     const persistedSourceImage =
-      draft
-        ? draft.sourceImage?.url
-          ? draft.sourceImage
+      snapshot
+        ? snapshot.sourceImage?.url
+          ? snapshot.sourceImage
           : undefined
-        : snapshot
-          ? snapshot.sourceImage?.url
-            ? snapshot.sourceImage
+        : draft
+          ? draft.sourceImage?.url
+            ? draft.sourceImage
             : undefined
           : urlDraft?.mode === "remix" && urlDraft.sourceImage?.url
             ? urlDraft.sourceImage
@@ -321,6 +326,8 @@ export default function GeneratePage() {
         ? urlDraft.sourceImage
         : null
     );
+    const persistedTaskCardSlotIds = snapshot?.taskCardSlotIds ?? {};
+    const persistedCardPositions = snapshot?.cardPositions ?? {};
 
     if (snapshot) {
       const snapshotPrompt =
@@ -342,11 +349,15 @@ export default function GeneratePage() {
         createdAt: Date.now(),
       });
       setCanvasReferenceImages(persistedReferenceImages);
+      setTaskCardSlotIds(persistedTaskCardSlotIds);
+      setCanvasCardPositions(persistedCardPositions);
       setPrompt(snapshotPrompt);
       setStagedTasks(snapshot.tasks);
     } else {
       setStagedTasks([]);
       setCanvasReferenceImages(persistedReferenceImages);
+      setTaskCardSlotIds({});
+      setCanvasCardPositions({});
     }
 
     let isActive = true;
@@ -358,6 +369,12 @@ export default function GeneratePage() {
         const mergedTasks = mergeRemixSeriesItems(
           snapshot?.tasks,
           context.tasks
+        );
+        const restoredTaskCardSlotIds = Object.fromEntries(
+          mergedTasks.map((task) => [
+            task.id,
+            persistedTaskCardSlotIds[task.id] ?? task.id,
+          ])
         );
         const mergedReferenceImages = mergeReferenceImages(
           persistedReferenceImages,
@@ -396,12 +413,16 @@ export default function GeneratePage() {
 
         setRemixDraft(nextDraft);
         setCanvasReferenceImages(mergedReferenceImages);
+        setTaskCardSlotIds(restoredTaskCardSlotIds);
+        setCanvasCardPositions(persistedCardPositions);
         setPrompt(promptFromImage);
         setStagedTasks(mergedTasks);
         saveRemixContextSnapshot(user.id, sourceImageId, {
           sourceImage: nextDraft.sourceImage ?? {},
           referenceImages: mergedReferenceImages,
           tasks: mergedTasks,
+          taskCardSlotIds: restoredTaskCardSlotIds,
+          cardPositions: persistedCardPositions,
           savedAt: Date.now(),
         });
       } catch {
@@ -419,6 +440,7 @@ export default function GeneratePage() {
           return;
         }
         setIsRestoringSeries(false);
+        canPersistCanvasLayoutRef.current = true;
       }
     };
 
@@ -550,6 +572,8 @@ export default function GeneratePage() {
             sourceImage: nextSourceImage,
             referenceImages: nextReferenceImages,
             tasks: stagedTasks,
+            taskCardSlotIds,
+            cardPositions: canvasCardPositions,
             savedAt: Date.now(),
           });
         }
@@ -577,6 +601,7 @@ export default function GeneratePage() {
       }
     },
     [
+      canvasCardPositions,
       canvasReferenceImages,
       prompt,
       returnTo,
@@ -584,6 +609,7 @@ export default function GeneratePage() {
       searchParams,
       sourceImageId,
       stagedTasks,
+      taskCardSlotIds,
       user,
     ]
   );
@@ -599,6 +625,8 @@ export default function GeneratePage() {
         sourceImage: {},
         referenceImages: nextReferenceImages,
         tasks: stagedTasks,
+        taskCardSlotIds,
+        cardPositions: canvasCardPositions,
         savedAt: Date.now(),
       });
     }
@@ -624,6 +652,7 @@ export default function GeneratePage() {
       })
     );
   }, [
+    canvasCardPositions,
     canvasReferenceImages,
     remixDraft?.sourceImage,
     returnTo,
@@ -631,6 +660,7 @@ export default function GeneratePage() {
     searchParams,
     sourceImageId,
     stagedTasks,
+    taskCardSlotIds,
     user?.id,
   ]);
 
@@ -653,6 +683,8 @@ export default function GeneratePage() {
             sourceImage: image,
             referenceImages: nextDraft.referenceImages,
             tasks: stagedTasks,
+            taskCardSlotIds,
+            cardPositions: canvasCardPositions,
             savedAt: Date.now(),
           });
         }
@@ -669,7 +701,7 @@ export default function GeneratePage() {
         })
       );
     },
-    [returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
+    [canvasCardPositions, returnTo, router, searchParams, sourceImageId, stagedTasks, taskCardSlotIds, user?.id]
   );
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -744,11 +776,15 @@ export default function GeneratePage() {
         }
       }
 
+      const nextTaskCardSlotIds = json.task?.id
+        ? {
+            ...taskCardSlotIds,
+            [json.task.id]: nextPendingSlotId,
+          }
+        : taskCardSlotIds;
+
       if (json.task?.id) {
-        setTaskCardSlotIds((previous) => ({
-          ...previous,
-          [json.task.id]: nextPendingSlotId,
-        }));
+        setTaskCardSlotIds(nextTaskCardSlotIds);
       }
       setPendingResultSlotId(null);
       setCurrentTask(json.task);
@@ -770,6 +806,8 @@ export default function GeneratePage() {
                 remixDraft?.sourceImage
               ),
               tasks: next,
+              taskCardSlotIds: nextTaskCardSlotIds,
+              cardPositions: canvasCardPositions,
               savedAt: Date.now(),
             });
           }
@@ -823,6 +861,46 @@ export default function GeneratePage() {
     }
   }, [downloadingTaskId]);
 
+  const handleCanvasPositionsChange = useCallback(
+    (positions: Record<string, CanvasCardPosition>) => {
+      setCanvasCardPositions(positions);
+
+      if (!user?.id || !sourceImageId || !canPersistCanvasLayoutRef.current) {
+        return;
+      }
+
+      const existingSnapshot = readRemixContextSnapshot(user.id, sourceImageId);
+
+      saveRemixContextSnapshot(user.id, sourceImageId, {
+        sourceImage: remixDraft?.sourceImage ?? existingSnapshot?.sourceImage ?? {},
+        referenceImages: mergeReferenceImages(
+          existingSnapshot?.referenceImages,
+          existingSnapshot?.sourceImage?.url ? existingSnapshot.sourceImage : null,
+          remixDraft?.referenceImages,
+          remixDraft?.sourceImage
+        ),
+        tasks: stagedTasks.length > 0 ? stagedTasks : existingSnapshot?.tasks ?? [],
+        taskCardSlotIds: {
+          ...(existingSnapshot?.taskCardSlotIds ?? {}),
+          ...taskCardSlotIds,
+        },
+        cardPositions: {
+          ...(existingSnapshot?.cardPositions ?? {}),
+          ...positions,
+        },
+        savedAt: Date.now(),
+      });
+    },
+    [
+      remixDraft?.referenceImages,
+      remixDraft?.sourceImage,
+      sourceImageId,
+      stagedTasks,
+      taskCardSlotIds,
+      user?.id,
+    ]
+  );
+
   if (!user) {
     return null;
   }
@@ -862,6 +940,7 @@ export default function GeneratePage() {
         imageUrl: image.url,
         label: getReferenceImageLabel(image, index, sourceImageUrl),
         kind: "reference" as const,
+        position: canvasCardPositions[`reference-card:${image.url}`],
         selected: image.url === sourceImageUrl,
         onSelect: () => {
           handleSelectReferenceImage(image);
@@ -876,6 +955,7 @@ export default function GeneratePage() {
           : `Variation ${index + 1}`,
       kind: "result" as const,
       animateIn: currentTask?.id === task.id,
+      position: canvasCardPositions[taskCardSlotIds[task.id] ?? task.id],
       zIndex: currentTask?.id === task.id ? 35 : 10,
       onDownload: () => {
         void handleDownloadTask(task);
@@ -889,7 +969,7 @@ export default function GeneratePage() {
             kind: "result" as const,
             placeholder: true,
             zIndex: 50,
-            position: nextResultSlotPosition,
+            position: canvasCardPositions[pendingCardId] ?? nextResultSlotPosition,
           },
         ]
       : []),
@@ -964,6 +1044,7 @@ export default function GeneratePage() {
           <StudioCanvas
             cards={canvasCards}
             focusCardId={focusedCanvasCardId}
+            onNodePositionsChange={handleCanvasPositionsChange}
             emptyTitle={isRestoringSeries ? "Restoring previous variations" : "Compose on the canvas"}
             emptyDescription={
               isRestoringSeries

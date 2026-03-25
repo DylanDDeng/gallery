@@ -28,10 +28,17 @@ export interface RemixSeriesItem {
   source_image_id?: string | null;
 }
 
+export interface CanvasCardPosition {
+  x: number;
+  y: number;
+}
+
 export interface RemixContextSnapshot {
   sourceImage: Partial<ImagePrompt>;
   referenceImages?: Partial<ImagePrompt>[];
   tasks: RemixSeriesItem[];
+  taskCardSlotIds?: Record<string, string>;
+  cardPositions?: Record<string, CanvasCardPosition>;
   savedAt: number;
 }
 
@@ -216,6 +223,30 @@ export function readRemixContextSnapshot(
               Boolean(image && typeof image === "object")
           )
         : [],
+      taskCardSlotIds:
+        parsed.taskCardSlotIds && typeof parsed.taskCardSlotIds === "object"
+          ? Object.fromEntries(
+              Object.entries(parsed.taskCardSlotIds).filter(
+                ([taskId, slotId]) =>
+                  Boolean(taskId) &&
+                  typeof slotId === "string" &&
+                  slotId.trim().length > 0
+              )
+            )
+          : {},
+      cardPositions:
+        parsed.cardPositions && typeof parsed.cardPositions === "object"
+          ? Object.fromEntries(
+              Object.entries(parsed.cardPositions).filter(
+                ([cardId, position]) =>
+                  Boolean(cardId) &&
+                  Boolean(position) &&
+                  typeof position === "object" &&
+                  typeof (position as CanvasCardPosition).x === "number" &&
+                  typeof (position as CanvasCardPosition).y === "number"
+              )
+            )
+          : {},
       tasks,
       savedAt:
         typeof parsed.savedAt === "number" ? parsed.savedAt : Date.now(),
