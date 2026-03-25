@@ -95,6 +95,59 @@ function getTaskPresentation(
   }
 }
 
+function mergeRemixSeriesItems(
+  ...taskGroups: Array<RemixSeriesItem[] | undefined>
+) {
+  const merged = new Map<string, RemixSeriesItem>();
+
+  for (const group of taskGroups) {
+    for (const task of group ?? []) {
+      if (!task?.id) continue;
+      merged.set(task.id, task);
+    }
+  }
+
+  return Array.from(merged.values())
+    .sort(
+      (left, right) =>
+        new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
+    )
+    .slice(-20);
+}
+
+function mergeReferenceImages(
+  ...imageGroups: Array<Array<Partial<ImagePrompt>> | Partial<ImagePrompt> | null | undefined>
+) {
+  const merged: Partial<ImagePrompt>[] = [];
+  const seen = new Set<string>();
+
+  for (const group of imageGroups) {
+    const images = Array.isArray(group) ? group : group ? [group] : [];
+
+    for (const image of images) {
+      const url = typeof image?.url === "string" ? image.url.trim() : "";
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      merged.push(image);
+    }
+  }
+
+  return merged;
+}
+
+function getReferenceImageLabel(
+  image: Partial<ImagePrompt> & { url: string },
+  index: number,
+  activeUrl: string | null
+) {
+  if (image.url === activeUrl) {
+    return "Current reference";
+  }
+
+  const prompt = typeof image.prompt === "string" ? image.prompt.trim() : "";
+  return prompt || `Reference ${index + 1}`;
+}
+
 export default function GeneratePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,7 +170,7 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
-  const [canvasReferenceImage, setCanvasReferenceImage] = useState<Partial<ImagePrompt> | null>(null);
+  const [canvasReferenceImages, setCanvasReferenceImages] = useState<Partial<ImagePrompt>[]>([]);
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
@@ -212,6 +265,9 @@ export default function GeneratePage() {
               createdAt: Date.now(),
               sourceImageId: urlDraft.sourceImageId,
               sourceImage: urlDraft.sourceImage,
+              referenceImages: urlDraft.sourceImage?.url
+                ? [urlDraft.sourceImage]
+                : [],
               returnTo: urlDraft.returnTo,
               returnImageId: urlDraft.returnImageId,
             }
@@ -240,6 +296,30 @@ export default function GeneratePage() {
 
     const draft = readRemixGenerationDraft();
     const snapshot = readRemixContextSnapshot(user.id, sourceImageId);
+    const urlDraft = parseGenerationDraftFromSearchParams(
+      new URLSearchParams(searchParams.toString())
+    );
+    const persistedSourceImage =
+      draft
+        ? draft.sourceImage?.url
+          ? draft.sourceImage
+          : undefined
+        : snapshot
+          ? snapshot.sourceImage?.url
+            ? snapshot.sourceImage
+            : undefined
+          : urlDraft?.mode === "remix" && urlDraft.sourceImage?.url
+            ? urlDraft.sourceImage
+            : undefined;
+    const persistedReferenceImages = mergeReferenceImages(
+      snapshot?.referenceImages,
+      snapshot?.sourceImage?.url ? snapshot.sourceImage : null,
+      draft?.referenceImages,
+      draft?.sourceImage?.url ? draft.sourceImage : null,
+      urlDraft?.mode === "remix" && urlDraft.sourceImage?.url
+        ? urlDraft.sourceImage
+        : null
+    );
 
     if (snapshot) {
       const snapshotPrompt =
@@ -254,18 +334,18 @@ export default function GeneratePage() {
         sourceImageId,
         prompt: snapshotPrompt,
         promptLang: draft?.promptLang || "en",
-        sourceImage: snapshot.sourceImage,
+        sourceImage: persistedSourceImage,
+        referenceImages: persistedReferenceImages,
         returnTo: returnTo === "original" ? "original" : "gallery",
         returnImageId: searchParams.get("returnImageId") || sourceImageId,
         createdAt: Date.now(),
       });
-      if (snapshot.sourceImage.url) {
-        setCanvasReferenceImage(snapshot.sourceImage);
-      }
+      setCanvasReferenceImages(persistedReferenceImages);
       setPrompt(snapshotPrompt);
       setStagedTasks(snapshot.tasks);
     } else {
       setStagedTasks([]);
+      setCanvasReferenceImages(persistedReferenceImages);
     }
 
     let isActive = true;
@@ -274,6 +354,16 @@ export default function GeneratePage() {
       setIsRestoringSeries(true);
       try {
         const context = await fetchRemixContext(sourceImageId);
+        const mergedTasks = mergeRemixSeriesItems(
+          snapshot?.tasks,
+          context.tasks
+        );
+        const mergedReferenceImages = mergeReferenceImages(
+          persistedReferenceImages,
+          !draft && !snapshot && !(urlDraft?.mode === "remix" && urlDraft.sourceImage?.url)
+            ? context.sourceImage
+            : null
+        );
         const promptFromImage =
           draft?.prompt ||
           context.sourceImage.prompt ||
@@ -286,7 +376,11 @@ export default function GeneratePage() {
           sourceImageId,
           prompt: promptFromImage,
           promptLang: "en",
-          sourceImage: context.sourceImage,
+          sourceImage:
+            draft || snapshot || (urlDraft?.mode === "remix" && urlDraft.sourceImage)
+              ? persistedSourceImage
+              : context.sourceImage,
+          referenceImages: mergedReferenceImages,
           returnTo: returnTo === "original" ? "original" : "gallery",
           returnImageId: searchParams.get("returnImageId") || sourceImageId,
           createdAt: Date.now(),
@@ -300,14 +394,13 @@ export default function GeneratePage() {
         }
 
         setRemixDraft(nextDraft);
-        if (context.sourceImage.url) {
-          setCanvasReferenceImage(context.sourceImage);
-        }
+        setCanvasReferenceImages(mergedReferenceImages);
         setPrompt(promptFromImage);
-        setStagedTasks(context.tasks);
+        setStagedTasks(mergedTasks);
         saveRemixContextSnapshot(user.id, sourceImageId, {
-          sourceImage: context.sourceImage,
-          tasks: context.tasks,
+          sourceImage: nextDraft.sourceImage ?? {},
+          referenceImages: mergedReferenceImages,
+          tasks: mergedTasks,
           savedAt: Date.now(),
         });
       } catch {
@@ -344,19 +437,23 @@ export default function GeneratePage() {
       ...remixDraft,
       prompt,
       sourceImage: remixDraft.sourceImage,
+      referenceImages: remixDraft.referenceImages,
     });
   }, [isRemixMode, prompt, remixDraft]);
 
   useEffect(() => {
     if (!isRemixMode) {
-      setCanvasReferenceImage(null);
+      setCanvasReferenceImages([]);
       return;
     }
 
-    if (remixDraft?.sourceImage?.url) {
-      setCanvasReferenceImage(remixDraft.sourceImage);
-    }
-  }, [isRemixMode, remixDraft?.sourceImage]);
+    setCanvasReferenceImages(
+      mergeReferenceImages(
+        remixDraft?.referenceImages,
+        remixDraft?.sourceImage?.url ? remixDraft.sourceImage : null
+      )
+    );
+  }, [isRemixMode, remixDraft?.referenceImages, remixDraft?.sourceImage]);
 
   const handlePickReferenceImage = useCallback(() => {
     referenceInputRef.current?.click();
@@ -424,27 +521,42 @@ export default function GeneratePage() {
         const {
           data: { publicUrl },
         } = supabase.storage.from(REFERENCE_IMAGE_BUCKET).getPublicUrl(filePath);
+        const nextSourceImageId = sourceImageId || undefined;
+        const nextSourceImage = {
+          url: publicUrl,
+          prompt: file.name,
+        };
+        const nextReferenceImages = mergeReferenceImages(
+          canvasReferenceImages,
+          nextSourceImage
+        );
 
         setRemixDraft((previous) => ({
           mode: "remix",
           prompt: previous?.prompt ?? prompt,
           promptLang: previous?.promptLang ?? "en",
           createdAt: Date.now(),
-          sourceImageId: undefined,
-          sourceImage: {
-            url: publicUrl,
-            prompt: file.name,
-          },
+          sourceImageId: previous?.sourceImageId ?? nextSourceImageId,
+          sourceImage: previous?.sourceImage?.url ? previous.sourceImage : nextSourceImage,
+          referenceImages: nextReferenceImages,
           returnTo: previous?.returnTo ?? "gallery",
           returnImageId: previous?.returnImageId,
         }));
-        setCanvasReferenceImage({
-          url: publicUrl,
-          prompt: file.name,
-        });
+        setCanvasReferenceImages(nextReferenceImages);
+
+        if (user.id && nextSourceImageId) {
+          saveRemixContextSnapshot(user.id, nextSourceImageId, {
+            sourceImage: nextSourceImage,
+            referenceImages: nextReferenceImages,
+            tasks: stagedTasks,
+            savedAt: Date.now(),
+          });
+        }
 
         router.replace(
           buildRemixGenerateUrl({
+            sourceImageId: sourceImageId || undefined,
+            sourceImageUrl: publicUrl,
             returnTo: returnTo === "original" ? "original" : "gallery",
             returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
           })
@@ -463,11 +575,33 @@ export default function GeneratePage() {
         setIsUploadingReference(false);
       }
     },
-    [prompt, returnTo, searchParams, sourceImageId, user]
+    [
+      canvasReferenceImages,
+      prompt,
+      returnTo,
+      router,
+      searchParams,
+      sourceImageId,
+      stagedTasks,
+      user,
+    ]
   );
 
   const handleClearReferenceImage = useCallback(() => {
     remixHydrationRequestRef.current += 1;
+    const nextReferenceImages = mergeReferenceImages(
+      canvasReferenceImages,
+      remixDraft?.sourceImage
+    );
+    if (user?.id && sourceImageId) {
+      saveRemixContextSnapshot(user.id, sourceImageId, {
+        sourceImage: {},
+        referenceImages: nextReferenceImages,
+        tasks: stagedTasks,
+        savedAt: Date.now(),
+      });
+    }
+    setCanvasReferenceImages(nextReferenceImages);
     setRemixDraft((previous) => {
       if (!previous) {
         return null;
@@ -475,18 +609,67 @@ export default function GeneratePage() {
 
       return {
         ...previous,
-        sourceImageId: undefined,
+        sourceImageId: previous.sourceImageId ?? sourceImageId ?? undefined,
         sourceImage: undefined,
+        referenceImages: nextReferenceImages,
       };
     });
 
     router.replace(
       buildRemixGenerateUrl({
+        sourceImageId: sourceImageId || undefined,
         returnTo: returnTo === "original" ? "original" : "gallery",
         returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
       })
     );
-  }, [returnTo, router, searchParams, sourceImageId]);
+  }, [
+    canvasReferenceImages,
+    remixDraft?.sourceImage,
+    returnTo,
+    router,
+    searchParams,
+    sourceImageId,
+    stagedTasks,
+    user?.id,
+  ]);
+
+  const handleSelectReferenceImage = useCallback(
+    (image: Partial<ImagePrompt> & { url: string }) => {
+      setRemixDraft((previous) => {
+        if (!previous) {
+          return previous;
+        }
+
+        const nextDraft: RemixGenerationDraft = {
+          ...previous,
+          sourceImageId: previous.sourceImageId ?? sourceImageId ?? undefined,
+          sourceImage: image,
+          referenceImages: mergeReferenceImages(previous.referenceImages, image),
+        };
+
+        if (user?.id && nextDraft.sourceImageId) {
+          saveRemixContextSnapshot(user.id, nextDraft.sourceImageId, {
+            sourceImage: image,
+            referenceImages: nextDraft.referenceImages,
+            tasks: stagedTasks,
+            savedAt: Date.now(),
+          });
+        }
+
+        return nextDraft;
+      });
+
+      router.replace(
+        buildRemixGenerateUrl({
+          sourceImageId: sourceImageId || undefined,
+          sourceImageUrl: image.url,
+          returnTo: returnTo === "original" ? "original" : "gallery",
+          returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
+        })
+      );
+    },
+    [returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
+  );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -567,9 +750,13 @@ export default function GeneratePage() {
 
           const snapshotSourceImageId = remixDraft?.sourceImageId ?? sourceImageId;
 
-          if (snapshotSourceImageId && user?.id && remixDraft?.sourceImage) {
+          if (snapshotSourceImageId && user?.id) {
             saveRemixContextSnapshot(user.id, snapshotSourceImageId, {
-              sourceImage: remixDraft.sourceImage,
+              sourceImage: remixDraft?.sourceImage ?? {},
+              referenceImages: mergeReferenceImages(
+                remixDraft?.referenceImages,
+                remixDraft?.sourceImage
+              ),
               tasks: next,
               savedAt: Date.now(),
             });
@@ -628,7 +815,6 @@ export default function GeneratePage() {
   }
 
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
-  const canvasReferenceImageUrl = canvasReferenceImage?.url || null;
   const hasReferenceImage = Boolean(sourceImageUrl);
   const creditCount = credits ?? 0;
   const generateDisabled =
@@ -647,16 +833,21 @@ export default function GeneratePage() {
   const canvasResultTasks = renderedTasks.length > 0 ? renderedTasks : latestStandaloneTask ? [latestStandaloneTask] : [];
   const resultImageUrl = canvasResultTasks.at(-1)?.result_url || null;
   const canvasCards: StudioCanvasCard[] = [
-    ...(canvasReferenceImageUrl
-      ? [
-          {
-            id: "reference-card",
-            imageUrl: canvasReferenceImageUrl,
-            label: "Reference",
-            kind: "reference" as const,
-          },
-        ]
-      : []),
+    ...canvasReferenceImages
+      .filter((image): image is Partial<ImagePrompt> & { url: string } => Boolean(image.url))
+      .map((image, index) => ({
+        id:
+          image.url === sourceImageUrl
+            ? "reference-card-active"
+            : `reference-card-${index}`,
+        imageUrl: image.url,
+        label: getReferenceImageLabel(image, index, sourceImageUrl),
+        kind: "reference" as const,
+        selected: image.url === sourceImageUrl,
+        onSelect: () => {
+          handleSelectReferenceImage(image);
+        },
+      })),
     ...canvasResultTasks.map((task, index) => ({
       id: task.id,
       imageUrl: task.result_url!,
@@ -787,9 +978,14 @@ export default function GeneratePage() {
                     {isUploadingReference
                       ? "Uploading reference..."
                       : hasReferenceImage
-                        ? "Replace reference image"
+                        ? "Add another reference image"
                         : "Add reference image"}
                   </button>
+                  {canvasReferenceImages.length > 1 ? (
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Click a reference on the canvas to use it for the next render.
+                    </p>
+                  ) : null}
                 </div>
 
                 {hasReferenceImage ? (

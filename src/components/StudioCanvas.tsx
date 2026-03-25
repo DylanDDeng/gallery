@@ -20,6 +20,8 @@ export interface StudioCanvasCard {
   label: string;
   kind: "reference" | "result";
   onDownload?: () => void;
+  onSelect?: () => void;
+  selected?: boolean;
 }
 
 interface StudioCanvasProps {
@@ -33,11 +35,24 @@ interface StudioCanvasNodeData extends Record<string, unknown> {
   label: string;
   kind: "reference" | "result";
   onDownload?: () => void;
+  onSelect?: () => void;
+  selected?: boolean;
 }
 
 function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
+  const isInteractive = data.kind === "reference" && Boolean(data.onSelect);
+
   return (
-    <div className="group relative border border-white/55 bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:border-white/10 dark:bg-white/8">
+    <div
+      className={`group relative border bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:bg-white/8 ${
+        data.selected
+          ? "border-rose-400/80 ring-2 ring-rose-400/35 dark:border-rose-300/70 dark:ring-rose-300/25"
+          : "border-white/55 dark:border-white/10"
+      } ${isInteractive ? "cursor-pointer" : ""}`}
+      onClick={() => {
+        data.onSelect?.();
+      }}
+    >
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
           {data.label}
@@ -106,6 +121,8 @@ function StudioCanvasInner({
           label: card.label,
           kind: card.kind,
           onDownload: card.onDownload,
+          onSelect: card.onSelect,
+          selected: card.selected,
         },
       }));
     });

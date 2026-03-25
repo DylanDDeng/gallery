@@ -8,6 +8,7 @@ export interface GenerationSourceContext {
   prompt?: string;
   sourceImageId?: string;
   sourceImage?: Partial<ImagePrompt>;
+  referenceImages?: Partial<ImagePrompt>[];
   returnTo?: GenerationReturnTarget;
   returnImageId?: string;
 }
@@ -29,6 +30,7 @@ export interface RemixSeriesItem {
 
 export interface RemixContextSnapshot {
   sourceImage: Partial<ImagePrompt>;
+  referenceImages?: Partial<ImagePrompt>[];
   tasks: RemixSeriesItem[];
   savedAt: number;
 }
@@ -64,9 +66,16 @@ function readNamespacedStorageValue(key: string): string | null {
   if (!hasWindow()) return null;
 
   try {
-    return window.sessionStorage.getItem(key);
+    return (
+      window.localStorage.getItem(key) ??
+      window.sessionStorage.getItem(key)
+    );
   } catch {
-    return null;
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -74,7 +83,33 @@ function writeNamespacedStorageValue(key: string, value: string) {
   if (!hasWindow()) return;
 
   try {
-    window.sessionStorage.setItem(key, value);
+    window.localStorage.setItem(key, value);
+  } catch {
+    try {
+      window.sessionStorage.setItem(key, value);
+    } catch {
+      // Ignore storage failures and keep the page usable.
+    }
+  }
+
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Ignore cleanup failures and keep the page usable.
+  }
+}
+
+function removeNamespacedStorageValue(key: string) {
+  if (!hasWindow()) return;
+
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Ignore storage failures and keep the page usable.
+  }
+
+  try {
+    window.sessionStorage.removeItem(key);
   } catch {
     // Ignore storage failures and keep the page usable.
   }
@@ -106,6 +141,7 @@ export function readRemixGenerationDraft(): RemixGenerationDraft | null {
     createdAt: Date.now(),
     sourceImageId: draft.sourceImageId,
     sourceImage: draft.sourceImage,
+    referenceImages: draft.referenceImages,
     returnTo: draft.returnTo,
     returnImageId: draft.returnImageId,
   };
@@ -174,6 +210,12 @@ export function readRemixContextSnapshot(
         parsed.sourceImage && typeof parsed.sourceImage === "object"
           ? parsed.sourceImage
           : {},
+      referenceImages: Array.isArray(parsed.referenceImages)
+        ? parsed.referenceImages.filter(
+            (image): image is Partial<ImagePrompt> =>
+              Boolean(image && typeof image === "object")
+          )
+        : [],
       tasks,
       savedAt:
         typeof parsed.savedAt === "number" ? parsed.savedAt : Date.now(),
@@ -195,6 +237,19 @@ export function saveRemixContextSnapshot(
   writeNamespacedStorageValue(
     buildRemixContextStorageKey(userId, sourceImageId),
     JSON.stringify(snapshot)
+  );
+}
+
+export function clearRemixContextSnapshot(
+  userId: string,
+  sourceImageId: string
+) {
+  if (!userId || !sourceImageId) {
+    return;
+  }
+
+  removeNamespacedStorageValue(
+    buildRemixContextStorageKey(userId, sourceImageId)
   );
 }
 
