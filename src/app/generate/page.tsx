@@ -144,8 +144,7 @@ function getReferenceImageLabel(
     return "Current reference";
   }
 
-  const prompt = typeof image.prompt === "string" ? image.prompt.trim() : "";
-  return prompt || `Reference ${index + 1}`;
+  return `Reference ${index + 1}`;
 }
 
 export default function GeneratePage() {
