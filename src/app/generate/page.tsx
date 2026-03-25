@@ -830,6 +830,7 @@ export default function GeneratePage() {
   const latestStandaloneTask =
     currentTask?.status === "completed" && currentTask.result_url ? currentTask : null;
   const canvasResultTasks = renderedTasks.length > 0 ? renderedTasks : latestStandaloneTask ? [latestStandaloneTask] : [];
+  const pendingCardId = submitting ? "pending-result-card" : null;
   const resultImageUrl = canvasResultTasks.at(-1)?.result_url || null;
   const canvasCards: StudioCanvasCard[] = [
     ...canvasReferenceImages
@@ -844,6 +845,16 @@ export default function GeneratePage() {
           handleSelectReferenceImage(image);
         },
       })),
+    ...(pendingCardId
+      ? [
+          {
+            id: pendingCardId,
+            label: "Rendering next image",
+            kind: "result" as const,
+            placeholder: true,
+          },
+        ]
+      : []),
     ...canvasResultTasks.map((task, index) => ({
       id: task.id,
       imageUrl: task.result_url!,
@@ -852,6 +863,7 @@ export default function GeneratePage() {
           ? "Latest result"
           : `Variation ${index + 1}`,
       kind: "result" as const,
+      animateIn: currentTask?.id === task.id,
       onDownload: () => {
         void handleDownloadTask(task);
       },
@@ -926,6 +938,7 @@ export default function GeneratePage() {
         <div className="absolute inset-0">
           <StudioCanvas
             cards={canvasCards}
+            focusCardId={pendingCardId}
             emptyTitle={isRestoringSeries ? "Restoring previous variations" : "Compose on the canvas"}
             emptyDescription={
               isRestoringSeries

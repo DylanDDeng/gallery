@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import {
   Background,
@@ -8,6 +8,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
   useNodesState,
   type Node,
   type NodeProps,
@@ -16,31 +17,40 @@ import "@xyflow/react/dist/style.css";
 
 export interface StudioCanvasCard {
   id: string;
-  imageUrl: string;
+  imageUrl?: string;
   label: string;
   kind: "reference" | "result";
   onDownload?: () => void;
   onSelect?: () => void;
   selected?: boolean;
+  placeholder?: boolean;
+  animateIn?: boolean;
 }
 
 interface StudioCanvasProps {
   cards: StudioCanvasCard[];
   emptyTitle: string;
   emptyDescription: string;
+  focusCardId?: string | null;
 }
 
 interface StudioCanvasNodeData extends Record<string, unknown> {
-  imageUrl: string;
+  imageUrl?: string;
   label: string;
   kind: "reference" | "result";
   onDownload?: () => void;
   onSelect?: () => void;
   selected?: boolean;
+  placeholder?: boolean;
+  animateIn?: boolean;
 }
 
 function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
   const isInteractive = data.kind === "reference" && Boolean(data.onSelect);
+  const sizeClass =
+    data.kind === "reference"
+      ? "w-[260px] sm:w-[300px] lg:w-[320px]"
+      : "w-[280px] sm:w-[340px] lg:w-[380px]";
 
   return (
     <div
@@ -48,7 +58,9 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
         data.selected
           ? "border-rose-400/80 ring-2 ring-rose-400/35 dark:border-rose-300/70 dark:ring-rose-300/25"
           : "border-white/55 dark:border-white/10"
-      } ${isInteractive ? "cursor-pointer" : ""}`}
+      } ${isInteractive ? "cursor-pointer" : ""} ${
+        data.placeholder ? "canvas-card-pulse" : ""
+      } ${data.animateIn ? "canvas-card-fade-in" : ""}`}
       onClick={() => {
         data.onSelect?.();
       }}
@@ -74,18 +86,22 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
           </button>
         ) : null}
       </div>
-      <Image
-        src={data.imageUrl}
-        alt={data.label}
-        width={960}
-        height={1200}
-        unoptimized
-        className={`block h-auto object-contain ${
-          data.kind === "reference"
-            ? "w-[260px] sm:w-[300px] lg:w-[320px]"
-            : "w-[280px] sm:w-[340px] lg:w-[380px]"
-        }`}
-      />
+      {data.placeholder || !data.imageUrl ? (
+        <div
+          className={`flex aspect-[3/4] ${sizeClass} items-center justify-center bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(237,233,228,0.88))] dark:bg-[linear-gradient(135deg,rgba(34,36,43,0.95),rgba(19,21,26,0.92))]`}
+        >
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700 dark:border-zinc-700 dark:border-t-zinc-200" />
+        </div>
+      ) : (
+        <Image
+          src={data.imageUrl}
+          alt={data.label}
+          width={960}
+          height={1200}
+          unoptimized
+          className={`block h-auto object-contain ${sizeClass}`}
+        />
+      )}
     </div>
   );
 }
@@ -98,8 +114,11 @@ function StudioCanvasInner({
   cards,
   emptyTitle,
   emptyDescription,
+  focusCardId,
 }: StudioCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<StudioCanvasNodeData>>([]);
+  const { fitView, getNode } = useReactFlow();
+  const focusedCardIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setNodes((current) => {
@@ -123,10 +142,42 @@ function StudioCanvasInner({
           onDownload: card.onDownload,
           onSelect: card.onSelect,
           selected: card.selected,
+          placeholder: card.placeholder,
+          animateIn: card.animateIn,
         },
       }));
     });
   }, [cards, setNodes]);
+
+  useEffect(() => {
+    if (!focusCardId) {
+      focusedCardIdRef.current = null;
+      return;
+    }
+
+    if (focusedCardIdRef.current === focusCardId) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const node = getNode(focusCardId);
+      if (!node) {
+        return;
+      }
+
+      focusedCardIdRef.current = focusCardId;
+      void fitView({
+        nodes: [node],
+        duration: 450,
+        maxZoom: 1.05,
+        padding: 1,
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [fitView, focusCardId, getNode, nodes]);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(circle,rgba(39,39,42,0.12)_1px,transparent_1.4px)] [background-size:22px_22px] dark:bg-[radial-gradient(circle,rgba(244,244,245,0.09)_1px,transparent_1.4px)]">
