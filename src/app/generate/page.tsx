@@ -173,6 +173,8 @@ export default function GeneratePage() {
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
+  const [pendingResultSlotId, setPendingResultSlotId] = useState<string | null>(null);
+  const [taskCardSlotIds, setTaskCardSlotIds] = useState<Record<string, string>>({});
   const [selectedModel, setSelectedModel] = useState<
     (typeof MODELS)[number]["id"]
   >(MODELS[0].id);
@@ -676,9 +678,12 @@ export default function GeneratePage() {
       return;
     }
 
+    const nextPendingSlotId = `pending-result-card:${crypto.randomUUID()}`;
+
     setSubmitting(true);
     setError(null);
     setCurrentTask(null);
+    setPendingResultSlotId(nextPendingSlotId);
     const shouldOptimisticallyDeduct =
       billingEnabled && typeof credits === "number" && credits > 0;
 
@@ -723,6 +728,7 @@ export default function GeneratePage() {
         if (billingEnabled && (shouldOptimisticallyDeduct || res.status === 402)) {
           await fetchCredits();
         }
+        setPendingResultSlotId(null);
         setError(json.error || "Failed to create generation");
         if (selfServiceApiKeysEnabled && json.error?.includes("API key")) {
           setHasApiKey(false);
@@ -738,6 +744,13 @@ export default function GeneratePage() {
         }
       }
 
+      if (json.task?.id) {
+        setTaskCardSlotIds((previous) => ({
+          ...previous,
+          [json.task.id]: nextPendingSlotId,
+        }));
+      }
+      setPendingResultSlotId(null);
       setCurrentTask(json.task);
 
       if (isRemixMode && json.task.result_url) {
@@ -773,6 +786,7 @@ export default function GeneratePage() {
       if (billingEnabled && shouldOptimisticallyDeduct) {
         await fetchCredits();
       }
+      setPendingResultSlotId(null);
       console.error("Error creating generation:", submitError);
       setError("An error occurred. Please try again.");
     } finally {
@@ -830,7 +844,15 @@ export default function GeneratePage() {
   const latestStandaloneTask =
     currentTask?.status === "completed" && currentTask.result_url ? currentTask : null;
   const canvasResultTasks = renderedTasks.length > 0 ? renderedTasks : latestStandaloneTask ? [latestStandaloneTask] : [];
-  const pendingCardId = submitting ? "pending-result-card" : null;
+  const pendingCardId = submitting ? pendingResultSlotId : null;
+  const focusedCanvasCardId =
+    pendingCardId ??
+    (currentTask?.id ? taskCardSlotIds[currentTask.id] ?? null : null);
+  const nextResultSlotIndex = canvasResultTasks.length;
+  const nextResultSlotPosition = {
+    x: 220 + nextResultSlotIndex * 320,
+    y: nextResultSlotIndex % 2 === 0 ? -20 : 90,
+  };
   const resultImageUrl = canvasResultTasks.at(-1)?.result_url || null;
   const canvasCards: StudioCanvasCard[] = [
     ...canvasReferenceImages
@@ -845,18 +867,8 @@ export default function GeneratePage() {
           handleSelectReferenceImage(image);
         },
       })),
-    ...(pendingCardId
-      ? [
-          {
-            id: pendingCardId,
-            label: "Rendering next image",
-            kind: "result" as const,
-            placeholder: true,
-          },
-        ]
-      : []),
     ...canvasResultTasks.map((task, index) => ({
-      id: task.id,
+      id: taskCardSlotIds[task.id] ?? task.id,
       imageUrl: task.result_url!,
       label:
         index === canvasResultTasks.length - 1
@@ -864,10 +876,23 @@ export default function GeneratePage() {
           : `Variation ${index + 1}`,
       kind: "result" as const,
       animateIn: currentTask?.id === task.id,
+      zIndex: currentTask?.id === task.id ? 35 : 10,
       onDownload: () => {
         void handleDownloadTask(task);
       },
     })),
+    ...(pendingCardId
+      ? [
+          {
+            id: pendingCardId,
+            label: "Rendering next image",
+            kind: "result" as const,
+            placeholder: true,
+            zIndex: 50,
+            position: nextResultSlotPosition,
+          },
+        ]
+      : []),
   ];
   const toolbarDisabled = generateDisabled;
 
@@ -938,7 +963,7 @@ export default function GeneratePage() {
         <div className="absolute inset-0">
           <StudioCanvas
             cards={canvasCards}
-            focusCardId={pendingCardId}
+            focusCardId={focusedCanvasCardId}
             emptyTitle={isRestoringSeries ? "Restoring previous variations" : "Compose on the canvas"}
             emptyDescription={
               isRestoringSeries

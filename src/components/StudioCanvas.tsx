@@ -25,6 +25,8 @@ export interface StudioCanvasCard {
   selected?: boolean;
   placeholder?: boolean;
   animateIn?: boolean;
+  zIndex?: number;
+  position?: { x: number; y: number };
 }
 
 interface StudioCanvasProps {
@@ -131,10 +133,14 @@ function StudioCanvasInner({
         type: "studioCard",
         position:
           existingPositions.get(card.id) ||
+          card.position ||
           (card.kind === "reference"
             ? { x: -140, y: -40 }
             : { x: 220 + index * 320, y: index % 2 === 0 ? -20 : 90 }),
         draggable: true,
+        zIndex:
+          card.zIndex ??
+          (card.placeholder ? 40 : card.selected ? 20 : undefined),
         data: {
           imageUrl: card.imageUrl,
           label: card.label,
