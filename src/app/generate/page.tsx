@@ -665,7 +665,7 @@ export default function GeneratePage() {
   ]);
 
   const handleSelectReferenceImage = useCallback(
-    (image: Partial<ImagePrompt> & { url: string }) => {
+    (image: Partial<ImagePrompt> & { url: string }, options?: { skipAddingToReferenceList?: boolean }) => {
       setRemixDraft((previous) => {
         if (!previous) {
           return previous;
@@ -675,7 +675,9 @@ export default function GeneratePage() {
           ...previous,
           sourceImageId: previous.sourceImageId ?? sourceImageId ?? undefined,
           sourceImage: image,
-          referenceImages: mergeReferenceImages(previous.referenceImages, image),
+          referenceImages: options?.skipAddingToReferenceList
+            ? previous.referenceImages
+            : mergeReferenceImages(previous.referenceImages, image),
         };
 
         if (user?.id && nextDraft.sourceImageId) {
@@ -932,9 +934,11 @@ export default function GeneratePage() {
     y: nextResultSlotIndex % 2 === 0 ? -20 : 90,
   };
   const resultImageUrl = canvasResultTasks.at(-1)?.result_url || null;
+  const resultTaskUrls = new Set(canvasResultTasks.map((task) => task.result_url));
   const canvasCards: StudioCanvasCard[] = [
     ...canvasReferenceImages
       .filter((image): image is Partial<ImagePrompt> & { url: string } => Boolean(image.url))
+      .filter((image) => !resultTaskUrls.has(image.url))
       .map((image, index) => ({
         id: `reference-card:${image.url}`,
         imageUrl: image.url,
@@ -957,8 +961,18 @@ export default function GeneratePage() {
       animateIn: currentTask?.id === task.id,
       position: canvasCardPositions[taskCardSlotIds[task.id] ?? task.id],
       zIndex: currentTask?.id === task.id ? 35 : 10,
+      selected: task.result_url === sourceImageUrl,
       onDownload: () => {
         void handleDownloadTask(task);
+      },
+      onSelect: () => {
+        handleSelectReferenceImage(
+          {
+            url: task.result_url!,
+            prompt: task.prompt,
+          },
+          { skipAddingToReferenceList: true }
+        );
       },
     })),
     ...(pendingCardId

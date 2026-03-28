@@ -51,7 +51,7 @@ interface StudioCanvasNodeData extends Record<string, unknown> {
 }
 
 function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
-  const isInteractive = data.kind === "reference" && Boolean(data.onSelect);
+  const isInteractive = Boolean(data.onSelect);
   const sizeClass =
     data.kind === "reference"
       ? "w-[260px] sm:w-[300px] lg:w-[320px]"
