@@ -106,19 +106,16 @@ function StudioCanvasNode({ data, id, selected }: NodeProps<Node<StudioCanvasNod
       if (nextWidth !== currentWidth) {
         setNodes((nds) =>
           nds.map((n) =>
-            n.id === id ? { ...n, data: { ...n.data, width: nextWidth } } : n
+            n.id === id ? { ...n, style: { width: nextWidth }, data: { ...n.data, width: nextWidth } } : n
           )
         );
       }
     },
     [data.width, data.kind, data.placeholder, id, setNodes]
   );
-  const cardWidth =
-    data.width ??
-    (data.kind === "reference" ? DEFAULT_WIDTH_REFERENCE : DEFAULT_WIDTH_RESULT);
   return (
     <div
-      className={`group relative border bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:bg-white/8 ${
+      className={`group relative w-full overflow-hidden border bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:bg-white/8 ${
         data.selected
           ? "border-rose-400/80 ring-2 ring-rose-400/35 dark:border-rose-300/70 dark:ring-rose-300/25"
           : "border-white/55 dark:border-white/10"
@@ -167,8 +164,7 @@ function StudioCanvasNode({ data, id, selected }: NodeProps<Node<StudioCanvasNod
       </div>
       {data.placeholder || !data.imageUrl ? (
         <div
-          className="flex aspect-[3/4] items-center justify-center bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(237,2333,228,0.88))] dark:bg-[linear-gradient(135deg,rgba(34,36,43=0.95),rgba(19,21,26,0.92))]"
-          style={{ width: cardWidth }}
+          className="flex aspect-[3/4] w-full items-center justify-center bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(237,2333,228,0.88))] dark:bg-[linear-gradient(135deg,rgba(34,36,43=0.95),rgba(19,21,26,0.92))]"
         >
           <div className="h-12 w-12 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700 dark:border-zinc-700 dark:border-t-zinc-200" />
         </div>
@@ -179,8 +175,7 @@ function StudioCanvasNode({ data, id, selected }: NodeProps<Node<StudioCanvasNod
           width={960}
           height={1200}
           unoptimized
-          className="block h-auto object-contain"
-          style={{ width: cardWidth }}
+          className="block h-auto w-full object-contain"
         />
       )}
     </div>
@@ -208,7 +203,7 @@ function StudioCanvasInner({
       setNodes((nds) =>
         nds.map((n) =>
           n.id === nodeId
-            ? { ...n, data: { ...n.data, width: params.width } }
+            ? { ...n, style: { width: params.width }, data: { ...n.data, width: params.width } }
             : n
         )
       );
@@ -255,6 +250,7 @@ function StudioCanvasInner({
             existing.data.placeholder !== card.placeholder ||
             existing.data.animateIn !== card.animateIn ||
             existing.data.width !== cardWidth ||
+            existing.style?.width !== cardWidth ||
             existing.zIndex !== nextZIndex;
 
           if (dataChanged) {
@@ -263,6 +259,7 @@ function StudioCanvasInner({
               kept[idx] = {
                 ...existing,
                 zIndex: nextZIndex,
+                style: { width: cardWidth },
                 data: {
                   ...existing.data,
                   imageUrl: card.imageUrl,
@@ -284,6 +281,7 @@ function StudioCanvasInner({
             id: card.id,
             type: "studioCard",
             position: card.position || defaultPosition,
+            style: { width: cardWidth },
             draggable: true,
             zIndex: nextZIndex,
             data: {
