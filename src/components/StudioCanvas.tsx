@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import {
   Background,
@@ -52,6 +52,32 @@ interface StudioCanvasNodeData extends Record<string, unknown> {
 
 function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
   const isInteractive = Boolean(data.onSelect);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isDraggingRef = useRef(false);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+    isDraggingRef.current = false;
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!pointerStartRef.current) return;
+    const dx = e.clientX - pointerStartRef.current.x;
+    const dy = e.clientY - pointerStartRef.current.y;
+    if (dx * dx + dy * dy > 9) {
+      isDraggingRef.current = true;
+    }
+  }, []);
+
+  const handleClick = useCallback(() => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      pointerStartRef.current = null;
+      return;
+    }
+    data.onSelect?.();
+  }, [data]);
+
   const sizeClass =
     data.kind === "reference"
       ? "w-[260px] sm:w-[300px] lg:w-[320px]"
@@ -66,9 +92,9 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
       } ${isInteractive ? "cursor-pointer" : ""} ${
         data.placeholder ? "canvas-card-pulse" : ""
       } ${data.animateIn ? "canvas-card-fade-in" : ""}`}
-      onClick={() => {
-        data.onSelect?.();
-      }}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
@@ -128,34 +154,80 @@ function StudioCanvasInner({
 
   useEffect(() => {
     setNodes((current) => {
-      const existingPositions = new Map(
-        current.map((node) => [node.id, node.position])
-      );
+      const existingMap = new Map(current.map((node) => [node.id, node]));
+      const nextIds = new Set(cards.map((c) => c.id));
+      const kept: typeof current = [];
 
-      return cards.map((card, index) => ({
-        id: card.id,
-        type: "studioCard",
-        position:
-          existingPositions.get(card.id) ||
-          card.position ||
-          (card.kind === "reference"
+      for (const node of current) {
+        if (nextIds.has(node.id)) {
+          kept.push(node);
+        }
+      }
+
+      for (const card of cards) {
+        const existing = existingMap.get(card.id);
+        const defaultPosition =
+          card.kind === "reference"
             ? { x: -140, y: -40 }
-            : { x: 220 + index * 320, y: index % 2 === 0 ? -20 : 90 }),
-        draggable: true,
-        zIndex:
-          card.zIndex ??
-          (card.placeholder ? 40 : card.selected ? 20 : undefined),
-        data: {
-          imageUrl: card.imageUrl,
-          label: card.label,
-          kind: card.kind,
-          onDownload: card.onDownload,
-          onSelect: card.onSelect,
-          selected: card.selected,
-          placeholder: card.placeholder,
-          animateIn: card.animateIn,
-        },
-      }));
+            : { x: 220 + cards.indexOf(card) * 320, y: cards.indexOf(card) % 2 === 0 ? -20 : 90 };
+
+        if (existing) {
+          const nextZIndex =
+            card.zIndex ??
+            (card.placeholder ? 40 : card.selected ? 20 : undefined);
+          const dataChanged =
+            existing.data.imageUrl !== card.imageUrl ||
+            existing.data.label !== card.label ||
+            existing.data.kind !== card.kind ||
+            existing.data.selected !== card.selected ||
+            existing.data.placeholder !== card.placeholder ||
+            existing.data.animateIn !== card.animateIn ||
+            existing.zIndex !== nextZIndex;
+
+          if (dataChanged) {
+            const idx = kept.findIndex((n) => n.id === card.id);
+            if (idx !== -1) {
+              kept[idx] = {
+                ...existing,
+                zIndex: nextZIndex,
+                data: {
+                  ...existing.data,
+                  imageUrl: card.imageUrl,
+                  label: card.label,
+                  kind: card.kind,
+                  onDownload: card.onDownload,
+                  onSelect: card.onSelect,
+                  selected: card.selected,
+                  placeholder: card.placeholder,
+                  animateIn: card.animateIn,
+                },
+              };
+            }
+          }
+        } else {
+          kept.push({
+            id: card.id,
+            type: "studioCard",
+            position: card.position || defaultPosition,
+            draggable: true,
+            zIndex:
+              card.zIndex ??
+              (card.placeholder ? 40 : card.selected ? 20 : undefined),
+            data: {
+              imageUrl: card.imageUrl,
+              label: card.label,
+              kind: card.kind,
+              onDownload: card.onDownload,
+              onSelect: card.onSelect,
+              selected: card.selected,
+              placeholder: card.placeholder,
+              animateIn: card.animateIn,
+            },
+          });
+        }
+      }
+
+      return kept;
     });
   }, [cards, setNodes]);
 
@@ -198,7 +270,7 @@ function StudioCanvasInner({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [fitView, focusCardId, getNode, nodes]);
+  }, [fitView, focusCardId, getNode, nodes.length]);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(circle,rgba(39,39,42,0.12)_1px,transparent_1.4px)] [background-size:22px_22px] dark:bg-[radial-gradient(circle,rgba(244,244,245,0.09)_1px,transparent_1.4px)]">
@@ -212,6 +284,8 @@ function StudioCanvasInner({
         maxZoom={1.6}
         defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
         panOnDrag
+        panOnScroll
+        preventScrolling
         zoomOnScroll
         proOptions={{ hideAttribution: true }}
       >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -903,10 +903,6 @@ export default function GeneratePage() {
     ]
   );
 
-  if (!user) {
-    return null;
-  }
-
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
   const hasReferenceImage = Boolean(sourceImageUrl);
   const creditCount = credits ?? 0;
@@ -920,22 +916,24 @@ export default function GeneratePage() {
   );
   const titleFont =
     '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif';
-  const renderedTasks = stagedTasks.filter((task) => task.result_url);
-  const latestStandaloneTask =
-    currentTask?.status === "completed" && currentTask.result_url ? currentTask : null;
-  const canvasResultTasks = renderedTasks.length > 0 ? renderedTasks : latestStandaloneTask ? [latestStandaloneTask] : [];
+  const canvasResultTasks = useMemo(() => {
+    const rendered = stagedTasks.filter((task) => task.result_url);
+    const latest =
+      currentTask?.status === "completed" && currentTask.result_url ? currentTask : null;
+    return rendered.length > 0 ? rendered : latest ? [latest] : [];
+  }, [stagedTasks, currentTask]);
   const pendingCardId = submitting ? pendingResultSlotId : null;
   const focusedCanvasCardId =
     pendingCardId ??
     (currentTask?.id ? taskCardSlotIds[currentTask.id] ?? null : null);
   const nextResultSlotIndex = canvasResultTasks.length;
-  const nextResultSlotPosition = {
+  const nextResultSlotPosition = useMemo(() => ({
     x: 220 + nextResultSlotIndex * 320,
     y: nextResultSlotIndex % 2 === 0 ? -20 : 90,
-  };
+  }), [nextResultSlotIndex]);
   const resultImageUrl = canvasResultTasks.at(-1)?.result_url || null;
-  const resultTaskUrls = new Set(canvasResultTasks.map((task) => task.result_url));
-  const canvasCards: StudioCanvasCard[] = [
+  const resultTaskUrls = useMemo(() => new Set(canvasResultTasks.map((task) => task.result_url)), [canvasResultTasks]);
+  const canvasCards: StudioCanvasCard[] = useMemo(() => [
     ...canvasReferenceImages
       .filter((image): image is Partial<ImagePrompt> & { url: string } => Boolean(image.url))
       .filter((image) => !resultTaskUrls.has(image.url))
@@ -987,8 +985,24 @@ export default function GeneratePage() {
           },
         ]
       : []),
-  ];
+  ], [
+    canvasCardPositions,
+    canvasReferenceImages,
+    canvasResultTasks,
+    currentTask?.id,
+    handleDownloadTask,
+    handleSelectReferenceImage,
+    pendingCardId,
+    resultTaskUrls,
+    sourceImageUrl,
+    taskCardSlotIds,
+    nextResultSlotPosition,
+  ]);
   const toolbarDisabled = generateDisabled;
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen overflow-hidden bg-[#f3efe9] text-zinc-900 dark:bg-[#111215] dark:text-zinc-100">
@@ -1006,7 +1020,7 @@ export default function GeneratePage() {
         />
       ) : null}
 
-      <main className="relative min-h-screen overflow-hidden">
+      <main className="relative flex h-screen flex-col overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-4 pt-6 sm:px-6 lg:px-8">
           <div className="pointer-events-auto flex items-center justify-between gap-3">
           <button
@@ -1054,7 +1068,7 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        <div className="absolute inset-0">
+        <div className="relative flex-1">
           <StudioCanvas
             cards={canvasCards}
             focusCardId={focusedCanvasCardId}
@@ -1068,8 +1082,8 @@ export default function GeneratePage() {
           />
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex justify-center px-4 sm:px-6">
-          <div className="pointer-events-auto w-full max-w-[960px] rounded-[32px] bg-white/88 shadow-[0_44px_125px_rgba(33,24,15,0.22)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10 dark:shadow-[0_36px_125px_rgba(0,0,0,0.46)]">
+        <div className="relative z-30 flex justify-center px-4 pb-6 pt-2 sm:px-6">
+          <div className="w-full max-w-[960px] rounded-[32px] bg-white/88 shadow-[0_44px_125px_rgba(33,24,15,0.22)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10 dark:shadow-[0_36px_125px_rgba(0,0,0,0.46)]">
               <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
                 <input
                   ref={referenceInputRef}
