@@ -68,7 +68,7 @@ const MIN_HEIGHT = 120;
 const MAX_HEIGHT = 950;
 const SCROLL_SCALE_STEP = 30;
 
-function StudioCanvasNode({ data, id }: NodeProps<Node<StudioCanvasNodeData>>) {
+function StudioCanvasNode({ data, id, selected }: NodeProps<Node<StudioCanvasNodeData>>) {
   const isInteractive = Boolean(data.onSelect);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
@@ -133,7 +133,7 @@ function StudioCanvasNode({ data, id }: NodeProps<Node<StudioCanvasNodeData>>) {
       {!data.placeholder && (
         <NodeResizer
           nodeId={id}
-          isVisible
+          isVisible={selected}
           keepAspectRatio
           minWidth={MIN_WIDTH}
           minHeight={MIN_HEIGHT}
