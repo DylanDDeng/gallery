@@ -6,14 +6,18 @@ import {
   Background,
   Controls,
   MiniMap,
+  NodeResizer,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
   useNodesState,
   type Node,
   type NodeProps,
+  type ResizeParams,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+
+import type { CanvasCardPosition } from "@/lib/generation-draft";
 
 export interface StudioCanvasCard {
   id: string;
@@ -26,7 +30,8 @@ export interface StudioCanvasCard {
   placeholder?: boolean;
   animateIn?: boolean;
   zIndex?: number;
-  position?: { x: number; y: number };
+  position?: CanvasCardPosition;
+  width?: number;
 }
 
 interface StudioCanvasProps {
@@ -35,7 +40,10 @@ interface StudioCanvasProps {
   emptyDescription: string;
   focusCardId?: string | null;
   onNodePositionsChange?: (
-    positions: Record<string, { x: number; y: number }>
+    positions: Record<string, CanvasCardPosition>
+  ) => void;
+  onNodeSizesChange?: (
+    sizes: Record<string, { width: number; height: number }>
   ) => void;
 }
 
@@ -45,21 +53,31 @@ interface StudioCanvasNodeData extends Record<string, unknown> {
   kind: "reference" | "result";
   onDownload?: () => void;
   onSelect?: () => void;
+  onResizeEnd?: (event: unknown, params: ResizeParams) => void;
   selected?: boolean;
   placeholder?: boolean;
   animateIn?: boolean;
+  width?: number;
 }
 
-function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
+const DEFAULT_WIDTH_REFERENCE = 320;
+const DEFAULT_WIDTH_RESULT = 380;
+const MIN_WIDTH = 160;
+const MAX_WIDTH = 700;
+const MIN_HEIGHT = 120;
+const MAX_HEIGHT = 950;
+const SCROLL_SCALE_STEP = 30;
+
+function StudioCanvasNode({ data, id }: NodeProps<Node<StudioCanvasNodeData>>) {
   const isInteractive = Boolean(data.onSelect);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
+  const { setNodes } = useReactFlow();
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     pointerStartRef.current = { x: e.clientX, y: e.clientY };
     isDraggingRef.current = false;
   }, []);
-
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!pointerStartRef.current) return;
     const dx = e.clientX - pointerStartRef.current.x;
@@ -68,7 +86,6 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
       isDraggingRef.current = true;
     }
   }, []);
-
   const handleClick = useCallback(() => {
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
@@ -77,12 +94,28 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
     }
     data.onSelect?.();
   }, [data]);
-
-  const sizeClass =
-    data.kind === "reference"
-      ? "w-[260px] sm:w-[300px] lg:w-[320px]"
-      : "w-[280px] sm:w-[340px] lg:w-[380px]";
-
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (data.placeholder) return;
+      e.stopPropagation();
+      const currentWidth =
+        data.width ??
+        (data.kind === "reference" ? DEFAULT_WIDTH_REFERENCE : DEFAULT_WIDTH_RESULT);
+      const delta = e.deltaY > 0 ? -SCROLL_SCALE_STEP : SCROLL_SCALE_STEP;
+      const nextWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, currentWidth + delta));
+      if (nextWidth !== currentWidth) {
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === id ? { ...n, data: { ...n.data, width: nextWidth } } : n
+          )
+        );
+      }
+    },
+    [data.width, data.kind, data.placeholder, id, setNodes]
+  );
+  const cardWidth =
+    data.width ??
+    (data.kind === "reference" ? DEFAULT_WIDTH_REFERENCE : DEFAULT_WIDTH_RESULT);
   return (
     <div
       className={`group relative border bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:bg-white/8 ${
@@ -95,7 +128,22 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
       onClick={handleClick}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
+      onWheel={data.placeholder ? undefined : handleWheel}
     >
+      {!data.placeholder && (
+        <NodeResizer
+          nodeId={id}
+          isVisible
+          keepAspectRatio
+          minWidth={MIN_WIDTH}
+          minHeight={MIN_HEIGHT}
+          maxWidth={MAX_WIDTH}
+          maxHeight={MAX_HEIGHT}
+          lineClassName="!border-white/0"
+          handleClassName="!w-2.5 !h-2.5 !rounded-full !bg-white/80 !shadow-[0_1px_4px_rgba(0,0,0,0.2)] !border !border-white/50 hover:!w-3.5 hover:!h-3.5 hover:!bg-white !transition-all !duration-150"
+          onResizeEnd={data.onResizeEnd}
+        />
+      )}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
           {data.label}
@@ -119,7 +167,8 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
       </div>
       {data.placeholder || !data.imageUrl ? (
         <div
-          className={`flex aspect-[3/4] ${sizeClass} items-center justify-center bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(237,233,228,0.88))] dark:bg-[linear-gradient(135deg,rgba(34,36,43,0.95),rgba(19,21,26,0.92))]`}
+          className="flex aspect-[3/4] items-center justify-center bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(237,2333,228,0.88))] dark:bg-[linear-gradient(135deg,rgba(34,36,43=0.95),rgba(19,21,26,0.92))]"
+          style={{ width: cardWidth }}
         >
           <div className="h-12 w-12 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700 dark:border-zinc-700 dark:border-t-zinc-200" />
         </div>
@@ -130,7 +179,8 @@ function StudioCanvasNode({ data }: NodeProps<Node<StudioCanvasNodeData>>) {
           width={960}
           height={1200}
           unoptimized
-          className={`block h-auto object-contain ${sizeClass}`}
+          className="block h-auto object-contain"
+          style={{ width: cardWidth }}
         />
       )}
     </div>
@@ -147,17 +197,38 @@ function StudioCanvasInner({
   emptyDescription,
   focusCardId,
   onNodePositionsChange,
+  onNodeSizesChange,
 }: StudioCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<StudioCanvasNodeData>>([]);
   const { fitView, getNode, getNodes } = useReactFlow();
   const focusedCardIdRef = useRef<string | null>(null);
-
+  const handleNodeResizeEnd = useCallback(
+    (nodeId: string, _event: unknown, params: ResizeParams) => {
+      if (!onNodeSizesChange) return;
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId
+            ? { ...n, data: { ...n.data, width: params.width } }
+            : n
+        )
+      );
+      const allNodes = getNodes();
+      const sizes: Record<string, { width: number; height: number }> = {};
+      for (const node of allNodes) {
+        if (node.width && node.height) {
+          sizes[node.id] = { width: node.width, height: node.height };
+        }
+      }
+      sizes[nodeId] = { width: params.width, height: params.height };
+      onNodeSizesChange(sizes);
+    },
+    [getNodes, onNodeSizesChange, setNodes]
+  );
   useEffect(() => {
     setNodes((current) => {
       const existingMap = new Map(current.map((node) => [node.id, node]));
       const nextIds = new Set(cards.map((c) => c.id));
       const kept: typeof current = [];
-
       for (const node of current) {
         if (nextIds.has(node.id)) {
           kept.push(node);
@@ -170,11 +241,12 @@ function StudioCanvasInner({
           card.kind === "reference"
             ? { x: -140, y: -40 }
             : { x: 220 + cards.indexOf(card) * 320, y: cards.indexOf(card) % 2 === 0 ? -20 : 90 };
+        const cardWidth =
+          card.width ?? (card.kind === "reference" ? DEFAULT_WIDTH_REFERENCE : DEFAULT_WIDTH_RESULT);
+        const nextZIndex =
+          card.zIndex ?? (card.placeholder ? 40 : card.selected ? 20 : undefined);
 
         if (existing) {
-          const nextZIndex =
-            card.zIndex ??
-            (card.placeholder ? 40 : card.selected ? 20 : undefined);
           const dataChanged =
             existing.data.imageUrl !== card.imageUrl ||
             existing.data.label !== card.label ||
@@ -182,6 +254,7 @@ function StudioCanvasInner({
             existing.data.selected !== card.selected ||
             existing.data.placeholder !== card.placeholder ||
             existing.data.animateIn !== card.animateIn ||
+            existing.data.width !== cardWidth ||
             existing.zIndex !== nextZIndex;
 
           if (dataChanged) {
@@ -197,9 +270,11 @@ function StudioCanvasInner({
                   kind: card.kind,
                   onDownload: card.onDownload,
                   onSelect: card.onSelect,
+                  onResizeEnd: (_e: unknown, p: ResizeParams) => handleNodeResizeEnd(card.id, _e, p),
                   selected: card.selected,
                   placeholder: card.placeholder,
                   animateIn: card.animateIn,
+                  width: cardWidth,
                 },
               };
             }
@@ -210,18 +285,18 @@ function StudioCanvasInner({
             type: "studioCard",
             position: card.position || defaultPosition,
             draggable: true,
-            zIndex:
-              card.zIndex ??
-              (card.placeholder ? 40 : card.selected ? 20 : undefined),
+            zIndex: nextZIndex,
             data: {
               imageUrl: card.imageUrl,
               label: card.label,
               kind: card.kind,
               onDownload: card.onDownload,
               onSelect: card.onSelect,
+              onResizeEnd: (_e: unknown, p: ResizeParams) => handleNodeResizeEnd(card.id, _e, p),
               selected: card.selected,
               placeholder: card.placeholder,
               animateIn: card.animateIn,
+              width: cardWidth,
             },
           });
         }
@@ -229,34 +304,36 @@ function StudioCanvasInner({
 
       return kept;
     });
-  }, [cards, setNodes]);
-
-  const handleNodeDragStop = () => {
-    if (!onNodePositionsChange) {
-      return;
-    }
-
+  }, [cards, handleNodeResizeEnd, setNodes]);
+  const handleNodeDragStop = useCallback(() => {
+    if (!onNodePositionsChange) return;
     const nextPositions = Object.fromEntries(
-      getNodes().map((node) => [node.id, node.position])
+      getNodes().map((node) => {
+        const pos: CanvasCardPosition = {
+          x: node.position.x,
+          y: node.position.y,
+        };
+        if (node.width) {
+          pos.width = node.width;
+        }
+        return [node.id, pos];
+      })
     );
     onNodePositionsChange(nextPositions);
-  };
+  }, [getNodes, onNodePositionsChange]);
 
   useEffect(() => {
     if (!focusCardId) {
       focusedCardIdRef.current = null;
       return;
     }
-
     if (focusedCardIdRef.current === focusCardId) {
       return;
     }
 
     const frameId = window.requestAnimationFrame(() => {
       const node = getNode(focusCardId);
-      if (!node) {
-        return;
-      }
+      if (!node) return;
 
       focusedCardIdRef.current = focusCardId;
       void fitView({
@@ -303,7 +380,6 @@ function StudioCanvasInner({
           className="!bottom-4 !left-4 !overflow-hidden !rounded-2xl !border !border-white/55 !bg-white/78 !shadow-[0_18px_42px_rgba(35,25,15,0.12)] !backdrop-blur-xl dark:!border-white/10 dark:!bg-[#14161b]/82"
         />
       </ReactFlow>
-
       {cards.length === 0 ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="rounded-[28px] border border-white/55 bg-white/84 px-10 py-8 text-center shadow-[0_20px_70px_rgba(35,25,15,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-[#15171c]/88">

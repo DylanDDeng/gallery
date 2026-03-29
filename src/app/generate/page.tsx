@@ -943,6 +943,7 @@ export default function GeneratePage() {
         label: getReferenceImageLabel(image, index, sourceImageUrl),
         kind: "reference" as const,
         position: canvasCardPositions[`reference-card:${image.url}`],
+        width: canvasCardPositions[`reference-card:${image.url}`]?.width,
         selected: image.url === sourceImageUrl,
         onSelect: () => {
           handleSelectReferenceImage(image);
@@ -958,6 +959,7 @@ export default function GeneratePage() {
       kind: "result" as const,
       animateIn: currentTask?.id === task.id,
       position: canvasCardPositions[taskCardSlotIds[task.id] ?? task.id],
+      width: canvasCardPositions[taskCardSlotIds[task.id] ?? task.id]?.width,
       zIndex: currentTask?.id === task.id ? 35 : 10,
       selected: task.result_url === sourceImageUrl,
       onDownload: () => {
@@ -1073,6 +1075,15 @@ export default function GeneratePage() {
             cards={canvasCards}
             focusCardId={focusedCanvasCardId}
             onNodePositionsChange={handleCanvasPositionsChange}
+            onNodeSizesChange={(sizes: Record<string, { width: number; height: number }>) => {
+              setCanvasCardPositions((prev) => {
+                const next = { ...prev };
+                for (const [id, { width }] of Object.entries(sizes)) {
+                  next[id] = { ...next[id], width };
+                }
+                return next;
+              });
+            }}
             emptyTitle={isRestoringSeries ? "Restoring previous variations" : "Compose on the canvas"}
             emptyDescription={
               isRestoringSeries

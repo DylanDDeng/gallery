@@ -31,6 +31,7 @@ export interface RemixSeriesItem {
 export interface CanvasCardPosition {
   x: number;
   y: number;
+  width?: number;
 }
 
 export interface RemixContextSnapshot {
