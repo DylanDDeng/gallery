@@ -152,7 +152,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
     setPreviewError(false);
     setEditingImage(image);
     setFormUrl(normalizeImageUrlInput(image.url));
-    setFormPrompt(image.prompt);
+    setFormPrompt(image.prompt || "");
     setFormAuthor(image.author);
     setFormModel(image.model);
     setFormCategory(image.category);
@@ -534,7 +534,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
             {images.map((image) => {
               let prompt;
               try {
-                prompt = JSON.parse(image.prompt);
+                prompt = image.prompt ? JSON.parse(image.prompt) : null;
               } catch {
                 prompt = null;
               }

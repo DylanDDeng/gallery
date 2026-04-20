@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from("images")
-    .select("*")
+    .select("id,url,author,model,category,tags,width,height,created_at,tweet_url")
     .order("created_at", { ascending: false })
     .range(offset, offset + limit);
 

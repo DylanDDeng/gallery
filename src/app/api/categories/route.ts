@@ -31,49 +31,36 @@ export async function GET(request: Request) {
   const categorySlugs = CATEGORIES.filter((category) => category.slug !== "all").map(
     (category) => category.slug
   );
+  const normalizedSearch = search?.replace(/[{},]/g, " ").trim() || null;
 
-  const counts = await Promise.all(
-    categorySlugs.map(async (slug) => {
-      let query = supabase
-        .from("images")
-        .select("*", { count: "exact", head: true })
-        .eq("category", slug);
+  const { data, error } = await supabase.rpc("get_image_category_counts", {
+    p_search: normalizedSearch,
+    p_model: model && model !== "all" ? model : null,
+    p_cutoff: cutoff?.toISOString() || null,
+    p_ids: ids && ids.length > 0 ? ids : null,
+  });
 
-      if (ids && ids.length > 0) {
-        query = query.in("id", ids);
-      }
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-      if (model && model !== "all") {
-        query = query.eq("model", model);
-      }
-
-      if (cutoff) {
-        query = query.gte("created_at", cutoff.toISOString());
-      }
-
-      if (search) {
-        const normalizedSearch = search.replace(/[{},]/g, " ").trim();
-        if (normalizedSearch) {
-          query = query.or(
-            `prompt.ilike.%${normalizedSearch}%,author.ilike.%${normalizedSearch}%,model.ilike.%${normalizedSearch}%,tags.cs.{${normalizedSearch}}`
-          );
-        }
-      }
-
-      const { count, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-
-      return {
-        slug,
-        count: count ?? 0,
-      };
-    })
+  const countsBySlug = new Map(
+    Array.isArray(data)
+      ? data.map((entry) => [
+          entry.slug,
+          typeof entry.count === "number" ? entry.count : Number(entry.count ?? 0),
+        ])
+      : []
   );
 
+  const counts = categorySlugs
+    .map((slug) => ({
+      slug,
+      count: countsBySlug.get(slug) ?? 0,
+    }))
+    .filter((category) => category.count > 0);
+
   return NextResponse.json({
-    data: counts.filter((category) => category.count > 0),
+    data: counts,
   });
 }

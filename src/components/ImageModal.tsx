@@ -9,6 +9,7 @@ import {
   saveRemixGenerationDraft,
 } from "@/lib/generation-draft";
 import { useAppStore } from "@/store";
+import type { ImagePrompt } from "@/lib/types";
 
 export default function ImageModal() {
   const router = useRouter();
@@ -20,8 +21,11 @@ export default function ImageModal() {
   const user = useAppStore((s) => s.user);
   const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
   const thumbnailRef = useRef<HTMLDivElement>(null);
+  const pendingDetailsRef = useRef(new Set<string>());
   const [promptLang, setPromptLang] = useState<"en" | "zh" | "ja">("en");
   const [copied, setCopied] = useState(false);
+  const [imageDetailsById, setImageDetailsById] = useState<Record<string, ImagePrompt>>({});
+  const [detailErrorsById, setDetailErrorsById] = useState<Record<string, string>>({});
 
   // Keyboard navigation
   useEffect(() => {
@@ -60,21 +64,80 @@ export default function ImageModal() {
     }
   }, [selectedImage]);
 
+  useEffect(() => {
+    if (!selectedImage || selectedImage.prompt) {
+      return;
+    }
+
+    if (
+      imageDetailsById[selectedImage.id] ||
+      detailErrorsById[selectedImage.id] ||
+      pendingDetailsRef.current.has(selectedImage.id)
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const pendingDetails = pendingDetailsRef.current;
+    pendingDetails.add(selectedImage.id);
+
+    fetch(`/api/images/${selectedImage.id}`, { signal: controller.signal })
+      .then(async (res) => {
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.error || "Failed to load image details");
+        }
+
+        setImageDetailsById((current) => ({
+          ...current,
+          [selectedImage.id]: json as ImagePrompt,
+        }));
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const message =
+          error instanceof Error ? error.message : "Failed to load image details";
+        setDetailErrorsById((current) => ({
+          ...current,
+          [selectedImage.id]: message,
+        }));
+      })
+      .finally(() => {
+        pendingDetails.delete(selectedImage.id);
+      });
+
+    return () => {
+      pendingDetails.delete(selectedImage.id);
+      controller.abort();
+    };
+  }, [detailErrorsById, imageDetailsById, selectedImage]);
+
   if (!selectedImage) return null;
 
+  const activeImage = imageDetailsById[selectedImage.id] ?? selectedImage;
+  const detailsError = detailErrorsById[selectedImage.id] ?? null;
+  const isLoadingDetails =
+    !selectedImage.prompt &&
+    !imageDetailsById[selectedImage.id] &&
+    !detailErrorsById[selectedImage.id];
+
   const availableLangs: ("en" | "zh" | "ja")[] = ["en"];
-  if (selectedImage.prompt_zh) availableLangs.push("zh");
-  if (selectedImage.prompt_ja) availableLangs.push("ja");
+  if (activeImage.prompt_zh) availableLangs.push("zh");
+  if (activeImage.prompt_ja) availableLangs.push("ja");
 
   const promptText =
     promptLang === "zh"
-      ? selectedImage.prompt_zh!
+      ? activeImage.prompt_zh || activeImage.prompt || ""
       : promptLang === "ja"
-      ? selectedImage.prompt_ja!
-      : selectedImage.prompt;
+      ? activeImage.prompt_ja || activeImage.prompt || ""
+      : activeImage.prompt || "";
 
   const modelLogo = (() => {
-    const m = selectedImage.model.toLowerCase();
+    const m = activeImage.model.toLowerCase();
     if (m.includes("z image")) return "/alibaba-color.svg";
     if (m.includes("seedream")) return "/bytedance-color.svg";
     if (m.includes("grok")) return "/grok-color.svg";
@@ -83,6 +146,7 @@ export default function ImageModal() {
   })();
 
   const copyPrompt = () => {
+    if (!promptText) return;
     navigator.clipboard.writeText(promptText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -111,12 +175,16 @@ export default function ImageModal() {
       return;
     }
 
+    if (!promptText) {
+      return;
+    }
+
     const existingDraft = readRemixGenerationDraft();
     const shouldReuseExistingDraft =
-      existingDraft?.sourceImageId === selectedImage.id &&
-      existingDraft.returnImageId === selectedImage.id &&
+      existingDraft?.sourceImageId === activeImage.id &&
+      existingDraft.returnImageId === activeImage.id &&
       Boolean(existingDraft.sourceImage?.url) &&
-      existingDraft.sourceImage?.url !== selectedImage.url;
+      existingDraft.sourceImage?.url !== activeImage.url;
 
     saveRemixGenerationDraft(
       shouldReuseExistingDraft
@@ -124,16 +192,16 @@ export default function ImageModal() {
             ...existingDraft,
             createdAt: Date.now(),
             returnTo: "gallery",
-            returnImageId: selectedImage.id,
+            returnImageId: activeImage.id,
           }
         : {
             mode: "remix",
-            sourceImageId: selectedImage.id,
+            sourceImageId: activeImage.id,
             prompt: promptText,
             promptLang,
-            sourceImage: selectedImage,
+            sourceImage: activeImage,
             returnTo: "gallery",
-            returnImageId: selectedImage.id,
+            returnImageId: activeImage.id,
             createdAt: Date.now(),
           }
     );
@@ -141,14 +209,14 @@ export default function ImageModal() {
     setSelectedImage(null);
     router.push(
       buildRemixGenerateUrl({
-        sourceImageId: selectedImage.id,
-        sourceImageUrl: selectedImage.url,
+        sourceImageId: activeImage.id,
+        sourceImageUrl: activeImage.url,
         sourcePrompt: promptText,
-        sourceAuthor: selectedImage.author,
-        sourceModel: selectedImage.model,
-        sourceCategory: selectedImage.category,
+        sourceAuthor: activeImage.author,
+        sourceModel: activeImage.model,
+        sourceCategory: activeImage.category,
         returnTo: "gallery",
-        returnImageId: selectedImage.id,
+        returnImageId: activeImage.id,
       })
     );
   };
@@ -180,7 +248,7 @@ export default function ImageModal() {
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={selectedImage.url}
+              src={activeImage.url}
               alt="AI generated image"
               className="max-w-[95%] max-h-[95%] rounded-2xl shadow-2xl"
             />
@@ -208,16 +276,16 @@ export default function ImageModal() {
               {/* Meta info */}
               <div className="mb-5 flex flex-wrap items-center gap-2">
                 <span className="flex items-center gap-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 ring-1 ring-zinc-200 dark:ring-white/5">
-                  <img key={selectedImage.id} src={modelLogo} alt="" className="h-4 w-4" />
-                  {selectedImage.model}
+                  <img key={activeImage.id} src={modelLogo} alt="" className="h-4 w-4" />
+                  {activeImage.model}
                 </span>
-                <span className="text-xs text-zinc-400 dark:text-zinc-500">by {selectedImage.author}</span>
+                <span className="text-xs text-zinc-400 dark:text-zinc-500">by {activeImage.author}</span>
               </div>
 
               {/* Tags */}
-              {selectedImage.tags.length > 0 && (
+              {activeImage.tags.length > 0 && (
                 <div className="mb-5 flex flex-wrap gap-1.5">
-                  {selectedImage.tags.map((tag) => (
+                  {activeImage.tags.map((tag) => (
                     <span
                       key={tag}
                       className="rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20"
@@ -254,13 +322,30 @@ export default function ImageModal() {
                 </div>
                 <div className="scrollbar-hide group/prompt max-h-[70vh] overflow-y-auto rounded-xl bg-zinc-50 dark:bg-zinc-800/40 p-4 ring-1 ring-zinc-200 dark:ring-white/5">
                   <div className="flex items-start gap-2">
-                    <p className="flex-1 text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
-                      {promptText}
-                    </p>
+                    <div className="flex-1">
+                      {isLoadingDetails ? (
+                        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                          Loading prompt details...
+                        </p>
+                      ) : detailsError ? (
+                        <p className="text-[13px] leading-relaxed text-red-500 dark:text-red-400">
+                          {detailsError}
+                        </p>
+                      ) : promptText ? (
+                        <p className="text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
+                          {promptText}
+                        </p>
+                      ) : (
+                        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                          No prompt available for this image.
+                        </p>
+                      )}
+                    </div>
                     {/* Copy button inside prompt box */}
                     <button
                       onClick={copyPrompt}
-                      className="flex-shrink-0 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                      disabled={!promptText}
+                      className="flex-shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
                       title="Copy prompt"
                     >
                       {copied ? (
@@ -283,6 +368,7 @@ export default function ImageModal() {
               <div className="flex gap-2">
                 <button
                   onClick={() => void handleOpenRemixStudio()}
+                  disabled={!promptText || isLoadingDetails}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

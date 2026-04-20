@@ -124,11 +124,35 @@ export default function Home() {
       }
 
       return {
-        data: await hydrateImageDimensions((json.data ?? []) as ImagePrompt[]),
+        data: (json.data ?? []) as ImagePrompt[],
         hasMore: Boolean(json.hasMore),
       };
     },
     [buildQueryString]
+  );
+
+  const syncImageDimensions = useCallback(
+    (nextImages: ImagePrompt[], feedVersion: number, cacheDefaultFeed: boolean) => {
+      void hydrateImageDimensions(nextImages).then((hydratedImages) => {
+        if (feedVersion !== feedVersionRef.current) return;
+
+        const hasDimensionChanges = hydratedImages.some((image, index) => {
+          const previous = nextImages[index];
+          return image.width !== previous?.width || image.height !== previous?.height;
+        });
+
+        if (!hasDimensionChanges) return;
+
+        imagesRef.current = hydratedImages;
+        setImages(hydratedImages);
+        setAllImages(hydratedImages);
+
+        if (cacheDefaultFeed) {
+          defaultFeedImagesRef.current = hydratedImages;
+        }
+      });
+    },
+    [setAllImages]
   );
 
   const loadMore = useCallback(async () => {
@@ -155,6 +179,8 @@ export default function Home() {
         defaultFeedHasMoreRef.current = more;
         setDefaultFeedHasMore(more);
       }
+
+      syncImageDimensions(accumulated, feedVersion, isDefaultFeed);
     } catch {
       // silently fail — user still sees what was loaded
     } finally {
@@ -172,6 +198,7 @@ export default function Home() {
     setAllImages,
     setDefaultFeedHasMore,
     showFavoritesOnly,
+    syncImageDimensions,
   ]);
 
   // Keyboard shortcut: / to toggle search
@@ -258,6 +285,8 @@ export default function Home() {
             defaultFeedHasMoreRef.current = more;
             setDefaultFeedHasMore(more);
           }
+
+          syncImageDimensions(data, feedVersion, isDefaultFeed);
           return;
         }
 
@@ -316,6 +345,7 @@ export default function Home() {
     setAllImages,
     setDefaultFeedHasMore,
     showFavoritesOnly,
+    syncImageDimensions,
   ]);
 
   // IntersectionObserver for infinite scroll
