@@ -4,6 +4,8 @@ export interface ImagePrompt {
   prompt?: string; // JSON string of the detailed prompt
   prompt_zh?: string | null;
   prompt_ja?: string | null;
+  has_prompt_zh?: boolean;
+  has_prompt_ja?: boolean;
   author: string;
   model: string;
   category: string;

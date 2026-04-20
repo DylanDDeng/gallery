@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from("images")
-    .select("id,url,author,model,category,tags,width,height,created_at,tweet_url")
+    .select("id,url,prompt,prompt_zh,prompt_ja,author,model,category,tags,width,height,created_at,tweet_url")
     .order("created_at", { ascending: false })
     .range(offset, offset + limit);
 
@@ -83,7 +83,13 @@ export async function GET(request: Request) {
   }
 
   const hasMore = data && data.length > limit;
-  const images = hasMore ? data.slice(0, limit) : (data || []);
+  const images = (hasMore ? data.slice(0, limit) : (data || [])).map((image) => ({
+    ...image,
+    has_prompt_zh: Boolean(image.prompt_zh),
+    has_prompt_ja: Boolean(image.prompt_ja),
+    prompt_zh: null,
+    prompt_ja: null,
+  }));
 
   return NextResponse.json({ data: images, hasMore });
 }

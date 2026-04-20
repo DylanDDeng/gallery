@@ -65,7 +65,7 @@ export default function ImageModal() {
   }, [selectedImage]);
 
   useEffect(() => {
-    if (!selectedImage || selectedImage.prompt) {
+    if (!selectedImage) {
       return;
     }
 
@@ -126,8 +126,8 @@ export default function ImageModal() {
     !detailErrorsById[selectedImage.id];
 
   const availableLangs: ("en" | "zh" | "ja")[] = ["en"];
-  if (activeImage.prompt_zh) availableLangs.push("zh");
-  if (activeImage.prompt_ja) availableLangs.push("ja");
+  if (activeImage.has_prompt_zh || activeImage.prompt_zh) availableLangs.push("zh");
+  if (activeImage.has_prompt_ja || activeImage.prompt_ja) availableLangs.push("ja");
 
   const promptText =
     promptLang === "zh"
