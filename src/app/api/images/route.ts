@@ -23,6 +23,7 @@ async function ensureAdmin() {
 }
 
 export async function GET(request: Request) {
+  const startedAt = performance.now();
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
   const search = searchParams.get("search");
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
     ?.split(",")
     .map((id) => id.trim())
     .filter(Boolean);
+  const parsedAt = performance.now();
 
   let query = supabase
     .from("images")
@@ -76,12 +78,29 @@ export async function GET(request: Request) {
     }
   }
 
+  const queryStartedAt = performance.now();
   const { data, error } = await query;
+  const queryFinishedAt = performance.now();
 
   if (error) {
+    console.info("/api/images", {
+      category,
+      search,
+      model,
+      time,
+      limit,
+      offset,
+      idsCount: ids?.length ?? 0,
+      ok: false,
+      parseMs: Math.round(parsedAt - startedAt),
+      queryMs: Math.round(queryFinishedAt - queryStartedAt),
+      durationMs: Math.round(performance.now() - startedAt),
+      error: error.message,
+    });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const mapStartedAt = performance.now();
   const hasMore = data && data.length > limit;
   const images = (hasMore ? data.slice(0, limit) : (data || [])).map((image) => ({
     ...image,
@@ -90,6 +109,24 @@ export async function GET(request: Request) {
     prompt_zh: null,
     prompt_ja: null,
   }));
+  const mapFinishedAt = performance.now();
+
+  console.info("/api/images", {
+    category,
+    search,
+    model,
+    time,
+    limit,
+    offset,
+    idsCount: ids?.length ?? 0,
+    ok: true,
+    rows: images.length,
+    hasMore,
+    parseMs: Math.round(parsedAt - startedAt),
+    queryMs: Math.round(queryFinishedAt - queryStartedAt),
+    mapMs: Math.round(mapFinishedAt - mapStartedAt),
+    durationMs: Math.round(performance.now() - startedAt),
+  });
 
   return NextResponse.json({ data: images, hasMore });
 }

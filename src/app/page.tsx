@@ -11,6 +11,7 @@ import UserMenu from "@/components/UserMenu";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
 import { hydrateImageDimensions } from "@/lib/image-dimensions";
+import { fetchCachedJson } from "@/lib/public-feed-cache";
 import type { ImagePrompt } from "@/lib/types";
 
 const PAGE_SIZE = 20;
@@ -115,13 +116,11 @@ export default function Home() {
   );
 
   const fetchPage = useCallback(
-    async (offset: number, signal?: AbortSignal) => {
-      const res = await fetch(`/api/images?${buildQueryString(offset)}`, signal ? { signal } : undefined);
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to load images");
-      }
+    async (offset: number) => {
+      const json = await fetchCachedJson<{
+        data?: ImagePrompt[];
+        hasMore?: boolean;
+      }>(`/api/images?${buildQueryString(offset)}`);
 
       return {
         data: (json.data ?? []) as ImagePrompt[],
@@ -246,7 +245,7 @@ export default function Home() {
       return;
     }
 
-    const controller = new AbortController();
+    let cancelled = false;
     const feedVersion = feedVersionRef.current + 1;
     feedVersionRef.current = feedVersion;
     loadingRef.current = false;
@@ -260,7 +259,9 @@ export default function Home() {
       setHasMore(defaultFeedHasMoreRef.current);
       setIsLoading(false);
       setIsRefreshing(false);
-      return () => controller.abort();
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (initialLoadRef.current && imagesRef.current.length === 0) {
@@ -270,8 +271,9 @@ export default function Home() {
       setIsRefreshing(true);
     }
 
-    fetchPage(0, controller.signal)
+    fetchPage(0)
       .then(({ data, hasMore: more }) => {
+        if (cancelled) return;
         if (feedVersion !== feedVersionRef.current) return;
 
         if (data.length > 0 || !isDefaultFeed) {
@@ -302,7 +304,7 @@ export default function Home() {
         }
       })
       .catch(() => {
-        if (controller.signal.aborted || feedVersion !== feedVersionRef.current) return;
+        if (cancelled || feedVersion !== feedVersionRef.current) return;
 
         if (imagesRef.current.length > 0) {
           setHasMore(false);
@@ -325,6 +327,7 @@ export default function Home() {
         }
       })
       .finally(() => {
+        if (cancelled) return;
         if (feedVersion !== feedVersionRef.current) return;
 
         setIsLoading(false);
@@ -332,7 +335,9 @@ export default function Home() {
         initialLoadRef.current = false;
       });
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [
     activeCategory,
     activeModel,

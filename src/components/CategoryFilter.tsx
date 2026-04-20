@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "@/store";
 import { CATEGORIES, MODELS } from "@/lib/constants";
+import { fetchCachedJson } from "@/lib/public-feed-cache";
 
 const TIME_FILTERS = [
   { name: "Today", slug: "today" },
@@ -35,6 +36,7 @@ export default function CategoryFilter() {
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [fetchedCategorySlugs, setFetchedCategorySlugs] = useState<string[]>([]);
+  const activeCategoryRef = useRef(activeCategory);
 
   const favoriteIdsParam = showFavoritesOnly ? favorites.join(",") : "";
   const hasFavoriteSelection = favoriteIdsParam.length > 0;
@@ -44,18 +46,22 @@ export default function CategoryFilter() {
   );
 
   useEffect(() => {
+    activeCategoryRef.current = activeCategory;
+  }, [activeCategory]);
+
+  useEffect(() => {
     if (showFavoritesOnly && !favoritesLoaded) {
       return;
     }
 
     if (showFavoritesOnly && !hasFavoriteSelection) {
-      if (activeCategory !== "all") {
+      if (activeCategoryRef.current !== "all") {
         setActiveCategory("all");
       }
       return;
     }
 
-    const controller = new AbortController();
+    let cancelled = false;
     const params = new URLSearchParams();
     const trimmedSearchQuery = searchQuery.trim();
 
@@ -75,39 +81,46 @@ export default function CategoryFilter() {
       params.set("ids", favoriteIdsParam);
     }
 
-    fetch(`/api/categories?${params.toString()}`, { signal: controller.signal })
-      .then(async (res) => {
-        const json = await res.json();
+    const requestUrl = `/api/categories?${params.toString()}`;
 
-        if (!res.ok) {
-          throw new Error(json.error || "Failed to load categories");
+    fetchCachedJson<{ data?: Array<{ slug: string }> }>(requestUrl)
+      .then((json) => {
+        if (cancelled) {
+          return;
         }
 
         const nextCategorySlugs = Array.isArray(json.data)
-          ? json.data.map((category: { slug: string }) => category.slug)
+          ? json.data.map((category) => category.slug)
           : [];
 
         setFetchedCategorySlugs(nextCategorySlugs);
 
-        if (activeCategory !== "all" && !nextCategorySlugs.includes(activeCategory)) {
+        if (
+          activeCategoryRef.current !== "all" &&
+          !nextCategorySlugs.includes(activeCategoryRef.current)
+        ) {
           setActiveCategory("all");
         }
       })
       .catch(() => {
-        if (controller.signal.aborted) {
+        if (cancelled) {
           return;
         }
 
         setFetchedCategorySlugs(fallbackCategorySlugs);
 
-        if (activeCategory !== "all" && !fallbackCategorySlugs.includes(activeCategory)) {
+        if (
+          activeCategoryRef.current !== "all" &&
+          !fallbackCategorySlugs.includes(activeCategoryRef.current)
+        ) {
           setActiveCategory("all");
         }
       });
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [
-    activeCategory,
     activeModel,
     activeTimeFilter,
     fallbackCategorySlugs,
