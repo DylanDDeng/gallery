@@ -1197,17 +1197,17 @@ export default function GeneratePage() {
                   </div>
 
                   {resultCards.length > 1 ? (
-                    <div className="flex max-h-[calc(100vh-180px)] flex-row gap-2 overflow-x-auto rounded-xl bg-zinc-100/80 p-2 dark:bg-zinc-900/50 sm:w-[88px] sm:flex-col sm:overflow-x-visible sm:overflow-y-auto">
+                    <div className="flex max-h-[calc(100vh-180px)] flex-row gap-1.5 overflow-x-auto rounded-xl bg-zinc-50 px-1.5 py-3 dark:bg-zinc-900/50 sm:w-[72px] sm:flex-col sm:items-center sm:overflow-x-visible sm:overflow-y-auto">
                       {resultCards.map((asset) => (
                       <button
                         key={asset.id}
                         type="button"
                         onClick={asset.onSelect}
                         title={asset.label}
-                        className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg transition-all sm:h-[72px] sm:w-[72px] ${
+                        className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg transition-all duration-300 ${
                           asset.id === featuredAsset.id
-                            ? "ring-2 ring-zinc-900 dark:ring-white scale-[1.02]"
-                            : "ring-1 ring-zinc-200 hover:ring-zinc-300 dark:ring-white/10 dark:hover:ring-white/20"
+                            ? "ring-2 ring-zinc-900 scale-105 dark:ring-white/80"
+                            : "opacity-50 hover:opacity-80"
                         }`}
                       >
                         <Image
@@ -1216,7 +1216,9 @@ export default function GeneratePage() {
                           width={320}
                           height={320}
                           unoptimized
-                          className="h-full w-full object-cover"
+                          className={`h-full w-full object-cover ${
+                            asset.id === featuredAsset.id ? "" : "blur-[2px]"
+                          }`}
                         />
                       </button>
                     ))}
