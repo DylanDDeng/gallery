@@ -888,12 +888,8 @@ export default function GeneratePage() {
     [submitting]
   );
 
-  const visibleAssets = useMemo<AssetCard[]>(
-    () => (pendingCard ? [pendingCard, ...resultCards] : resultCards),
-    [pendingCard, resultCards]
-  );
-
-  const featuredAsset = visibleAssets[0] ?? null;
+  const featuredAsset =
+    pendingCard ?? resultCards.find((asset) => asset.selected) ?? resultCards[0] ?? null;
   const resultCount = resultCards.length;
 
   if (!user) {
@@ -1170,67 +1166,63 @@ export default function GeneratePage() {
 
             {featuredAsset ? (
               <>
-                <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl bg-zinc-100 p-3 dark:bg-zinc-800/50 sm:p-4">
-                  {featuredAsset.pending || !featuredAsset.imageUrl ? (
-                    <div className="flex aspect-[4/5] items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-400 dark:border-zinc-700 dark:border-t-zinc-500" />
-                    </div>
-                  ) : (
-                    <Image
-                      src={featuredAsset.imageUrl}
-                      alt={featuredAsset.label}
-                      width={1200}
-                      height={1500}
-                      unoptimized
-                      className="max-h-[calc(100vh-180px)] w-auto max-w-full object-contain"
-                    />
-                  )}
-                  {featuredAsset.kind === "result" && featuredAsset.onDownload ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        featuredAsset.onDownload?.();
-                      }}
-                      className="absolute bottom-3 right-3 rounded-md bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80"
-                    >
-                      {downloadingTaskId === featuredAsset.id ? "Saving…" : "Download"}
-                    </button>
-                  ) : null}
-                </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <div className="relative flex min-h-[320px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-zinc-100 p-3 dark:bg-zinc-800/50 sm:p-4">
+                    {featuredAsset.pending || !featuredAsset.imageUrl ? (
+                      <div className="flex aspect-[4/5] items-center justify-center">
+                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-400 dark:border-zinc-700 dark:border-t-zinc-500" />
+                      </div>
+                    ) : (
+                      <Image
+                        src={featuredAsset.imageUrl}
+                        alt={featuredAsset.label}
+                        width={1200}
+                        height={1500}
+                        unoptimized
+                        className="max-h-[calc(100vh-180px)] w-auto max-w-full object-contain"
+                      />
+                    )}
+                    {featuredAsset.kind === "result" && featuredAsset.onDownload ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          featuredAsset.onDownload?.();
+                        }}
+                        className="absolute bottom-3 right-3 rounded-md bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+                      >
+                        {downloadingTaskId === featuredAsset.id ? "Saving…" : "Download"}
+                      </button>
+                    ) : null}
+                  </div>
 
-                {visibleAssets.length > 1 ? (
-                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5">
-                    {visibleAssets.slice(1).map((asset) => (
+                  {resultCards.length > 1 ? (
+                    <div className="flex max-h-[calc(100vh-180px)] flex-row gap-2 overflow-x-auto rounded-xl bg-zinc-100/80 p-2 dark:bg-zinc-900/50 sm:w-[88px] sm:flex-col sm:overflow-x-visible sm:overflow-y-auto">
+                      {resultCards.map((asset) => (
                       <button
                         key={asset.id}
                         type="button"
                         onClick={asset.onSelect}
                         title={asset.label}
-                        className={`relative aspect-square overflow-hidden rounded-lg ring-1 transition-all ${
-                          asset.selected
-                            ? "ring-2 ring-zinc-900 dark:ring-white"
-                            : "ring-zinc-200 hover:ring-zinc-300 dark:ring-white/10 dark:hover:ring-white/20"
+                        className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg transition-all sm:h-[72px] sm:w-[72px] ${
+                          asset.id === featuredAsset.id
+                            ? "ring-2 ring-zinc-900 dark:ring-white scale-[1.02]"
+                            : "ring-1 ring-zinc-200 hover:ring-zinc-300 dark:ring-white/10 dark:hover:ring-white/20"
                         }`}
                       >
-                        {asset.pending || !asset.imageUrl ? (
-                          <div className="flex h-full w-full items-center justify-center bg-zinc-100 dark:bg-zinc-800/50">
-                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-500 dark:border-zinc-600 dark:border-t-zinc-400" />
-                          </div>
-                        ) : (
-                          <Image
-                            src={asset.imageUrl}
-                            alt={asset.label}
-                            width={320}
-                            height={320}
-                            unoptimized
-                            className="h-full w-full object-cover"
-                          />
-                        )}
+                        <Image
+                          src={asset.imageUrl!}
+                          alt={asset.label}
+                          width={320}
+                          height={320}
+                          unoptimized
+                          className="h-full w-full object-cover"
+                        />
                       </button>
                     ))}
-                  </div>
-                ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </>
             ) : (
               <div className="flex aspect-[4/5] max-h-[640px] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 px-6 text-center dark:border-white/10">
