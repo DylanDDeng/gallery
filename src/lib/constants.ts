@@ -386,6 +386,7 @@ export const MODELS = [
   "Nano Banana Pro",
   "Nano Banana 2",
   "GPT Image 1.5",
+  "GPT Image 2",
   "Grok Imagine",
   "Seedream 4.5",
   "Seedream 5.0 Lite",
