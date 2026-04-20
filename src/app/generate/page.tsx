@@ -9,7 +9,6 @@ import {
 } from "@/lib/billing-feature";
 import {
   buildRemixGenerateUrl,
-  type CanvasCardPosition,
   parseGenerationDraftFromSearchParams,
   readRemixContextSnapshot,
   readRemixGenerationDraft,
@@ -26,9 +25,9 @@ import {
   type AspectRatio,
   type OutputResolution,
 } from "@/lib/generation-size-options";
-import StudioCanvas, { type StudioCanvasCard } from "@/components/StudioCanvas";
 import type { ImagePrompt } from "@/lib/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase-browser";
+import UserMenu from "@/components/UserMenu";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 
@@ -44,6 +43,18 @@ interface GenerationTask {
   created_at: string;
 }
 
+interface AssetCard {
+  id: string;
+  imageUrl?: string;
+  label: string;
+  caption: string;
+  kind: "reference" | "result";
+  selected?: boolean;
+  pending?: boolean;
+  onSelect?: () => void;
+  onDownload?: () => void;
+}
+
 const MODELS = [
   { id: "doubao-seedream-5-0-260128", name: "Seedream-5.0-Lite" },
 ] as const;
@@ -55,46 +66,11 @@ const ALLOWED_REFERENCE_MIME_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-
-function getTaskPresentation(
-  status: GenerationTask["status"] | "idle"
-): {
-  label: string;
-  badgeClassName: string;
-  helperText: string;
-} {
-  switch (status) {
-    case "completed":
-      return {
-        label: "Rendered",
-        badgeClassName:
-          "bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300",
-        helperText: "A fresh image has landed in the studio.",
-      };
-    case "failed":
-      return {
-        label: "Interrupted",
-        badgeClassName:
-          "bg-rose-500/12 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300",
-        helperText: "The render stopped before completion.",
-      };
-    case "processing":
-    case "queued":
-      return {
-        label: "Developing",
-        badgeClassName:
-          "bg-amber-500/12 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-300",
-        helperText: "The next composition is taking shape.",
-      };
-    default:
-      return {
-        label: "Awaiting prompt",
-        badgeClassName:
-          "bg-zinc-900/6 text-zinc-600 ring-1 ring-zinc-900/10 dark:bg-white/8 dark:text-zinc-300 dark:ring-white/10",
-        helperText: "Start with a prompt and the studio will stage the result here.",
-      };
-  }
-}
+const GALLERY_TABS = [
+  { id: "results", label: "Renders" },
+  { id: "references", label: "References" },
+  { id: "all", label: "All" },
+] as const;
 
 function mergeRemixSeriesItems(
   ...taskGroups: Array<RemixSeriesItem[] | undefined>
@@ -148,6 +124,29 @@ function getReferenceImageLabel(
   return `Reference ${index + 1}`;
 }
 
+function getPromptExcerpt(text: string, maxLength = 104) {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, maxLength).trimEnd()}…`;
+}
+
+function formatCreatedAt(value?: string) {
+  if (!value) return "Just now";
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) {
+    return "Just now";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(timestamp);
+}
+
 export default function GeneratePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -170,21 +169,20 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
-  const [canvasReferenceImages, setCanvasReferenceImages] = useState<Partial<ImagePrompt>[]>([]);
+  const [referenceImages, setReferenceImages] = useState<Partial<ImagePrompt>[]>([]);
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
-  const [pendingResultSlotId, setPendingResultSlotId] = useState<string | null>(null);
-  const [taskCardSlotIds, setTaskCardSlotIds] = useState<Record<string, string>>({});
-  const [canvasCardPositions, setCanvasCardPositions] = useState<Record<string, CanvasCardPosition>>({});
   const [selectedModel, setSelectedModel] = useState<
     (typeof MODELS)[number]["id"]
   >(MODELS[0].id);
   const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
+  const [activeGalleryTab, setActiveGalleryTab] = useState<
+    (typeof GALLERY_TABS)[number]["id"]
+  >("results");
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const remixHydrationRequestRef = useRef(0);
-  const canPersistCanvasLayoutRef = useRef(false);
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
 
   const checkApiKey = useCallback(async () => {
@@ -233,20 +231,14 @@ export default function GeneratePage() {
     } else {
       setHasApiKey(true);
     }
-
-  }, [
-    billingEnabled,
-    checkApiKey,
-    router,
-    selfServiceApiKeysEnabled,
-    user,
-  ]);
+  }, [checkApiKey, router, selfServiceApiKeysEnabled, user]);
 
   useEffect(() => {
     if (!user) return;
 
     if (!isRemixMode) {
       setRemixDraft(null);
+      setReferenceImages([]);
       setPrompt("");
       return;
     }
@@ -279,44 +271,45 @@ export default function GeneratePage() {
 
     if (!draft?.sourceImage?.url && !draft?.sourceImageId && !sourceImageId) {
       setRemixDraft(null);
+      setReferenceImages([]);
       setPrompt("");
       return;
     }
 
     if (draft) {
       setRemixDraft(draft);
+      setReferenceImages(
+        mergeReferenceImages(
+          draft.referenceImages,
+          draft.sourceImage?.url ? draft.sourceImage : null
+        )
+      );
       setPrompt(draft.prompt);
     }
   }, [isRemixMode, searchParams, sourceImageId, user]);
 
   useEffect(() => {
     if (!isRemixMode || !sourceImageId || !user?.id) {
-      canPersistCanvasLayoutRef.current = false;
       setIsRestoringSeries(false);
       return;
     }
 
-    canPersistCanvasLayoutRef.current = false;
     const hydrationRequestId = ++remixHydrationRequestRef.current;
-    setCurrentTask(null);
-
     const draft = readRemixGenerationDraft();
     const snapshot = readRemixContextSnapshot(user.id, sourceImageId);
     const urlDraft = parseGenerationDraftFromSearchParams(
       new URLSearchParams(searchParams.toString())
     );
+
     const persistedSourceImage =
-      snapshot
-        ? snapshot.sourceImage?.url
-          ? snapshot.sourceImage
-          : undefined
-        : draft
-          ? draft.sourceImage?.url
-            ? draft.sourceImage
-            : undefined
+      snapshot?.sourceImage?.url
+        ? snapshot.sourceImage
+        : draft?.sourceImage?.url
+          ? draft.sourceImage
           : urlDraft?.mode === "remix" && urlDraft.sourceImage?.url
             ? urlDraft.sourceImage
             : undefined;
+
     const persistedReferenceImages = mergeReferenceImages(
       snapshot?.referenceImages,
       snapshot?.sourceImage?.url ? snapshot.sourceImage : null,
@@ -326,8 +319,6 @@ export default function GeneratePage() {
         ? urlDraft.sourceImage
         : null
     );
-    const persistedTaskCardSlotIds = snapshot?.taskCardSlotIds ?? {};
-    const persistedCardPositions = snapshot?.cardPositions ?? {};
 
     if (snapshot) {
       const snapshotPrompt =
@@ -348,16 +339,12 @@ export default function GeneratePage() {
         returnImageId: searchParams.get("returnImageId") || sourceImageId,
         createdAt: Date.now(),
       });
-      setCanvasReferenceImages(persistedReferenceImages);
-      setTaskCardSlotIds(persistedTaskCardSlotIds);
-      setCanvasCardPositions(persistedCardPositions);
+      setReferenceImages(persistedReferenceImages);
       setPrompt(snapshotPrompt);
       setStagedTasks(snapshot.tasks);
     } else {
       setStagedTasks([]);
-      setCanvasReferenceImages(persistedReferenceImages);
-      setTaskCardSlotIds({});
-      setCanvasCardPositions({});
+      setReferenceImages(persistedReferenceImages);
     }
 
     let isActive = true;
@@ -366,16 +353,7 @@ export default function GeneratePage() {
       setIsRestoringSeries(true);
       try {
         const context = await fetchRemixContext(sourceImageId);
-        const mergedTasks = mergeRemixSeriesItems(
-          snapshot?.tasks,
-          context.tasks
-        );
-        const restoredTaskCardSlotIds = Object.fromEntries(
-          mergedTasks.map((task) => [
-            task.id,
-            persistedTaskCardSlotIds[task.id] ?? task.id,
-          ])
-        );
+        const mergedTasks = mergeRemixSeriesItems(snapshot?.tasks, context.tasks);
         const mergedReferenceImages = mergeReferenceImages(
           persistedReferenceImages,
           !draft && !snapshot && !(urlDraft?.mode === "remix" && urlDraft.sourceImage?.url)
@@ -404,43 +382,29 @@ export default function GeneratePage() {
           createdAt: Date.now(),
         };
 
-        if (
-          !isActive ||
-          remixHydrationRequestRef.current !== hydrationRequestId
-        ) {
+        if (!isActive || remixHydrationRequestRef.current !== hydrationRequestId) {
           return;
         }
 
         setRemixDraft(nextDraft);
-        setCanvasReferenceImages(mergedReferenceImages);
-        setTaskCardSlotIds(restoredTaskCardSlotIds);
-        setCanvasCardPositions(persistedCardPositions);
+        setReferenceImages(mergedReferenceImages);
         setPrompt(promptFromImage);
         setStagedTasks(mergedTasks);
         saveRemixContextSnapshot(user.id, sourceImageId, {
           sourceImage: nextDraft.sourceImage ?? {},
           referenceImages: mergedReferenceImages,
           tasks: mergedTasks,
-          taskCardSlotIds: restoredTaskCardSlotIds,
-          cardPositions: persistedCardPositions,
           savedAt: Date.now(),
         });
       } catch {
-        if (
-          !isActive ||
-          remixHydrationRequestRef.current !== hydrationRequestId
-        ) {
+        if (!isActive || remixHydrationRequestRef.current !== hydrationRequestId) {
           return;
         }
       } finally {
-        if (
-          !isActive ||
-          remixHydrationRequestRef.current !== hydrationRequestId
-        ) {
+        if (!isActive || remixHydrationRequestRef.current !== hydrationRequestId) {
           return;
         }
         setIsRestoringSeries(false);
-        canPersistCanvasLayoutRef.current = true;
       }
     };
 
@@ -466,11 +430,11 @@ export default function GeneratePage() {
 
   useEffect(() => {
     if (!isRemixMode) {
-      setCanvasReferenceImages([]);
+      setReferenceImages([]);
       return;
     }
 
-    setCanvasReferenceImages(
+    setReferenceImages(
       mergeReferenceImages(
         remixDraft?.referenceImages,
         remixDraft?.sourceImage?.url ? remixDraft.sourceImage : null
@@ -513,7 +477,10 @@ export default function GeneratePage() {
         } = await supabase.auth.getUser();
 
         if (authError) {
-          throw new Error(authError.message || "Please sign in again before uploading a reference image.");
+          throw new Error(
+            authError.message ||
+              "Please sign in again before uploading a reference image."
+          );
         }
 
         if (!authUser) {
@@ -544,13 +511,14 @@ export default function GeneratePage() {
         const {
           data: { publicUrl },
         } = supabase.storage.from(REFERENCE_IMAGE_BUCKET).getPublicUrl(filePath);
+
         const nextSourceImageId = sourceImageId || undefined;
         const nextSourceImage = {
           url: publicUrl,
           prompt: file.name,
         };
         const nextReferenceImages = mergeReferenceImages(
-          canvasReferenceImages,
+          referenceImages,
           nextSourceImage
         );
 
@@ -565,15 +533,14 @@ export default function GeneratePage() {
           returnTo: previous?.returnTo ?? "gallery",
           returnImageId: previous?.returnImageId,
         }));
-        setCanvasReferenceImages(nextReferenceImages);
+        setReferenceImages(nextReferenceImages);
+        setActiveGalleryTab("references");
 
         if (user.id && nextSourceImageId) {
           saveRemixContextSnapshot(user.id, nextSourceImageId, {
             sourceImage: nextSourceImage,
             referenceImages: nextReferenceImages,
             tasks: stagedTasks,
-            taskCardSlotIds,
-            cardPositions: canvasCardPositions,
             savedAt: Date.now(),
           });
         }
@@ -583,54 +550,52 @@ export default function GeneratePage() {
             sourceImageId: sourceImageId || undefined,
             sourceImageUrl: publicUrl,
             returnTo: returnTo === "original" ? "original" : "gallery",
-            returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
+            returnImageId:
+              searchParams.get("returnImageId") || sourceImageId || undefined,
           })
         );
       } catch (uploadError) {
         console.error("Reference image upload failed:", uploadError);
         setError(
           uploadError instanceof Error &&
-          /row-level security policy/i.test(uploadError.message)
+            /row-level security policy/i.test(uploadError.message)
             ? "Your upload session is not authorized for storage. Please refresh and sign in again."
             : uploadError instanceof Error
               ? uploadError.message
-            : "Failed to upload the reference image. Please try again."
+              : "Failed to upload the reference image. Please try again."
         );
       } finally {
         setIsUploadingReference(false);
       }
     },
     [
-      canvasCardPositions,
-      canvasReferenceImages,
       prompt,
+      referenceImages,
       returnTo,
       router,
       searchParams,
       sourceImageId,
       stagedTasks,
-      taskCardSlotIds,
       user,
     ]
   );
 
   const handleClearReferenceImage = useCallback(() => {
-    remixHydrationRequestRef.current += 1;
     const nextReferenceImages = mergeReferenceImages(
-      canvasReferenceImages,
+      referenceImages,
       remixDraft?.sourceImage
     );
+
     if (user?.id && sourceImageId) {
       saveRemixContextSnapshot(user.id, sourceImageId, {
         sourceImage: {},
         referenceImages: nextReferenceImages,
         tasks: stagedTasks,
-        taskCardSlotIds,
-        cardPositions: canvasCardPositions,
         savedAt: Date.now(),
       });
     }
-    setCanvasReferenceImages(nextReferenceImages);
+
+    setReferenceImages(nextReferenceImages);
     setRemixDraft((previous) => {
       if (!previous) {
         return null;
@@ -648,24 +613,26 @@ export default function GeneratePage() {
       buildRemixGenerateUrl({
         sourceImageId: sourceImageId || undefined,
         returnTo: returnTo === "original" ? "original" : "gallery",
-        returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
+        returnImageId:
+          searchParams.get("returnImageId") || sourceImageId || undefined,
       })
     );
   }, [
-    canvasCardPositions,
-    canvasReferenceImages,
+    referenceImages,
     remixDraft?.sourceImage,
     returnTo,
     router,
     searchParams,
     sourceImageId,
     stagedTasks,
-    taskCardSlotIds,
     user?.id,
   ]);
 
   const handleSelectReferenceImage = useCallback(
-    (image: Partial<ImagePrompt> & { url: string }, options?: { skipAddingToReferenceList?: boolean }) => {
+    (
+      image: Partial<ImagePrompt> & { url: string },
+      options?: { skipAddingToReferenceList?: boolean }
+    ) => {
       setRemixDraft((previous) => {
         if (!previous) {
           return previous;
@@ -685,8 +652,6 @@ export default function GeneratePage() {
             sourceImage: image,
             referenceImages: nextDraft.referenceImages,
             tasks: stagedTasks,
-            taskCardSlotIds,
-            cardPositions: canvasCardPositions,
             savedAt: Date.now(),
           });
         }
@@ -699,11 +664,12 @@ export default function GeneratePage() {
           sourceImageId: sourceImageId || undefined,
           sourceImageUrl: image.url,
           returnTo: returnTo === "original" ? "original" : "gallery",
-          returnImageId: searchParams.get("returnImageId") || sourceImageId || undefined,
+          returnImageId:
+            searchParams.get("returnImageId") || sourceImageId || undefined,
         })
       );
     },
-    [canvasCardPositions, returnTo, router, searchParams, sourceImageId, stagedTasks, taskCardSlotIds, user?.id]
+    [returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
   );
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -712,12 +678,10 @@ export default function GeneratePage() {
       return;
     }
 
-    const nextPendingSlotId = `pending-result-card:${crypto.randomUUID()}`;
-
     setSubmitting(true);
     setError(null);
     setCurrentTask(null);
-    setPendingResultSlotId(nextPendingSlotId);
+
     const shouldOptimisticallyDeduct =
       billingEnabled && typeof credits === "number" && credits > 0;
 
@@ -744,7 +708,7 @@ export default function GeneratePage() {
           model: selectedModel,
           size: selectedOutputSize.size,
           sourceImageId: remixDraft?.sourceImage?.url
-            ? (remixDraft?.sourceImageId ?? sourceImageId)
+            ? remixDraft?.sourceImageId ?? sourceImageId
             : null,
           sourceImageUrl: remixDraft?.sourceImage?.url ?? null,
         }),
@@ -762,7 +726,6 @@ export default function GeneratePage() {
         if (billingEnabled && (shouldOptimisticallyDeduct || res.status === 402)) {
           await fetchCredits();
         }
-        setPendingResultSlotId(null);
         setError(json.error || "Failed to create generation");
         if (selfServiceApiKeysEnabled && json.error?.includes("API key")) {
           setHasApiKey(false);
@@ -778,18 +741,8 @@ export default function GeneratePage() {
         }
       }
 
-      const nextTaskCardSlotIds = json.task?.id
-        ? {
-            ...taskCardSlotIds,
-            [json.task.id]: nextPendingSlotId,
-          }
-        : taskCardSlotIds;
-
-      if (json.task?.id) {
-        setTaskCardSlotIds(nextTaskCardSlotIds);
-      }
-      setPendingResultSlotId(null);
       setCurrentTask(json.task);
+      setActiveGalleryTab("results");
 
       if (isRemixMode && json.task.result_url) {
         setStagedTasks((previous) => {
@@ -808,8 +761,6 @@ export default function GeneratePage() {
                 remixDraft?.sourceImage
               ),
               tasks: next,
-              taskCardSlotIds: nextTaskCardSlotIds,
-              cardPositions: canvasCardPositions,
               savedAt: Date.now(),
             });
           }
@@ -826,7 +777,6 @@ export default function GeneratePage() {
       if (billingEnabled && shouldOptimisticallyDeduct) {
         await fetchCredits();
       }
-      setPendingResultSlotId(null);
       console.error("Error creating generation:", submitError);
       setError("An error occurred. Please try again.");
     } finally {
@@ -834,73 +784,36 @@ export default function GeneratePage() {
     }
   };
 
-  const handleDownloadTask = useCallback(async (task: { id: string; result_url?: string | null }) => {
-    if (!task.result_url || downloadingTaskId === task.id) {
-      return;
-    }
-
-    setDownloadingTaskId(task.id);
-    try {
-      const response = await fetch(task.result_url);
-      if (!response.ok) {
-        throw new Error(`Failed to download image: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const objectUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = `remix-${task.id}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(objectUrl);
-    } catch (downloadError) {
-      console.error("Error downloading generated image:", downloadError);
-      setError("Failed to download the generated image. Please try again.");
-    } finally {
-      setDownloadingTaskId((current) => (current === task.id ? null : current));
-    }
-  }, [downloadingTaskId]);
-
-  const handleCanvasPositionsChange = useCallback(
-    (positions: Record<string, CanvasCardPosition>) => {
-      setCanvasCardPositions(positions);
-
-      if (!user?.id || !sourceImageId || !canPersistCanvasLayoutRef.current) {
+  const handleDownloadTask = useCallback(
+    async (task: { id: string; result_url?: string | null }) => {
+      if (!task.result_url || downloadingTaskId === task.id) {
         return;
       }
 
-      const existingSnapshot = readRemixContextSnapshot(user.id, sourceImageId);
+      setDownloadingTaskId(task.id);
+      try {
+        const response = await fetch(task.result_url);
+        if (!response.ok) {
+          throw new Error(`Failed to download image: ${response.status}`);
+        }
 
-      saveRemixContextSnapshot(user.id, sourceImageId, {
-        sourceImage: remixDraft?.sourceImage ?? existingSnapshot?.sourceImage ?? {},
-        referenceImages: mergeReferenceImages(
-          existingSnapshot?.referenceImages,
-          existingSnapshot?.sourceImage?.url ? existingSnapshot.sourceImage : null,
-          remixDraft?.referenceImages,
-          remixDraft?.sourceImage
-        ),
-        tasks: stagedTasks.length > 0 ? stagedTasks : existingSnapshot?.tasks ?? [],
-        taskCardSlotIds: {
-          ...(existingSnapshot?.taskCardSlotIds ?? {}),
-          ...taskCardSlotIds,
-        },
-        cardPositions: {
-          ...(existingSnapshot?.cardPositions ?? {}),
-          ...positions,
-        },
-        savedAt: Date.now(),
-      });
+        const blob = await response.blob();
+        const objectUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = `remix-${task.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(objectUrl);
+      } catch (downloadError) {
+        console.error("Error downloading generated image:", downloadError);
+        setError("Failed to download the generated image. Please try again.");
+      } finally {
+        setDownloadingTaskId((current) => (current === task.id ? null : current));
+      }
     },
-    [
-      remixDraft?.referenceImages,
-      remixDraft?.sourceImage,
-      sourceImageId,
-      stagedTasks,
-      taskCardSlotIds,
-      user?.id,
-    ]
+    [downloadingTaskId]
   );
 
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
@@ -911,144 +824,140 @@ export default function GeneratePage() {
     !prompt.trim() ||
     (selfServiceApiKeysEnabled && !hasApiKey) ||
     (billingEnabled && creditCount < 1);
-  const studioStatus = getTaskPresentation(
-    submitting ? "processing" : currentTask?.status ?? "idle"
-  );
-  const titleFont =
-    '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif';
-  const canvasResultTasks = useMemo(() => {
+
+  const resultTasks = useMemo(() => {
     const rendered = stagedTasks.filter((task) => task.result_url);
     const latest =
       currentTask?.status === "completed" && currentTask.result_url ? currentTask : null;
     return rendered.length > 0 ? rendered : latest ? [latest] : [];
   }, [stagedTasks, currentTask]);
-  const pendingCardId = submitting ? pendingResultSlotId : null;
-  const focusedCanvasCardId =
-    pendingCardId ??
-    (currentTask?.id ? taskCardSlotIds[currentTask.id] ?? null : null);
-  const nextResultSlotIndex = canvasResultTasks.length;
-  const nextResultSlotPosition = useMemo(() => ({
-    x: 220 + nextResultSlotIndex * 320,
-    y: nextResultSlotIndex % 2 === 0 ? -20 : 90,
-  }), [nextResultSlotIndex]);
-  const resultImageUrl = canvasResultTasks.at(-1)?.result_url || null;
-  const resultTaskUrls = useMemo(() => new Set(canvasResultTasks.map((task) => task.result_url)), [canvasResultTasks]);
-  const canvasCards: StudioCanvasCard[] = useMemo(() => [
-    ...canvasReferenceImages
-      .filter((image): image is Partial<ImagePrompt> & { url: string } => Boolean(image.url))
-      .filter((image) => !resultTaskUrls.has(image.url))
-      .map((image, index) => ({
-        id: `reference-card:${image.url}`,
-        imageUrl: image.url,
-        label: getReferenceImageLabel(image, index, sourceImageUrl),
-        kind: "reference" as const,
-        position: canvasCardPositions[`reference-card:${image.url}`],
-        width: canvasCardPositions[`reference-card:${image.url}`]?.width,
-        selected: image.url === sourceImageUrl,
+
+  const resultTaskUrls = useMemo(
+    () => new Set(resultTasks.map((task) => task.result_url)),
+    [resultTasks]
+  );
+
+  const referenceCards = useMemo<AssetCard[]>(
+    () =>
+      referenceImages
+        .filter((image): image is Partial<ImagePrompt> & { url: string } => Boolean(image.url))
+        .filter((image) => !resultTaskUrls.has(image.url))
+        .map((image, index) => ({
+          id: `reference-card:${image.url}`,
+          imageUrl: image.url,
+          label: getReferenceImageLabel(image, index, sourceImageUrl),
+          caption: image.prompt ? getPromptExcerpt(image.prompt, 70) : "Click to use for the next render.",
+          kind: "reference" as const,
+          selected: image.url === sourceImageUrl,
+          onSelect: () => handleSelectReferenceImage(image),
+        })),
+    [handleSelectReferenceImage, referenceImages, resultTaskUrls, sourceImageUrl]
+  );
+
+  const resultCards = useMemo<AssetCard[]>(
+    () =>
+      resultTasks.map((task, index) => ({
+        id: task.id,
+        imageUrl: task.result_url!,
+        label: index === resultTasks.length - 1 ? "Latest render" : `Variation ${index + 1}`,
+        caption: `${formatCreatedAt(task.created_at)} · ${task.model}`,
+        kind: "result" as const,
+        selected: task.result_url === sourceImageUrl,
+        onDownload: () => {
+          void handleDownloadTask(task);
+        },
         onSelect: () => {
-          handleSelectReferenceImage(image);
+          handleSelectReferenceImage(
+            {
+              url: task.result_url!,
+              prompt: task.prompt,
+            },
+            { skipAddingToReferenceList: true }
+          );
         },
       })),
-    ...canvasResultTasks.map((task, index) => ({
-      id: taskCardSlotIds[task.id] ?? task.id,
-      imageUrl: task.result_url!,
-      label:
-        index === canvasResultTasks.length - 1
-          ? "Latest result"
-          : `Variation ${index + 1}`,
-      kind: "result" as const,
-      animateIn: currentTask?.id === task.id,
-      position: canvasCardPositions[taskCardSlotIds[task.id] ?? task.id],
-      width: canvasCardPositions[taskCardSlotIds[task.id] ?? task.id]?.width,
-      zIndex: currentTask?.id === task.id ? 35 : 10,
-      selected: task.result_url === sourceImageUrl,
-      onDownload: () => {
-        void handleDownloadTask(task);
-      },
-      onSelect: () => {
-        handleSelectReferenceImage(
-          {
-            url: task.result_url!,
-            prompt: task.prompt,
-          },
-          { skipAddingToReferenceList: true }
-        );
-      },
-    })),
-    ...(pendingCardId
-      ? [
-          {
-            id: pendingCardId,
+    [handleDownloadTask, handleSelectReferenceImage, resultTasks, sourceImageUrl]
+  );
+
+  const pendingCard = useMemo<AssetCard | null>(
+    () =>
+      submitting
+        ? {
+            id: "pending-render",
             label: "Rendering next image",
+            caption: "The new output will appear here as soon as it completes.",
             kind: "result" as const,
-            placeholder: true,
-            zIndex: 50,
-            position: canvasCardPositions[pendingCardId] ?? nextResultSlotPosition,
-          },
-        ]
-      : []),
-  ], [
-    canvasCardPositions,
-    canvasReferenceImages,
-    canvasResultTasks,
-    currentTask?.id,
-    handleDownloadTask,
-    handleSelectReferenceImage,
-    pendingCardId,
-    resultTaskUrls,
-    sourceImageUrl,
-    taskCardSlotIds,
-    nextResultSlotPosition,
-  ]);
-  const toolbarDisabled = generateDisabled;
+            pending: true,
+          }
+        : null,
+    [submitting]
+  );
+
+  const visibleAssets = useMemo<AssetCard[]>(() => {
+    if (activeGalleryTab === "references") {
+      return referenceCards;
+    }
+    if (activeGalleryTab === "all") {
+      return pendingCard
+        ? [pendingCard, ...resultCards, ...referenceCards]
+        : [...resultCards, ...referenceCards];
+    }
+    return pendingCard ? [pendingCard, ...resultCards] : resultCards;
+  }, [activeGalleryTab, pendingCard, referenceCards, resultCards]);
+
+  const featuredAsset = visibleAssets[0] ?? referenceCards[0] ?? null;
+  const referenceCount = referenceCards.length;
+  const resultCount = resultCards.length;
 
   if (!user) {
     return null;
   }
 
+  const generateLabel = submitting
+    ? "Rendering…"
+    : hasReferenceImage
+      ? "Generate variation"
+      : "Generate image";
+
   return (
-    <div className="min-h-screen overflow-hidden bg-[#f3efe9] text-zinc-900 dark:bg-[#111215] dark:text-zinc-100">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.9),rgba(243,239,233,0.75)_38%,rgba(243,239,233,0.94)_72%)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05),rgba(17,18,21,0.82)_38%,rgba(17,18,21,0.96)_72%)]" />
-      {sourceImageUrl ? (
-        <div
-          className="pointer-events-none fixed left-[6%] top-8 h-[78vh] w-[28vw] rounded-[48px] opacity-30 blur-[70px]"
-          style={{ background: `center / cover no-repeat url(${sourceImageUrl})` }}
-        />
-      ) : null}
-      {(resultImageUrl || sourceImageUrl) ? (
-        <div
-          className="pointer-events-none fixed right-[6%] top-10 h-[78vh] w-[28vw] rounded-[48px] opacity-30 blur-[70px]"
-          style={{ background: `center / cover no-repeat url(${resultImageUrl || sourceImageUrl})` }}
-        />
-      ) : null}
-
-      <main className="relative flex h-screen flex-col overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-4 pt-6 sm:px-6 lg:px-8">
-          <div className="pointer-events-auto flex items-center justify-between gap-3">
-          <button
-            onClick={() => router.push("/")}
-            className="rounded-full bg-white/78 px-4 py-2 text-sm font-medium text-zinc-600 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
-          >
-            &larr; Back to gallery
-          </button>
-
-          <div className="flex items-center gap-2">
-            {billingEnabled ? (
-              <div className="rounded-full bg-white/78 px-4 py-2 text-sm font-medium text-zinc-700 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl dark:bg-white/8 dark:text-zinc-200">
-                {credits ?? "—"} credits
-              </div>
-            ) : null}
+    <div className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="flex select-none items-center gap-3"
+            >
+              <img src="/logo.png" alt="" className="h-8 w-8" />
+              <h1
+                className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
+                Aestara
+              </h1>
+            </button>
+            <span className="text-zinc-300 dark:text-zinc-700">/</span>
+            <span className="truncate text-sm text-zinc-500 dark:text-zinc-400">
+              Remix studio
+            </span>
+          </div>
+          <div className="flex flex-shrink-0 items-center gap-2">
             {billingEnabled ? (
               <button
+                type="button"
                 onClick={() => router.push((credits ?? 0) > 0 ? "/credits" : "/pricing")}
-                className="rounded-full bg-white/78 px-4 py-2 text-sm font-medium text-zinc-700 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:hover:text-white"
+                className="hidden sm:inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
               >
-                {(credits ?? 0) > 0 ? "Get credits" : "Buy credits"}
+                {credits ?? "—"} credits
               </button>
             ) : null}
+            <UserMenu />
             <button
+              type="button"
               onClick={toggleTheme}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/78 text-zinc-500 shadow-[0_10px_35px_rgba(34,24,15,0.08)] backdrop-blur-xl transition-colors hover:bg-white hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
+              aria-label="Toggle theme"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
             >
               {theme === "light" ? (
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1062,253 +971,323 @@ export default function GeneratePage() {
             </button>
           </div>
         </div>
-        </div>
+      </header>
 
-        <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center">
-          <div className="rounded-full bg-white/54 px-4 py-1 text-[11px] uppercase tracking-[0.28em] text-zinc-500 backdrop-blur-xl dark:bg-white/6 dark:text-zinc-400">
-            {hasReferenceImage ? "Remix studio" : "Generate studio"}
-          </div>
-        </div>
+      <main className="mx-auto max-w-[1600px] px-6 py-6">
+        <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+          <form
+            onSubmit={(event) => void handleSubmit(event)}
+            className="lg:sticky lg:top-[77px] lg:self-start rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-4"
+          >
+            <input
+              ref={referenceInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(event) => void handleReferenceFileChange(event)}
+            />
 
-        <div className="relative flex-1">
-          <StudioCanvas
-            cards={canvasCards}
-            focusCardId={focusedCanvasCardId}
-            onNodePositionsChange={handleCanvasPositionsChange}
-            onNodeSizesChange={(sizes: Record<string, { width: number; height: number }>) => {
-              setCanvasCardPositions((prev) => {
-                const next = { ...prev };
-                for (const [id, { width }] of Object.entries(sizes)) {
-                  next[id] = { ...next[id], width };
-                }
-                return next;
-              });
-            }}
-            emptyTitle={isRestoringSeries ? "Restoring previous variations" : "Compose on the canvas"}
-            emptyDescription={
-              isRestoringSeries
-                ? "We are bringing your previous remix series back onto the canvas."
-                : "Move ideas around, attach a reference image when you need it, and let results accumulate as visual branches."
-            }
-          />
-        </div>
-
-        <div className="relative z-30 flex justify-center px-4 pb-6 pt-2 sm:px-6">
-          <div className="w-full max-w-[960px] rounded-[32px] bg-white/88 shadow-[0_44px_125px_rgba(33,24,15,0.22)] ring-1 ring-white/60 backdrop-blur-2xl dark:bg-[#13151a]/88 dark:ring-white/10 dark:shadow-[0_36px_125px_rgba(0,0,0,0.46)]">
-              <form onSubmit={(event) => void handleSubmit(event)} className="p-5 sm:p-6">
-                <input
-                  ref={referenceInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(event) => void handleReferenceFileChange(event)}
-                />
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.26em] text-zinc-400 dark:text-zinc-500">
-                      {hasReferenceImage ? "Image-guided prompt" : "Prompt composer"}
-                    </p>
-                    {!hasReferenceImage ? (
-                      <p
-                        className="mt-2 text-[26px] leading-none text-zinc-900 dark:text-white"
-                        style={{ fontFamily: titleFont }}
-                      >
-                        Write the frame you want to see
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                    {studioStatus.label}
-                  </div>
+            <div className="mb-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  References
+                </span>
+                <button
+                  type="button"
+                  onClick={handlePickReferenceImage}
+                  disabled={isUploadingReference}
+                  className="text-xs text-zinc-500 transition-colors hover:text-zinc-900 disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  {isUploadingReference ? "Uploading…" : "+ Add"}
+                </button>
+              </div>
+              {referenceCards.length > 0 ? (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {referenceCards.map((asset) => (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      onClick={asset.onSelect}
+                      title={asset.label}
+                      className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg ring-1 transition-all ${
+                        asset.selected
+                          ? "ring-2 ring-zinc-900 dark:ring-white"
+                          : "ring-zinc-200 hover:ring-zinc-300 dark:ring-white/10 dark:hover:ring-white/20"
+                      }`}
+                    >
+                      {asset.imageUrl ? (
+                        <Image
+                          src={asset.imageUrl}
+                          alt={asset.label}
+                          width={160}
+                          height={160}
+                          unoptimized
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </button>
+                  ))}
                 </div>
+              ) : (
+                <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-400 dark:border-white/10 dark:text-zinc-500">
+                  No references staged
+                </div>
+              )}
+              {hasReferenceImage ? (
+                <button
+                  type="button"
+                  onClick={handleClearReferenceImage}
+                  className="mt-2 text-xs text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  Clear active reference
+                </button>
+              ) : null}
+            </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handlePickReferenceImage}
-                    disabled={isUploadingReference}
-                    className="rounded-full bg-black/5 px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-black/10 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:hover:text-white"
-                  >
-                    {isUploadingReference
-                      ? "Uploading reference..."
-                      : hasReferenceImage
-                        ? "Add another reference image"
-                        : "Add reference image"}
-                  </button>
-                  {canvasReferenceImages.length > 1 ? (
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Click a reference on the canvas to use it for the next render.
-                    </p>
+            <div className="mb-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Prompt
+                </span>
+                <span className="text-xs text-zinc-400 dark:text-zinc-600">
+                  {prompt.length}/10000
+                </span>
+              </div>
+              <textarea
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="Describe the image you want to generate…"
+                rows={8}
+                className="w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm leading-6 text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-white/25"
+              />
+            </div>
+
+            <div className="mb-4 space-y-3">
+              <div>
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Model
+                </span>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {MODELS.map((model) => {
+                    const isActive = selectedModel === model.id;
+                    return (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => setSelectedModel(model.id)}
+                        className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                          isActive
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
+                        }`}
+                      >
+                        {model.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Aspect ratio
+                </span>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {ASPECT_RATIO_OPTIONS.map((ratio) => {
+                    const isActive = selectedAspectRatio === ratio.id;
+                    return (
+                      <button
+                        key={ratio.id}
+                        type="button"
+                        onClick={() => setSelectedAspectRatio(ratio.id)}
+                        className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                          isActive
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
+                        }`}
+                      >
+                        {ratio.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Resolution
+                </span>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {OUTPUT_RESOLUTIONS.map((resolution) => {
+                    const isActive = selectedResolution === resolution.id;
+                    return (
+                      <button
+                        key={resolution.id}
+                        type="button"
+                        onClick={() => setSelectedResolution(resolution.id)}
+                        className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                          isActive
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
+                        }`}
+                      >
+                        {resolution.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {selfServiceApiKeysEnabled && hasApiKey === false ? (
+              <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+                Configure your Doubao API key in{" "}
+                <button
+                  type="button"
+                  onClick={() => router.push("/settings")}
+                  className="underline underline-offset-2"
+                >
+                  Settings
+                </button>{" "}
+                before rendering.
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
+                {error}
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={generateDisabled}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            >
+              {submitting ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-zinc-900/30 dark:border-t-zinc-900" />
+              ) : null}
+              {generateLabel}
+            </button>
+          </form>
+
+          <section className="min-w-0 rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-1">
+                {GALLERY_TABS.map((tab) => {
+                  const isActive = activeGalleryTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveGalleryTab(tab.id)}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                        isActive
+                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-200"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                {resultCount} renders · {referenceCount} references
+              </span>
+            </div>
+
+            {featuredAsset ? (
+              <>
+                <div className="relative overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800/50">
+                  {featuredAsset.pending || !featuredAsset.imageUrl ? (
+                    <div className="flex aspect-[4/5] items-center justify-center">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-400 dark:border-zinc-700 dark:border-t-zinc-500" />
+                    </div>
+                  ) : (
+                    <Image
+                      src={featuredAsset.imageUrl}
+                      alt={featuredAsset.label}
+                      width={1200}
+                      height={1500}
+                      unoptimized
+                      className="h-auto w-full object-cover"
+                    />
+                  )}
+                  {featuredAsset.kind === "result" && featuredAsset.onDownload ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        featuredAsset.onDownload?.();
+                      }}
+                      className="absolute bottom-3 right-3 rounded-md bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+                    >
+                      {downloadingTaskId === featuredAsset.id ? "Saving…" : "Download"}
+                    </button>
                   ) : null}
                 </div>
 
-                {hasReferenceImage ? (
-                  <div className="mt-4 flex items-center gap-3 rounded-2xl border border-black/6 bg-black/[0.025] p-3 dark:border-white/8 dark:bg-white/[0.03]">
-                    <div className="flex h-16 w-16 items-center justify-center bg-black/5 dark:bg-white/8">
-                      <Image
-                        src={sourceImageUrl!}
-                        alt="Reference image"
-                        width={128}
-                        height={128}
-                        unoptimized
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-zinc-800 dark:text-zinc-100">
-                        Reference image
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearReferenceImage}
-                      className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-zinc-500 transition-colors hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
-                      aria-label="Remove reference image"
-                      title="Remove reference image"
-                    >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l12 12M18 6L6 18" />
-                      </svg>
-                    </button>
+                {visibleAssets.length > 1 ? (
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-5">
+                    {visibleAssets.slice(1).map((asset) => (
+                      <button
+                        key={asset.id}
+                        type="button"
+                        onClick={asset.onSelect}
+                        title={asset.label}
+                        className={`relative aspect-square overflow-hidden rounded-lg ring-1 transition-all ${
+                          asset.selected
+                            ? "ring-2 ring-zinc-900 dark:ring-white"
+                            : "ring-zinc-200 hover:ring-zinc-300 dark:ring-white/10 dark:hover:ring-white/20"
+                        }`}
+                      >
+                        {asset.pending || !asset.imageUrl ? (
+                          <div className="flex h-full w-full items-center justify-center bg-zinc-100 dark:bg-zinc-800/50">
+                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-500 dark:border-zinc-600 dark:border-t-zinc-400" />
+                          </div>
+                        ) : (
+                          <Image
+                            src={asset.imageUrl}
+                            alt={asset.label}
+                            width={320}
+                            height={320}
+                            unoptimized
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                      </button>
+                    ))}
                   </div>
                 ) : null}
-
-                {selfServiceApiKeysEnabled && hasApiKey === false ? (
-                  <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-                    Configure your Doubao API key in Settings before rendering from this studio.
-                  </div>
+              </>
+            ) : (
+              <div className="flex aspect-[4/5] max-h-[640px] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 px-6 text-center dark:border-white/10">
+                <svg
+                  className="mb-3 h-8 w-8 text-zinc-300 dark:text-zinc-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
+                  {isRestoringSeries ? "Restoring saved variations…" : "No images yet"}
+                </p>
+                {!isRestoringSeries ? (
+                  <p className="mt-1 max-w-xs text-xs text-zinc-400 dark:text-zinc-500">
+                    Describe what you want on the left, then click Generate.
+                  </p>
                 ) : null}
-
-                {error ? (
-                  <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
-                    {error}
-                  </div>
-                ) : null}
-
-                <textarea
-                  value={prompt}
-                  onChange={(event) => setPrompt(event.target.value)}
-                  placeholder="Describe the image you want to generate..."
-                  rows={5}
-                  className="mt-4 w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-7 text-zinc-800 outline-none placeholder:text-zinc-400 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
-                />
-
-                <div className="mt-5 flex flex-col gap-3 border-t border-black/6 pt-4 dark:border-white/8 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {MODELS.map((model) => {
-                      const isActive = selectedModel === model.id;
-                      return (
-                        <button
-                          key={model.id}
-                          type="button"
-                          onClick={() => setSelectedModel(model.id)}
-                          className={`rounded-full px-3 py-2 text-xs font-medium transition-colors ${
-                            isActive
-                              ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                              : "bg-black/5 text-zinc-600 hover:bg-black/10 hover:text-zinc-900 dark:bg-white/8 dark:text-zinc-300 dark:hover:bg-white/12 dark:hover:text-white"
-                          }`}
-                        >
-                          {model.name}
-                        </button>
-                      );
-                    })}
-                    <div className="relative">
-                      <label htmlFor="render-aspect-ratio" className="sr-only">
-                        Aspect ratio
-                      </label>
-                      <select
-                        id="render-aspect-ratio"
-                        value={selectedAspectRatio}
-                        onChange={(event) =>
-                          setSelectedAspectRatio(event.target.value as AspectRatio)
-                        }
-                        className="appearance-none rounded-full bg-black/5 px-3 py-2 pr-9 text-xs font-medium text-zinc-700 outline-none transition-colors hover:bg-black/10 focus:bg-black/10 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:focus:bg-white/12"
-                      >
-                        {ASPECT_RATIO_OPTIONS.map((ratio) => (
-                          <option key={ratio.id} value={ratio.id}>
-                            {ratio.label}
-                          </option>
-                        ))}
-                      </select>
-                      <svg
-                        className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                    <div className="relative">
-                      <label htmlFor="render-resolution" className="sr-only">
-                        Resolution
-                      </label>
-                      <select
-                        id="render-resolution"
-                        value={selectedResolution}
-                        onChange={(event) =>
-                          setSelectedResolution(event.target.value as OutputResolution)
-                        }
-                        className="appearance-none rounded-full bg-black/5 px-3 py-2 pr-9 text-xs font-medium text-zinc-700 outline-none transition-colors hover:bg-black/10 focus:bg-black/10 dark:bg-white/8 dark:text-zinc-200 dark:hover:bg-white/12 dark:focus:bg-white/12"
-                      >
-                        {OUTPUT_RESOLUTIONS.map((resolution) => (
-                          <option key={resolution.id} value={resolution.id}>
-                            {resolution.label}
-                          </option>
-                        ))}
-                      </select>
-                      <svg
-                        className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 lg:justify-end">
-                    {billingEnabled ? (
-                      <div className="rounded-full bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                        x1 credit
-                      </div>
-                    ) : null}
-                    <button
-                      type="submit"
-                      disabled={toolbarDisabled}
-                      className="flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
-                    >
-                      {submitting ? (
-                        <>
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-zinc-900/30 dark:border-t-zinc-900" />
-                          Rendering...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          {hasReferenceImage ? "Generate variation" : "Generate image"}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-
+              </div>
+            )}
+          </section>
+        </div>
       </main>
     </div>
   );
