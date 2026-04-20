@@ -845,10 +845,16 @@ export default function GeneratePage() {
 
   const resultCards = useMemo<AssetCard[]>(
     () =>
-      resultTasks.map((task, index) => ({
+      [...resultTasks]
+        .sort((left, right) => {
+          const leftTime = new Date(left.created_at).getTime();
+          const rightTime = new Date(right.created_at).getTime();
+          return rightTime - leftTime;
+        })
+        .map((task, index) => ({
         id: task.id,
         imageUrl: task.result_url!,
-        label: index === resultTasks.length - 1 ? "Latest render" : `Variation ${index + 1}`,
+        label: index === 0 ? "Latest render" : `Variation ${index}`,
         caption: `${formatCreatedAt(task.created_at)} · ${task.model}`,
         kind: "result" as const,
         selected: task.result_url === sourceImageUrl,
