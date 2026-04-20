@@ -66,12 +66,6 @@ const ALLOWED_REFERENCE_MIME_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-const GALLERY_TABS = [
-  { id: "results", label: "Renders" },
-  { id: "references", label: "References" },
-  { id: "all", label: "All" },
-] as const;
-
 function mergeRemixSeriesItems(
   ...taskGroups: Array<RemixSeriesItem[] | undefined>
 ) {
@@ -178,9 +172,6 @@ export default function GeneratePage() {
   >(MODELS[0].id);
   const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
-  const [activeGalleryTab, setActiveGalleryTab] = useState<
-    (typeof GALLERY_TABS)[number]["id"]
-  >("results");
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const remixHydrationRequestRef = useRef(0);
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
@@ -534,7 +525,6 @@ export default function GeneratePage() {
           returnImageId: previous?.returnImageId,
         }));
         setReferenceImages(nextReferenceImages);
-        setActiveGalleryTab("references");
 
         if (user.id && nextSourceImageId) {
           saveRemixContextSnapshot(user.id, nextSourceImageId, {
@@ -742,7 +732,6 @@ export default function GeneratePage() {
       }
 
       setCurrentTask(json.task);
-      setActiveGalleryTab("results");
 
       if (isRemixMode && json.task.result_url) {
         setStagedTasks((previous) => {
@@ -893,20 +882,12 @@ export default function GeneratePage() {
     [submitting]
   );
 
-  const visibleAssets = useMemo<AssetCard[]>(() => {
-    if (activeGalleryTab === "references") {
-      return referenceCards;
-    }
-    if (activeGalleryTab === "all") {
-      return pendingCard
-        ? [pendingCard, ...resultCards, ...referenceCards]
-        : [...resultCards, ...referenceCards];
-    }
-    return pendingCard ? [pendingCard, ...resultCards] : resultCards;
-  }, [activeGalleryTab, pendingCard, referenceCards, resultCards]);
+  const visibleAssets = useMemo<AssetCard[]>(
+    () => (pendingCard ? [pendingCard, ...resultCards] : resultCards),
+    [pendingCard, resultCards]
+  );
 
-  const featuredAsset = visibleAssets[0] ?? referenceCards[0] ?? null;
-  const referenceCount = referenceCards.length;
+  const featuredAsset = visibleAssets[0] ?? null;
   const resultCount = resultCards.length;
 
   if (!user) {
@@ -1173,33 +1154,17 @@ export default function GeneratePage() {
 
           <section className="min-w-0 rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-1">
-                {GALLERY_TABS.map((tab) => {
-                  const isActive = activeGalleryTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveGalleryTab(tab.id)}
-                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                        isActive
-                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-200"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                Generated images
+              </h2>
               <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                {resultCount} renders · {referenceCount} references
+                {resultCount} renders
               </span>
             </div>
 
             {featuredAsset ? (
               <>
-                <div className="relative overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800/50">
+                <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl bg-zinc-100 p-3 dark:bg-zinc-800/50 sm:p-4">
                   {featuredAsset.pending || !featuredAsset.imageUrl ? (
                     <div className="flex aspect-[4/5] items-center justify-center">
                       <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-400 dark:border-zinc-700 dark:border-t-zinc-500" />
@@ -1211,7 +1176,7 @@ export default function GeneratePage() {
                       width={1200}
                       height={1500}
                       unoptimized
-                      className="h-auto w-full object-cover"
+                      className="max-h-[calc(100vh-180px)] w-auto max-w-full object-contain"
                     />
                   )}
                   {featuredAsset.kind === "result" && featuredAsset.onDownload ? (
