@@ -52,6 +52,7 @@ interface AssetCard {
   selected?: boolean;
   pending?: boolean;
   onSelect?: () => void;
+  onRemove?: () => void;
   onDownload?: () => void;
 }
 
@@ -104,6 +105,13 @@ function mergeReferenceImages(
   }
 
   return merged;
+}
+
+function removeReferenceImage(
+  images: Partial<ImagePrompt>[],
+  imageUrl: string
+) {
+  return images.filter((image) => image.url?.trim() !== imageUrl);
 }
 
 function getReferenceImageLabel(
@@ -570,53 +578,60 @@ export default function GeneratePage() {
     ]
   );
 
-  const handleClearReferenceImage = useCallback(() => {
-    const nextReferenceImages = mergeReferenceImages(
-      referenceImages,
-      remixDraft?.sourceImage
-    );
+  const handleRemoveReferenceImage = useCallback(
+    (image: Partial<ImagePrompt> & { url: string }) => {
+      const activeSourceImageUrl = remixDraft?.sourceImage?.url ?? null;
+      const isRemovingActive = activeSourceImageUrl === image.url;
+      const nextReferenceImages = removeReferenceImage(referenceImages, image.url);
+      const nextSourceImage = isRemovingActive ? undefined : remixDraft?.sourceImage;
+      const nextSourceImageId = remixDraft?.sourceImageId ?? sourceImageId ?? undefined;
 
-    if (user?.id && sourceImageId) {
-      saveRemixContextSnapshot(user.id, sourceImageId, {
-        sourceImage: {},
-        referenceImages: nextReferenceImages,
-        tasks: stagedTasks,
-        savedAt: Date.now(),
-      });
-    }
-
-    setReferenceImages(nextReferenceImages);
-    setRemixDraft((previous) => {
-      if (!previous) {
-        return null;
+      if (user?.id && nextSourceImageId) {
+        saveRemixContextSnapshot(user.id, nextSourceImageId, {
+          sourceImage: nextSourceImage ?? {},
+          referenceImages: nextReferenceImages,
+          tasks: stagedTasks,
+          savedAt: Date.now(),
+        });
       }
 
-      return {
-        ...previous,
-        sourceImageId: previous.sourceImageId ?? sourceImageId ?? undefined,
-        sourceImage: undefined,
-        referenceImages: nextReferenceImages,
-      };
-    });
+      setReferenceImages(nextReferenceImages);
+      setRemixDraft((previous) => {
+        if (!previous) {
+          return previous;
+        }
 
-    router.replace(
-      buildRemixGenerateUrl({
-        sourceImageId: sourceImageId || undefined,
-        returnTo: returnTo === "original" ? "original" : "gallery",
-        returnImageId:
-          searchParams.get("returnImageId") || sourceImageId || undefined,
-      })
-    );
-  }, [
-    referenceImages,
-    remixDraft?.sourceImage,
-    returnTo,
-    router,
-    searchParams,
-    sourceImageId,
-    stagedTasks,
-    user?.id,
-  ]);
+        return {
+          ...previous,
+          sourceImageId: previous.sourceImageId ?? sourceImageId ?? undefined,
+          sourceImage:
+            previous.sourceImage?.url === image.url ? undefined : previous.sourceImage,
+          referenceImages: nextReferenceImages,
+        };
+      });
+
+      router.replace(
+        buildRemixGenerateUrl({
+          sourceImageId: sourceImageId || undefined,
+          sourceImageUrl: isRemovingActive ? undefined : activeSourceImageUrl ?? undefined,
+          returnTo: returnTo === "original" ? "original" : "gallery",
+          returnImageId:
+            searchParams.get("returnImageId") || sourceImageId || undefined,
+        })
+      );
+    },
+    [
+      referenceImages,
+      remixDraft?.sourceImage,
+      remixDraft?.sourceImageId,
+      returnTo,
+      router,
+      searchParams,
+      sourceImageId,
+      stagedTasks,
+      user?.id,
+    ]
+  );
 
   const handleSelectReferenceImage = useCallback(
     (
@@ -839,8 +854,15 @@ export default function GeneratePage() {
           kind: "reference" as const,
           selected: image.url === sourceImageUrl,
           onSelect: () => handleSelectReferenceImage(image),
+          onRemove: () => handleRemoveReferenceImage(image),
         })),
-    [handleSelectReferenceImage, referenceImages, resultTaskUrls, sourceImageUrl]
+    [
+      handleRemoveReferenceImage,
+      handleSelectReferenceImage,
+      referenceImages,
+      resultTaskUrls,
+      sourceImageUrl,
+    ]
   );
 
   const resultCards = useMemo<AssetCard[]>(
@@ -987,28 +1009,52 @@ export default function GeneratePage() {
               {referenceCards.length > 0 ? (
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {referenceCards.map((asset) => (
-                    <button
-                      key={asset.id}
-                      type="button"
-                      onClick={asset.onSelect}
-                      title={asset.label}
-                      className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg ring-1 transition-all ${
-                        asset.selected
-                          ? "ring-2 ring-zinc-900 dark:ring-white"
-                          : "ring-zinc-200 hover:ring-zinc-300 dark:ring-white/10 dark:hover:ring-white/20"
-                      }`}
-                    >
-                      {asset.imageUrl ? (
-                        <Image
-                          src={asset.imageUrl}
-                          alt={asset.label}
-                          width={160}
-                          height={160}
-                          unoptimized
-                          className="h-full w-full object-cover"
-                        />
+                    <div key={asset.id} className="relative h-20 w-20 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={asset.onSelect}
+                        title={asset.label}
+                        className={`h-full w-full overflow-hidden rounded-lg ring-1 transition-all ${
+                          asset.selected
+                            ? "ring-2 ring-zinc-900 dark:ring-white"
+                            : "ring-zinc-200 hover:ring-zinc-300 dark:ring-white/10 dark:hover:ring-white/20"
+                        }`}
+                      >
+                        {asset.imageUrl ? (
+                          <Image
+                            src={asset.imageUrl}
+                            alt={asset.label}
+                            width={160}
+                            height={160}
+                            unoptimized
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </button>
+                      {asset.onRemove ? (
+                        <button
+                          type="button"
+                          onClick={asset.onRemove}
+                          aria-label={`Remove ${asset.label}`}
+                          title={`Remove ${asset.label}`}
+                          className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/72 text-white shadow-sm backdrop-blur-sm transition-transform hover:scale-105 hover:bg-black/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            stroke="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M5 5l10 10M15 5L5 15"
+                              strokeWidth="2.4"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
                       ) : null}
-                    </button>
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -1016,15 +1062,6 @@ export default function GeneratePage() {
                   No references staged
                 </div>
               )}
-              {hasReferenceImage ? (
-                <button
-                  type="button"
-                  onClick={handleClearReferenceImage}
-                  className="mt-2 text-xs text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                >
-                  Clear active reference
-                </button>
-              ) : null}
             </div>
 
             <div className="mb-4">
