@@ -492,77 +492,29 @@ function CreditsContent() {
           <p className="text-center text-xs font-medium uppercase tracking-[0.24em] text-zinc-400">
             How it works
           </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="mt-12 grid gap-12 sm:grid-cols-3">
             {[
               {
-                icon: (
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                ),
                 title: "Choose a bundle",
                 desc: "Pick the credit package that fits your creative needs. All are one-time purchases.",
               },
               {
-                icon: (
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                ),
                 title: "Pay securely",
                 desc: "Complete checkout via our payment provider. Your transaction is encrypted and safe.",
               },
               {
-                icon: (
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
-                ),
                 title: "Credits added instantly",
                 desc: "Once payment is confirmed, your balance updates automatically. Start generating right away.",
               },
             ].map((item, i) => (
-              <div
-                key={i}
-                className="rounded-2xl border border-zinc-200 bg-white p-6 transition-colors dark:border-white/10 dark:bg-zinc-900/60"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
-                  {item.icon}
-                </div>
-                <p className="mt-4 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <div key={i} className="flex flex-col">
+                <span className="text-6xl font-semibold leading-none tabular-nums text-zinc-200 dark:text-zinc-800">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <p className="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   {item.title}
                 </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+                <p className="mt-2 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
                   {item.desc}
                 </p>
               </div>
@@ -570,12 +522,12 @@ function CreditsContent() {
           </div>
         </div>
 
-        {/* Info / Billing notes */}
-        <div className="mx-auto mt-12 max-w-3xl rounded-3xl border border-zinc-200 bg-white p-8 text-sm text-zinc-600 shadow-sm dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300">
-          <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        {/* Billing notes */}
+        <div className="mx-auto mt-20 max-w-3xl border-t border-zinc-200 pt-12 text-sm text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-zinc-400">
             Billing notes
           </p>
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-6 space-y-3">
             <li>
               {standardModel.name} currently uses {standardCreditsCost} credits at{" "}
               {STANDARD_RESOLUTION}; 3K renders use more.
