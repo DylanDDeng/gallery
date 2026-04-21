@@ -371,16 +371,30 @@ function CreditsContent() {
                   onClick={() => void handlePurchase(pkg)}
                   disabled={disabled}
                   className={cn(
-                    "group relative flex flex-col rounded-[28px] border p-7 text-left transition-all duration-300 disabled:opacity-60",
+                    "group relative flex flex-col rounded-[28px] border p-7 text-left transition-all duration-300 focus:outline-none",
                     isPopular
-                      ? "border-zinc-900 bg-zinc-900 text-white shadow-xl dark:border-white dark:bg-white dark:text-zinc-900"
-                      : "border-zinc-200 bg-zinc-50/80 text-zinc-900 shadow-sm hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-100"
+                      ? "border-zinc-900 bg-zinc-900 text-white shadow-xl active:scale-[0.98] dark:border-white dark:bg-white dark:text-zinc-900"
+                      : "border-zinc-200 bg-zinc-50/80 text-zinc-900 shadow-sm hover:-translate-y-1 hover:shadow-md active:scale-[0.98] dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-100",
+                    disabled && purchasing !== pkg.id && "cursor-not-allowed opacity-40",
+                    disabled && purchasing === pkg.id && "cursor-wait"
                   )}
                 >
                   {purchasing === pkg.id && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[28px] bg-white/80 dark:bg-zinc-900/80">
+                    <div
+                      className={cn(
+                        "absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[28px]",
+                        isPopular
+                          ? "bg-zinc-900 dark:bg-white"
+                          : "bg-white dark:bg-zinc-900"
+                      )}
+                    >
                       <svg
-                        className="h-5 w-5 animate-spin"
+                        className={cn(
+                          "h-5 w-5 animate-spin",
+                          isPopular
+                            ? "text-white dark:text-zinc-900"
+                            : "text-zinc-900 dark:text-white"
+                        )}
                         viewBox="0 0 24 24"
                         fill="none"
                       >
@@ -398,12 +412,22 @@ function CreditsContent() {
                           d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                         />
                       </svg>
+                      <span
+                        className={cn(
+                          "text-xs font-medium tracking-wide",
+                          isPopular
+                            ? "text-white/70 dark:text-zinc-900/70"
+                            : "text-zinc-500 dark:text-zinc-400"
+                        )}
+                      >
+                        Processing...
+                      </span>
                     </div>
                   )}
 
                   {/* Popular badge */}
                   {isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white shadow-md dark:bg-white dark:text-zinc-900">
                         <svg
                           className="h-3 w-3"
