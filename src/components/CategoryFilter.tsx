@@ -35,6 +35,7 @@ export default function CategoryFilter() {
   const setActiveModel = useAppStore((s) => s.setActiveModel);
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
   const [fetchedCategorySlugs, setFetchedCategorySlugs] = useState<string[]>([]);
   const activeCategoryRef = useRef(activeCategory);
 
@@ -264,10 +265,31 @@ export default function CategoryFilter() {
         <>
           <div className="h-px bg-zinc-200 dark:bg-white/5" />
           <div>
-            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
-              Categories
-            </p>
-            <div className="space-y-0.5">
+            <button
+              onClick={() => setCategoriesExpanded((v) => !v)}
+              className="mb-3 flex w-full items-center justify-between px-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 transition-colors hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              <span>Categories</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform duration-200 ${categoriesExpanded ? "rotate-180" : ""}`}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            <div
+              className={`space-y-0.5 overflow-hidden transition-all duration-300 ${
+                categoriesExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
               {visibleCategories.map((cat) => {
                 const isActive = activeCategory === cat.slug;
                 return (
