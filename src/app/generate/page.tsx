@@ -914,8 +914,9 @@ export default function GeneratePage() {
   );
 
   const featuredAsset =
-    pendingCard ?? resultCards.find((asset) => asset.selected) ?? resultCards[0] ?? null;
-  const resultCount = resultCards.length;
+    resultCards.find((asset) => asset.selected) ?? resultCards[0] ?? pendingCard ?? null;
+  const thumbnailCards = pendingCard ? [...resultCards, pendingCard] : resultCards;
+  const resultCount = resultCards.length + (pendingCard ? 1 : 0);
 
   if (!user) {
     return null;
@@ -1230,30 +1231,43 @@ export default function GeneratePage() {
                     ) : null}
                   </div>
 
-                  {resultCards.length > 1 ? (
+                  {thumbnailCards.length > 1 ? (
                     <div className="flex max-h-[calc(100vh-180px)] flex-row gap-1.5 overflow-x-auto rounded-xl bg-zinc-50 px-1.5 py-3 dark:bg-zinc-900/50 sm:w-[72px] sm:flex-col sm:items-center sm:overflow-x-visible sm:overflow-y-auto">
-                      {resultCards.map((asset) => (
+                      {thumbnailCards.map((asset) => (
                       <button
                         key={asset.id}
                         type="button"
                         onClick={asset.onSelect}
                         title={asset.label}
+                        disabled={asset.pending}
                         className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg transition-all duration-300 ${
                           asset.id === featuredAsset.id
                             ? "ring-2 ring-zinc-900 scale-105 dark:ring-white/80"
                             : "opacity-50 hover:opacity-80"
-                        }`}
+                        } ${asset.pending ? "cursor-default" : ""}`}
                       >
-                        <Image
-                          src={asset.imageUrl!}
-                          alt={asset.label}
-                          width={320}
-                          height={320}
-                          unoptimized
-                          className={`h-full w-full object-cover ${
-                            asset.id === featuredAsset.id ? "" : "blur-[2px]"
-                          }`}
-                        />
+                        {asset.pending || !asset.imageUrl ? (
+                          <div className="flex h-full w-full items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                            {asset.pending ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-400 dark:border-zinc-700 dark:border-t-zinc-500" />
+                            ) : (
+                              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                                {asset.label}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <Image
+                            src={asset.imageUrl}
+                            alt={asset.label}
+                            width={320}
+                            height={320}
+                            unoptimized
+                            className={`h-full w-full object-cover ${
+                              asset.id === featuredAsset.id ? "" : "blur-[2px]"
+                            }`}
+                          />
+                        )}
                       </button>
                     ))}
                     </div>
