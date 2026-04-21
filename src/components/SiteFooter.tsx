@@ -9,7 +9,7 @@ export default function SiteFooter({ className = "" }: SiteFooterProps) {
   const footerLinks = [
     ...(isBillingEnabled()
       ? ([
-          { href: "/pricing", label: "Pricing" },
+          { href: "/credits", label: "Credits" },
           { href: "/refund-policy", label: "Refund Policy" },
         ] as const)
       : []),

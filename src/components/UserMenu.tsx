@@ -136,26 +136,6 @@ export default function UserMenu() {
                   {credits ?? "—"} credits
                 </span>
               </Link>
-              <Link
-                href="/pricing"
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 7h18M6 12h12M9 17h6"
-                  />
-                </svg>
-                <span>Pricing</span>
-              </Link>
             </>
           )}
           <button

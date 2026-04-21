@@ -954,7 +954,7 @@ export default function GeneratePage() {
             {billingEnabled ? (
               <button
                 type="button"
-                onClick={() => router.push((credits ?? 0) > 0 ? "/credits" : "/pricing")}
+                onClick={() => router.push("/credits")}
                 className="hidden sm:inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
               >
                 {credits ?? "—"} credits
