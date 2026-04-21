@@ -401,7 +401,7 @@ export default function Home() {
       {/* Body */}
       <div className="mx-auto flex max-w-[1600px] gap-6 px-6 py-6">
         <aside className="hidden w-[220px] flex-shrink-0 lg:block lg:sticky lg:top-[73px] lg:self-start">
-          <div className="rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-3">
+          <div className="p-3">
             <button
               onClick={() => setSearchOpen(true)}
               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
@@ -422,20 +422,18 @@ export default function Home() {
           </div>
         </aside>
         <main className="min-w-0 flex-1">
-          <div className="rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
-              </div>
-            ) : (
-              <MasonryGrid
-                images={images}
-                hasMore={hasMore}
-                isLoadingMore={isLoadingMore}
-                sentinelRef={sentinelRef}
-              />
-            )}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+            </div>
+          ) : (
+            <MasonryGrid
+              images={images}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              sentinelRef={sentinelRef}
+            />
+          )}
         </main>
       </div>
 
