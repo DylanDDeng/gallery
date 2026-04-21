@@ -10,6 +10,12 @@ import {
   type AspectRatio,
   type OutputResolution,
 } from "@/lib/generation-size-options";
+import {
+  DEFAULT_MODEL_ID,
+  MODEL_OPTIONS,
+  getGenerationCreditsCost,
+  getResolutionCreditsLabel,
+} from "@/lib/model-pricing";
 import { useAppStore } from "@/store";
 
 interface CreatePromptModalProps {
@@ -17,14 +23,10 @@ interface CreatePromptModalProps {
   onClose: () => void;
 }
 
-const MODELS = [
-  { id: "doubao-seedream-5-0-260128", name: "Seedream-5.0-Lite" },
-];
-
 export default function CreatePromptModal({ initialPrompt, onClose }: CreatePromptModalProps) {
   const router = useRouter();
   const [prompt, setPrompt] = useState(initialPrompt);
-  const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
   const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
   const [generating, setGenerating] = useState(false);
@@ -36,6 +38,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
   const fetchCredits = useAppStore((s) => s.fetchCredits);
   const billingEnabled = isBillingEnabled();
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
+  const selectedCreditsCost = getGenerationCreditsCost(selectedModel, selectedResolution);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -43,10 +46,10 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
     setGenerating(true);
     setError(null);
     const shouldOptimisticallyDeduct =
-      billingEnabled && typeof credits === "number" && credits > 0;
+      billingEnabled && typeof credits === "number" && credits >= selectedCreditsCost;
 
     if (shouldOptimisticallyDeduct) {
-      setCredits(credits - 1);
+      setCredits(credits - selectedCreditsCost);
     }
 
     try {
@@ -56,6 +59,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
         body: JSON.stringify({
           prompt: prompt.trim(),
           model: selectedModel,
+          resolution: selectedResolution,
           size: selectedOutputSize.size,
         }),
       });
@@ -155,7 +159,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
                 Model
               </label>
               <div className="space-y-2">
-                {MODELS.map((model) => (
+                {MODEL_OPTIONS.map((model) => (
                   <button
                     key={model.id}
                     onClick={() => setSelectedModel(model.id)}
@@ -206,7 +210,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
               >
                 {OUTPUT_RESOLUTIONS.map((resolution) => (
                   <option key={resolution.id} value={resolution.id}>
-                    {resolution.label}
+                    {getResolutionCreditsLabel(selectedModel, resolution.id)}
                   </option>
                 ))}
               </select>
@@ -215,6 +219,9 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
 
           <div className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800/60 dark:text-zinc-300 dark:ring-zinc-700">
             Output size: {selectedAspectRatio} · {selectedResolution} · {selectedOutputSize.size}
+            <span className="ml-2 font-medium text-zinc-900 dark:text-zinc-100">
+              · {selectedCreditsCost} credits
+            </span>
           </div>
 
           {error && (
@@ -234,7 +241,7 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
                 Generating...
               </span>
             ) : (
-              "Generate"
+              `Generate · ${selectedCreditsCost} credits`
             )}
           </button>
         </div>

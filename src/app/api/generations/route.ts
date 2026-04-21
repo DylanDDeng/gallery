@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
-import { decryptApiKey } from "@/lib/api-key-crypto";
 import { getAppSecret } from "@/lib/app-secrets";
+import { isBillingEnabled } from "@/lib/billing-feature";
+import type { OutputResolution } from "@/lib/generation-size-options";
 import {
-  isBillingEnabled,
-  isSelfServiceApiKeysEnabled,
-} from "@/lib/billing-feature";
+  DEFAULT_MODEL_ID,
+  getGenerationCreditsCost,
+  isSupportedModelId,
+} from "@/lib/model-pricing";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { DoubaoClient } from "@/lib/doubao";
-
-const GENERATION_COST = 1;
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 
 // Storage bucket name
@@ -97,15 +97,22 @@ export async function POST(request: Request) {
 
   try {
     const billingEnabled = isBillingEnabled();
-    const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
     const body = await request.json();
     const {
       prompt,
-      model = "doubao-seedream-5-0-260128",
+      model = DEFAULT_MODEL_ID,
       size = "2K",
+      resolution,
       sourceImageId,
       sourceImageUrl,
     } = body;
+    const normalizedModel =
+      typeof model === "string" && isSupportedModelId(model) ? model : DEFAULT_MODEL_ID;
+    const normalizedResolution: OutputResolution =
+      resolution === "3K" ? "3K" : "2K";
+    const generationCost = billingEnabled
+      ? getGenerationCreditsCost(normalizedModel, normalizedResolution)
+      : 0;
 
     if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
       return NextResponse.json(
@@ -140,37 +147,16 @@ export async function POST(request: Request) {
       resolvedSourceImageUrl = sourceImage.url;
     }
 
-    let apiKey: string;
+    const configuredApiKey = await getAppSecret("DOUBAO_API_KEY");
 
-    if (selfServiceApiKeysEnabled) {
-      const { data: apiKeyData, error: apiKeyError } = await supabaseAdmin
-        .from("user_api_keys")
-        .select("encrypted_key")
-        .eq("user_id", user.id)
-        .eq("provider", "doubao")
-        .eq("is_active", true)
-        .single();
-
-      if (apiKeyError || !apiKeyData) {
-        return NextResponse.json(
-          { error: "Please configure your Doubao API key in Settings first" },
-          { status: 400 }
-        );
-      }
-
-      apiKey = decryptApiKey(apiKeyData.encrypted_key);
-    } else {
-      const configuredApiKey = await getAppSecret("DOUBAO_API_KEY");
-
-      if (!configuredApiKey) {
-        return NextResponse.json(
-          { error: "Generation service is not configured" },
-          { status: 500 }
-        );
-      }
-
-      apiKey = configuredApiKey;
+    if (!configuredApiKey) {
+      return NextResponse.json(
+        { error: "Generation service is not configured" },
+        { status: 500 }
+      );
     }
+
+    const apiKey = configuredApiKey;
 
     // Create generation task
     const { data: task, error: taskError } = await supabaseAdmin
@@ -178,10 +164,10 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         prompt: prompt.trim(),
-        model,
+        model: normalizedModel,
         source_image_id: normalizedSourceImageId,
         status: "processing",
-        credits_cost: billingEnabled ? GENERATION_COST : 0,
+        credits_cost: generationCost,
       })
       .select()
       .single();
@@ -200,7 +186,7 @@ export async function POST(request: Request) {
         "deduct_credits",
         {
           p_user_id: user.id,
-          p_amount: GENERATION_COST,
+          p_amount: generationCost,
           p_task_id: task.id,
         }
       );
@@ -254,7 +240,7 @@ export async function POST(request: Request) {
       doubaoResponse = await doubaoClient.generate({
         apiKey,
         prompt: prompt.trim(),
-        model,
+        model: normalizedModel,
         size,
         image: resolvedSourceImageUrl || undefined,
         outputFormat: "png",
@@ -343,7 +329,7 @@ export async function POST(request: Request) {
             ...task,
             status: "completed",
             result_url: imageUrl,
-            credits_cost: billingEnabled ? GENERATION_COST : 0,
+            credits_cost: generationCost,
           },
           remainingCredits,
         },
@@ -373,7 +359,7 @@ export async function POST(request: Request) {
           ...task,
           status: "completed",
           result_url: finalUrl,
-          credits_cost: billingEnabled ? GENERATION_COST : 0,
+          credits_cost: generationCost,
         },
         downloadUrl: finalUrl,
         remainingCredits,

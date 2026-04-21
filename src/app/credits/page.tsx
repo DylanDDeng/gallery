@@ -7,7 +7,29 @@ import {
   CREDIT_PACKAGE_CATALOG,
   type CreditPackageCatalogItem,
 } from "@/lib/billing";
+import {
+  STANDARD_MODEL_ID,
+  STANDARD_RESOLUTION,
+  getApproximateRenderCount,
+  getGenerationCreditsCost,
+  getModelPricing,
+} from "@/lib/model-pricing";
 import { useAppStore } from "@/store";
+
+const PACKAGE_COPY = {
+  small: {
+    label: "Starter",
+    blurb: "For testing prompts and quick concept passes",
+  },
+  medium: {
+    label: "Creator",
+    blurb: "Best for regular generation and remix sessions",
+  },
+  large: {
+    label: "Studio",
+    blurb: "For larger batches and heavier creative output",
+  },
+} as const;
 
 function CreditsContent() {
   const router = useRouter();
@@ -19,6 +41,11 @@ function CreditsContent() {
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const fetchCredits = useAppStore((s) => s.fetchCredits);
   const billingEnabled = isBillingEnabled();
+  const standardModel = getModelPricing(STANDARD_MODEL_ID);
+  const standardCreditsCost = getGenerationCreditsCost(
+    STANDARD_MODEL_ID,
+    STANDARD_RESOLUTION
+  );
 
   const [purchasing, setPurchasing] = useState<CreditPackageCatalogItem["id"] | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -209,40 +236,87 @@ function CreditsContent() {
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
           Purchase Credits
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-3">
           {CREDIT_PACKAGE_CATALOG.map((pkg) => (
             <button
               key={pkg.id}
               onClick={() => void handlePurchase(pkg)}
               disabled={purchasing !== null}
-              className="group relative rounded-2xl bg-white dark:bg-zinc-900 p-6 text-left ring-1 ring-zinc-200 dark:ring-white/10 transition-all hover:ring-2 hover:ring-zinc-300 dark:hover:ring-zinc-600 disabled:opacity-50"
+              className={`group relative rounded-2xl p-6 text-left transition-all disabled:opacity-50 ${
+                pkg.id === "medium"
+                  ? "bg-zinc-900 text-white ring-1 ring-zinc-900 hover:ring-2 hover:ring-zinc-700 dark:bg-white dark:text-zinc-900 dark:ring-white"
+                  : "bg-white dark:bg-zinc-900 ring-1 ring-zinc-200 dark:ring-white/10 hover:ring-2 hover:ring-zinc-300 dark:hover:ring-zinc-600"
+              }`}
             >
               {purchasing === pkg.id && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 rounded-2xl">
+                <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/80 dark:bg-zinc-900/80">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
                 </div>
               )}
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <p
+                    className={`text-xs font-medium uppercase tracking-[0.18em] ${
+                      pkg.id === "medium"
+                        ? "text-white/65 dark:text-zinc-500"
+                        : "text-zinc-400 dark:text-zinc-500"
+                    }`}
+                  >
+                    {PACKAGE_COPY[pkg.id].label}
+                  </p>
+                  <p
+                    className={`mt-2 text-sm leading-6 ${
+                      pkg.id === "medium"
+                        ? "text-white/80 dark:text-zinc-600"
+                        : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    {PACKAGE_COPY[pkg.id].blurb}
+                  </p>
+                </div>
+                {pkg.id === "medium" ? (
+                  <span className="rounded-full border border-white/15 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-white/82 dark:border-zinc-200 dark:text-zinc-700">
+                    Recommended
+                  </span>
+                ) : null}
+              </div>
               <div className="flex items-baseline justify-between mb-2">
-                <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                <span className="text-2xl font-bold">
                   {pkg.credits.toLocaleString()}
                 </span>
-                <span className="text-lg font-semibold text-zinc-400 dark:text-zinc-500">
+                <span
+                  className={`text-lg font-semibold ${
+                    pkg.id === "medium"
+                      ? "text-white/50 dark:text-zinc-500"
+                      : "text-zinc-400 dark:text-zinc-500"
+                  }`}
+                >
                   credits
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+                <span className="text-3xl font-bold">
                   {pkg.priceLabel}
                 </span>
-                <span className="text-sm text-zinc-400 dark:text-zinc-500">
+                <span
+                  className={`text-sm ${
+                    pkg.id === "medium"
+                      ? "text-white/62 dark:text-zinc-500"
+                      : "text-zinc-400 dark:text-zinc-500"
+                  }`}
+                >
                   ${(pkg.priceCents / 100 / pkg.credits).toFixed(3)}/credit
                 </span>
               </div>
-              <div className="mt-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 w-fit">
-                {pkg.id === "small" && "Perfect for trying out"}
-                {pkg.id === "medium" && "Most popular choice"}
-                {pkg.id === "large" && "Best value"}
-                {pkg.id === "pro" && "For power users"}
+              <div
+                className={`mt-4 w-fit rounded-lg px-3 py-1.5 text-xs ${
+                  pkg.id === "medium"
+                    ? "bg-white/10 text-white/75 dark:bg-zinc-950 dark:text-zinc-600"
+                    : "bg-zinc-50 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                }`}
+              >
+                About {getApproximateRenderCount(pkg.credits).toLocaleString()}{" "}
+                {STANDARD_RESOLUTION} renders with {standardModel.name}.
               </div>
             </button>
           ))}
@@ -252,7 +326,11 @@ function CreditsContent() {
         <div className="mt-8 rounded-xl bg-zinc-50 dark:bg-zinc-900 p-4 text-sm text-zinc-500 dark:text-zinc-400">
           <p className="mb-2 font-medium text-zinc-700 dark:text-zinc-300">How it works</p>
           <ul className="space-y-1 list-disc list-inside">
-            <li>Credits are deducted when you generate an image (1 credit per generation)</li>
+            <li>
+              {standardModel.name} currently uses {standardCreditsCost} credits at{" "}
+              {STANDARD_RESOLUTION}; 3K renders use more.
+            </li>
+            <li>Different models and output resolutions consume different credits.</li>
             <li>Payments are processed through a secure hosted checkout</li>
             <li>Purchased credits do not expire</li>
             <li>Contact support for refunds within 7 days of purchase</li>

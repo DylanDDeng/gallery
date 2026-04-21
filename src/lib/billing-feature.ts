@@ -3,5 +3,5 @@ export function isBillingEnabled() {
 }
 
 export function isSelfServiceApiKeysEnabled() {
-  return process.env.NEXT_PUBLIC_SELF_SERVICE_API_KEYS_ENABLED === "true";
+  return false;
 }

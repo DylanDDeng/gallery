@@ -25,6 +25,12 @@ import {
   type AspectRatio,
   type OutputResolution,
 } from "@/lib/generation-size-options";
+import {
+  DEFAULT_MODEL_ID,
+  MODEL_OPTIONS,
+  getGenerationCreditsCost,
+  getResolutionCreditsLabel,
+} from "@/lib/model-pricing";
 import type { ImagePrompt } from "@/lib/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase-browser";
 import UserMenu from "@/components/UserMenu";
@@ -55,10 +61,6 @@ interface AssetCard {
   onRemove?: () => void;
   onDownload?: () => void;
 }
-
-const MODELS = [
-  { id: "doubao-seedream-5-0-260128", name: "Seedream-5.0-Lite" },
-] as const;
 
 const REFERENCE_IMAGE_BUCKET = "generations";
 const ALLOWED_REFERENCE_MIME_TYPES = new Set([
@@ -175,14 +177,13 @@ export default function GeneratePage() {
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<
-    (typeof MODELS)[number]["id"]
-  >(MODELS[0].id);
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
   const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const remixHydrationRequestRef = useRef(0);
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
+  const selectedCreditsCost = getGenerationCreditsCost(selectedModel, selectedResolution);
 
   const checkApiKey = useCallback(async () => {
     try {
@@ -688,7 +689,7 @@ export default function GeneratePage() {
     setCurrentTask(null);
 
     const shouldOptimisticallyDeduct =
-      billingEnabled && typeof credits === "number" && credits > 0;
+      billingEnabled && typeof credits === "number" && credits >= selectedCreditsCost;
 
     console.info(CREDITS_DEBUG_PREFIX, "generate:submit:start", {
       mode: isRemixMode ? "remix" : "new",
@@ -696,12 +697,13 @@ export default function GeneratePage() {
       shouldOptimisticallyDeduct,
       selectedResolution,
       selectedAspectRatio,
+      selectedCreditsCost,
       outputSize: selectedOutputSize.size,
       selectedModel,
     });
 
     if (shouldOptimisticallyDeduct) {
-      setCredits(credits - 1);
+      setCredits(credits - selectedCreditsCost);
     }
 
     try {
@@ -711,6 +713,7 @@ export default function GeneratePage() {
         body: JSON.stringify({
           prompt: prompt.trim(),
           model: selectedModel,
+          resolution: selectedResolution,
           size: selectedOutputSize.size,
           sourceImageId: remixDraft?.sourceImage?.url
             ? remixDraft?.sourceImageId ?? sourceImageId
@@ -827,7 +830,7 @@ export default function GeneratePage() {
     submitting ||
     !prompt.trim() ||
     (selfServiceApiKeysEnabled && !hasApiKey) ||
-    (billingEnabled && creditCount < 1);
+    (billingEnabled && creditCount < selectedCreditsCost);
 
   const resultTasks = useMemo(() => {
     const rendered = stagedTasks.filter((task) => task.result_url);
@@ -921,8 +924,8 @@ export default function GeneratePage() {
   const generateLabel = submitting
     ? "Rendering…"
     : hasReferenceImage
-      ? "Generate variation"
-      : "Generate image";
+      ? `Generate variation · ${selectedCreditsCost} credits`
+      : `Generate image · ${selectedCreditsCost} credits`;
 
   return (
     <div className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -1088,7 +1091,7 @@ export default function GeneratePage() {
                   Model
                 </span>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {MODELS.map((model) => {
+                  {MODEL_OPTIONS.map((model) => {
                     const isActive = selectedModel === model.id;
                     return (
                       <button
@@ -1151,7 +1154,7 @@ export default function GeneratePage() {
                             : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
                         }`}
                       >
-                        {resolution.label}
+                        {getResolutionCreditsLabel(selectedModel, resolution.id)}
                       </button>
                     );
                   })}
@@ -1159,19 +1162,13 @@ export default function GeneratePage() {
               </div>
             </div>
 
-            {selfServiceApiKeysEnabled && hasApiKey === false ? (
-              <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-                Configure your Doubao API key in{" "}
-                <button
-                  type="button"
-                  onClick={() => router.push("/settings")}
-                  className="underline underline-offset-2"
-                >
-                  Settings
-                </button>{" "}
-                before rendering.
-              </div>
-            ) : null}
+            <div className="mb-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
+              {MODEL_OPTIONS.find((model) => model.id === selectedModel)?.name} uses{" "}
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                {selectedCreditsCost} credits
+              </span>{" "}
+              at {selectedResolution}. Higher resolutions consume more credits.
+            </div>
 
             {error ? (
               <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">

@@ -1,7 +1,7 @@
 import { getPaymentProvider, type PaymentProvider } from "@/lib/payment-provider";
 
 export type CreditPackageCatalogItem = {
-  id: "small" | "medium" | "large" | "pro";
+  id: "small" | "medium" | "large";
   credits: number;
   priceLabel: string;
   priceCents: number;
@@ -10,27 +10,21 @@ export type CreditPackageCatalogItem = {
 export const CREDIT_PACKAGE_CATALOG: readonly CreditPackageCatalogItem[] = [
   {
     id: "small",
-    credits: 100,
-    priceLabel: "$0.99",
-    priceCents: 99,
+    credits: 1200,
+    priceLabel: "$10",
+    priceCents: 1000,
   },
   {
     id: "medium",
-    credits: 500,
-    priceLabel: "$3.99",
-    priceCents: 399,
+    credits: 4800,
+    priceLabel: "$30",
+    priceCents: 3000,
   },
   {
     id: "large",
-    credits: 1000,
-    priceLabel: "$6.99",
-    priceCents: 699,
-  },
-  {
-    id: "pro",
-    credits: 2500,
-    priceLabel: "$14.99",
-    priceCents: 1499,
+    credits: 8400,
+    priceLabel: "$50",
+    priceCents: 5000,
   },
 ] as const;
 
@@ -39,13 +33,11 @@ const PRICE_ID_BY_PROVIDER = {
     small: process.env.PADDLE_PRICE_SMALL || "",
     medium: process.env.PADDLE_PRICE_MEDIUM || "",
     large: process.env.PADDLE_PRICE_LARGE || "",
-    pro: process.env.PADDLE_PRICE_PRO || "",
   },
   stripe: {
     small: process.env.STRIPE_PRICE_SMALL || "",
     medium: process.env.STRIPE_PRICE_MEDIUM || "",
     large: process.env.STRIPE_PRICE_LARGE || "",
-    pro: process.env.STRIPE_PRICE_PRO || "",
   },
 } as const;
 
