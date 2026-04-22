@@ -232,11 +232,11 @@ export default function ImageModal() {
 
         {/* Modal */}
         <div
-          className="relative z-10 flex h-[95vh] w-full max-w-[1400px] overflow-hidden"
+          className="relative z-10 flex h-[95vh] w-full max-w-[1400px] overflow-hidden rounded-2xl bg-white dark:bg-zinc-950 ring-1 ring-zinc-200 dark:ring-white/10"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Left: Large image */}
-          <div className="relative flex-1 flex items-center justify-center overflow-auto p-6">
+          <div className="relative flex-1 flex items-center justify-center overflow-auto p-6 bg-zinc-50 dark:bg-zinc-900">
             {/* Download button */}
             <button
               onClick={(e) => { e.stopPropagation(); handleDownload(); }}
