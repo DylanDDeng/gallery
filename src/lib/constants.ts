@@ -380,6 +380,7 @@ export const CATEGORIES = [
   { name: "Sketchnote", slug: "sketchnote" },
   { name: "Character Design", slug: "character-design" },
   { name: "Knolling", slug: "knolling" },
+  { name: "Screenshot", slug: "screenshot" },
 ] satisfies Category[];
 
 export const MODELS = [
