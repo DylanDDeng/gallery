@@ -1,5 +1,5 @@
 // For local development without Supabase, we use mock data
-import type { ImagePrompt } from "./types";
+import type { ImagePrompt, Category } from "./types";
 
 export const MOCK_IMAGES: ImagePrompt[] = [
   {
@@ -366,12 +366,12 @@ export const MOCK_IMAGES: ImagePrompt[] = [
 
 export const CATEGORIES = [
   { name: "All", slug: "all" },
-  { name: "Portrait", slug: "portrait" },
-  { name: "Landscape", slug: "landscape" },
-  { name: "Street", slug: "street" },
-  { name: "Urban", slug: "urban" },
-  { name: "Nature", slug: "nature" },
-  { name: "Cinematic", slug: "cinematic" },
+  { name: "Portrait", slug: "portrait", screenshot: "https://image-1325800846.cos.ap-nanjing.myqcloud.com/20260124150650845.png" },
+  { name: "Landscape", slug: "landscape", screenshot: "https://image-1325800846.cos.ap-nanjing.myqcloud.com/20260124144930362.png" },
+  { name: "Street", slug: "street", screenshot: "https://image-1325800846.cos.ap-nanjing.myqcloud.com/20260124145344835.png" },
+  { name: "Urban", slug: "urban", screenshot: "https://image-1325800846.cos.ap-nanjing.myqcloud.com/20260124144930362.png" },
+  { name: "Nature", slug: "nature", screenshot: "https://image-1325800846.cos.ap-nanjing.myqcloud.com/20260124145344835.png" },
+  { name: "Cinematic", slug: "cinematic", screenshot: "https://image-1325800846.cos.ap-nanjing.myqcloud.com/20260124144930362.png" },
   { name: "Abstract", slug: "abstract" },
   { name: "3D", slug: "3d" },
   { name: "Product Photography", slug: "product-photography" },
@@ -380,7 +380,7 @@ export const CATEGORIES = [
   { name: "Sketchnote", slug: "sketchnote" },
   { name: "Character Design", slug: "character-design" },
   { name: "Knolling", slug: "knolling" },
-] as const;
+] satisfies Category[];
 
 export const MODELS = [
   "Nano Banana Pro",

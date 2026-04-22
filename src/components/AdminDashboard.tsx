@@ -371,6 +371,20 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                       </option>
                     ))}
                   </select>
+                  {(() => {
+                    const cat = CATEGORIES.find((c) => c.slug === formCategory);
+                    return cat?.screenshot ? (
+                      <div className="mt-2 relative aspect-video w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <Image
+                          src={cat.screenshot}
+                          alt={cat.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 400px"
+                        />
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </div>
 

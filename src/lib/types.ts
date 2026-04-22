@@ -24,10 +24,11 @@ export interface Favorite {
 }
 
 export interface Category {
-  id: string;
+  id?: string;
   name: string;
   slug: string;
   count?: number;
+  screenshot?: string;
 }
 
 export interface UserProfile {
