@@ -246,13 +246,15 @@ export default function ImageModal() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
             </button>
-            <Image
-              src={activeImage.url}
-              alt="AI generated image"
-              width={800}
-              height={600}
-              className="max-w-[95%] max-h-[95%] rounded-2xl shadow-2xl"
-            />
+            <div className="relative w-[95%] h-[95%]">
+              <Image
+                src={activeImage.url}
+                alt="AI generated image"
+                fill
+                className="object-contain rounded-2xl shadow-2xl"
+                sizes="(max-width: 768px) 100vw, 800px"
+              />
+            </div>
           </div>
 
           {/* Right: Details panel */}
