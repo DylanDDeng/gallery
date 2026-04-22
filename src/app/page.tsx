@@ -418,7 +418,7 @@ export default function Home() {
                 <span className="ml-auto truncate max-w-[60px] text-[11px] opacity-70">{searchQuery}</span>
               )}
             </button>
-            <CategoryFilter />
+            <CategoryFilter isLoading={isLoading} isRefreshing={isRefreshing} />
           </div>
         </aside>
         <main className="min-w-0 flex-1">

@@ -20,7 +20,26 @@ function getModelLogo(model: string): string {
   return "/nanobanana-color.svg";
 }
 
-export default function CategoryFilter() {
+export default function CategoryFilter({
+  isLoading = false,
+  isRefreshing = false,
+}: {
+  isLoading?: boolean;
+  isRefreshing?: boolean;
+}) {
+  const isBusy = isLoading || isRefreshing;
+
+  const spinner = (
+    <svg
+      className="ml-auto h-3.5 w-3.5 animate-spin text-white/70"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
   const activeCategory = useAppStore((s) => s.activeCategory);
   const setActiveCategory = useAppStore((s) => s.setActiveCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
@@ -206,13 +225,36 @@ export default function CategoryFilter() {
                       setActiveModel("all");
                       setHasInteracted(true);
                     }}
-                    className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
+                    disabled={isBusy && isActive}
+                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
                         ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
                         : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
-                    }`}
+                    } ${isBusy && isActive ? "opacity-80 cursor-wait" : ""}`}
                   >
                     {tf.name}
+                    {isBusy && isActive && (
+                      <svg
+                        className="ml-auto h-3.5 w-3.5 animate-spin text-white/70"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                    )}
                   </button>
                 );
               })}
@@ -240,11 +282,12 @@ export default function CategoryFilter() {
                       setActiveModel(isActive ? "all" : model);
                       setHasInteracted(true);
                     }}
+                    disabled={isBusy && isActive}
                     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
                         ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
                         : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
-                    }`}
+                    } ${isBusy && isActive ? "opacity-80 cursor-wait" : ""}`}
                   >
                     <img
                       src={getModelLogo(model)}
@@ -252,6 +295,7 @@ export default function CategoryFilter() {
                       className="h-4 w-4 shrink-0"
                     />
                     {model}
+                    {isBusy && isActive && spinner}
                   </button>
                 );
               })}
@@ -301,13 +345,15 @@ export default function CategoryFilter() {
                       setActiveModel("all");
                       setHasInteracted(true);
                     }}
-                    className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
+                    disabled={isBusy && isActive}
+                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
                         ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
                         : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
-                    }`}
+                    } ${isBusy && isActive ? "opacity-80 cursor-wait" : ""}`}
                   >
                     {cat.name}
+                    {isBusy && isActive && spinner}
                   </button>
                 );
               })}
