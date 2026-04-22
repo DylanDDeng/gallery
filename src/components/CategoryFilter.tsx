@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "@/store";
 import { CATEGORIES, MODELS } from "@/lib/constants";
@@ -289,9 +290,11 @@ export default function CategoryFilter({
                         : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
                     } ${isBusy && isActive ? "opacity-80 cursor-wait" : ""}`}
                   >
-                    <img
+                    <Image
                       src={getModelLogo(model)}
                       alt=""
+                      width={16}
+                      height={16}
                       className="h-4 w-4 shrink-0"
                     />
                     {model}

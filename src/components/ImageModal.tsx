@@ -246,10 +246,11 @@ export default function ImageModal() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={activeImage.url}
               alt="AI generated image"
+              width={800}
+              height={600}
               className="max-w-[95%] max-h-[95%] rounded-2xl shadow-2xl"
             />
           </div>
@@ -276,7 +277,7 @@ export default function ImageModal() {
               {/* Meta info */}
               <div className="mb-5 flex flex-wrap items-center gap-2">
                 <span className="flex items-center gap-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 ring-1 ring-zinc-200 dark:ring-white/5">
-                  <img key={activeImage.id} src={modelLogo} alt="" className="h-4 w-4" />
+                  <Image key={activeImage.id} src={modelLogo} alt="" width={16} height={16} className="h-4 w-4" />
                   {activeImage.model}
                 </span>
                 <span className="text-xs text-zinc-400 dark:text-zinc-500">by {activeImage.author}</span>

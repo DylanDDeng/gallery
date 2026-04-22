@@ -54,7 +54,7 @@ function ImageCard({ image }: ImageCardProps) {
           height={image.height || 1024}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03] group-hover:brightness-110"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          unoptimized
+          priority={false}
           onLoad={handleLoad}
           onError={handleError}
         />

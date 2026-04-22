@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { isBillingEnabled } from "@/lib/billing-feature";
@@ -200,9 +201,11 @@ export default function HistoryPage() {
                   className="flex items-start gap-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 p-4 ring-1 ring-zinc-200 dark:ring-white/10"
                 >
                   {task.status === "completed" && task.result_url ? (
-                    <img
+                    <Image
                       src={task.result_url}
                       alt=""
+                      width={80}
+                      height={80}
                       className="h-20 w-20 rounded-lg object-cover flex-shrink-0"
                     />
                   ) : (

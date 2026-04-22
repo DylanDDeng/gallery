@@ -1,6 +1,7 @@
 "use client";
 
 import SiteFooter from "@/components/SiteFooter";
+import Image from "next/image";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { MOCK_IMAGES } from "@/lib/constants";
 import CategoryFilter from "@/components/CategoryFilter";
@@ -373,7 +374,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
           <div className="flex select-none items-center gap-3">
-            <img src="/logo.png" alt="" className="h-8 w-8" />
+            <Image src="/logo.png" alt="Aestara" width={32} height={32} className="h-8 w-8" />
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100" style={{ fontFamily: "'Caveat', cursive" }}>
               Aestara
             </h1>

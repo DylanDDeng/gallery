@@ -938,7 +938,7 @@ export default function GeneratePage() {
               onClick={() => router.push("/")}
               className="flex select-none items-center gap-3"
             >
-              <img src="/logo.png" alt="" className="h-8 w-8" />
+              <Image src="/logo.png" alt="" width={32} height={32} className="h-8 w-8" />
               <h1
                 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100"
                 style={{ fontFamily: "'Caveat', cursive" }}

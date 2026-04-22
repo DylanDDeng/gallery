@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { isBillingEnabled, isSelfServiceApiKeysEnabled } from "@/lib/billing-feature";
@@ -91,7 +92,7 @@ export default function UserMenu() {
         className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden transition-colors hover:bg-zinc-300 dark:hover:bg-zinc-600"
       >
         {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+          <Image src={avatarUrl} alt="" fill sizes="36px" className="object-cover" />
         ) : (
           <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-200">
             {displayName.charAt(0).toUpperCase()}
