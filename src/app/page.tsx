@@ -269,7 +269,11 @@ export default function Home() {
       setIsLoading(true);
       setIsRefreshing(false);
     } else {
-      setIsRefreshing(true);
+      imagesRef.current = [];
+      setImages([]);
+      setAllImages([]);
+      setIsLoading(true);
+      setIsRefreshing(false);
     }
 
     fetchPage(0)
