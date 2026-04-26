@@ -27,29 +27,53 @@ export default function MinimalSidebar({
     if (showFavoritesOnly) toggleShowFavoritesOnly();
   };
 
-  const textBase = "text-[12px] tracking-wide text-[#5c564e] dark:text-[#7a7269] transition-colors duration-300";
+  const textBase = "w-full text-left text-[12px] tracking-wide text-[#5c564e] dark:text-[#7a7269] transition-colors duration-200";
   const textHover = "hover:text-[#2a2520] dark:hover:text-[#c4bdb4]";
   const textActive = "text-[#2a2520] dark:text-[#c4bdb4] underline underline-offset-4 decoration-[#2a2520] dark:decoration-[#c4bdb4]";
+  const arrowBase = "text-[10px] text-[#8a837a] dark:text-[#5c564e] opacity-0 group-hover:opacity-100 group-hover:text-[#2a2520] dark:group-hover:text-[#c4bdb4] transition-all duration-200 translate-x-0 group-hover:translate-x-0.5";
+
+  const MenuItem = ({
+    label,
+    onClick,
+    isActive,
+    arrow = true,
+  }: {
+    label: string;
+    onClick: () => void;
+    isActive?: boolean;
+    arrow?: boolean;
+  }) => (
+    <button
+      onClick={onClick}
+      className={`group flex items-center justify-between ${textBase} ${isActive ? textActive : textHover}`}
+    >
+      <span className="group-hover:translate-x-1 transition-transform duration-200 ease-out">
+        {label}
+      </span>
+      {arrow && (
+        <span className={arrowBase}>›</span>
+      )}
+    </button>
+  );
 
   return (
     <nav className="space-y-8">
       {/* Search */}
-      <button
+      <MenuItem
+        label={searchQuery ? `Search: "${searchQuery}"` : "Search"}
         onClick={onSearchClick}
-        className={`${textBase} ${textHover} text-left`}
-      >
-        {searchQuery ? `Search: "${searchQuery}"` : "Search"}
-      </button>
+        arrow={true}
+      />
 
       {/* Main actions */}
       <div className="space-y-3">
-        <button
+        <MenuItem
+          label="All"
           onClick={resetAll}
-          className={`block ${textBase} ${activeCategory === "all" && activeTimeFilter === "all" && activeModel === "all" && !showFavoritesOnly ? textActive : textHover}`}
-        >
-          All
-        </button>
-        <button
+          isActive={activeCategory === "all" && activeTimeFilter === "all" && activeModel === "all" && !showFavoritesOnly}
+        />
+        <MenuItem
+          label="Surprise Me"
           onClick={() => {
             resetAll();
             const images = useAppStore.getState().allImages;
@@ -58,16 +82,12 @@ export default function MinimalSidebar({
               useAppStore.getState().setSelectedImage(random);
             }
           }}
-          className={`block ${textBase} ${textHover}`}
-        >
-          Surprise Me
-        </button>
-        <button
+        />
+        <MenuItem
+          label="Favorites"
           onClick={toggleShowFavoritesOnly}
-          className={`block ${textBase} ${showFavoritesOnly ? textActive : textHover}`}
-        >
-          Favorites
-        </button>
+          isActive={showFavoritesOnly}
+        />
       </div>
 
       {/* Time */}
@@ -78,16 +98,15 @@ export default function MinimalSidebar({
           { name: "This Week", slug: "week" },
           { name: "This Month", slug: "month" },
         ].map((tf) => (
-          <button
+          <MenuItem
             key={tf.slug}
+            label={tf.name}
             onClick={() => {
               setActiveTimeFilter(tf.slug as "today" | "week" | "month");
               if (showFavoritesOnly) toggleShowFavoritesOnly();
             }}
-            className={`block ${textBase} ${activeTimeFilter === tf.slug ? textActive : textHover}`}
-          >
-            {tf.name}
-          </button>
+            isActive={activeTimeFilter === tf.slug}
+          />
         ))}
       </div>
 
@@ -95,16 +114,15 @@ export default function MinimalSidebar({
       <div className="space-y-3">
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90] dark:text-[#4a443c] mb-1">Models</p>
         {MODELS.map((model) => (
-          <button
+          <MenuItem
             key={model}
+            label={model}
             onClick={() => {
               setActiveModel(activeModel === model ? "all" : model);
               if (showFavoritesOnly) toggleShowFavoritesOnly();
             }}
-            className={`block ${textBase} ${activeModel === model ? textActive : textHover}`}
-          >
-            {model}
-          </button>
+            isActive={activeModel === model}
+          />
         ))}
       </div>
 
@@ -112,17 +130,16 @@ export default function MinimalSidebar({
       <div className="space-y-3">
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90] dark:text-[#4a443c] mb-1">Categories</p>
         {CATEGORIES.filter((c) => c.slug !== "all").map((cat) => (
-          <button
+          <MenuItem
             key={cat.slug}
+            label={cat.name}
             onClick={() => {
               setActiveCategory(cat.slug);
               setActiveModel("all");
               if (showFavoritesOnly) toggleShowFavoritesOnly();
             }}
-            className={`block ${textBase} ${activeCategory === cat.slug ? textActive : textHover}`}
-          >
-            {cat.name}
-          </button>
+            isActive={activeCategory === cat.slug}
+          />
         ))}
       </div>
     </nav>
