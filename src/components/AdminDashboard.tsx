@@ -238,30 +238,30 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#ebe7e0] dark:bg-[#0c0b09]">
+      <header className="sticky top-0 z-40 border-b border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#ebe7e0]/80 dark:bg-[#0c0b09]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/")}
-              className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
+              className="text-xs text-[#8a837a] dark:text-[#5c564e] hover:text-[#4a443c] dark:hover:text-[#a39b90]"
             >
               &larr; Back to site
             </button>
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Admin</h1>
-            <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+            <div className="h-4 w-px bg-[#d5cfc4] dark:bg-[#1a1814]" />
+            <h1 className="text-lg font-bold text-[#141210] dark:text-[#e0d9ce]">Admin</h1>
+            <span className="rounded bg-[#e0d9ce] dark:bg-[#1a1814] px-2 py-0.5 text-[10px] text-[#5c564e] dark:text-[#8a837a]">
               {images.length} images
             </span>
             {email && (
-              <span className="hidden rounded bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 sm:inline">
+              <span className="hidden rounded bg-[#e0d9ce] dark:bg-[#1a1814] px-2 py-0.5 text-[10px] text-[#5c564e] dark:text-[#8a837a] sm:inline">
                 {email}
               </span>
             )}
           </div>
           <button
             onClick={handleLogout}
-            className="rounded-lg px-3 py-1.5 text-xs text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-300"
+            className="rounded-lg px-3 py-1.5 text-xs text-[#8a837a] dark:text-[#5c564e] hover:bg-[#e0d9ce] dark:hover:bg-[#1a1814] hover:text-[#4a443c] dark:hover:text-[#a39b90]"
           >
             Logout
           </button>
@@ -272,7 +272,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
         {!showForm && (
           <button
             onClick={openAddForm}
-            className="mb-6 flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-zinc-900 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200"
+            className="mb-6 flex items-center gap-2 rounded-xl bg-[#141210] dark:bg-[#f5f2ed] px-4 py-2.5 text-sm font-semibold text-[#f5f2ed] dark:text-[#141210] transition-colors hover:bg-[#2a2520] dark:hover:bg-[#d5cfc4]"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -282,14 +282,14 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
         )}
 
         {showForm && (
-          <div className="mb-8 rounded-2xl bg-white dark:bg-zinc-900 p-6 ring-1 ring-zinc-200 dark:ring-white/10">
+          <div className="mb-8 rounded-2xl bg-[#f5f2ed] dark:bg-[#141210] p-6 ring-1 ring-[#d5cfc4] dark:ring-[#c4bdb4]/10">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+              <h2 className="text-sm font-bold text-[#141210] dark:text-[#e0d9ce]">
                 {editingImage ? "Edit Image" : "Add New Image"}
               </h2>
               <button
                 onClick={resetForm}
-                className="rounded p-1 text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-300"
+                className="rounded p-1 text-[#8a837a] dark:text-[#5c564e] hover:bg-[#e0d9ce] dark:hover:bg-[#1a1814] hover:text-[#4a443c] dark:hover:text-[#a39b90]"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -310,7 +310,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                     Image URL *
                   </label>
                   <input
@@ -322,12 +322,12 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                       setPreviewError(false);
                     }}
                     placeholder="https://... or paste markdown ![](url)"
-                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                    className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                     Author
                   </label>
                   <input
@@ -335,19 +335,19 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                     value={formAuthor}
                     onChange={(e) => setFormAuthor(e.target.value)}
                     placeholder="BubbleBrain"
-                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                    className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                     Model
                   </label>
                   <select
                     value={formModel}
                     onChange={(e) => setFormModel(e.target.value)}
                     required
-                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                    className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                   >
                     <option value="" disabled>Select a model</option>
                     {MODELS.map((m) => (
@@ -357,13 +357,13 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                     Category
                   </label>
                   <select
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                    className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                   >
                     {CATEGORIES.filter((c) => c.slug !== "all").map((c) => (
                       <option key={c.slug} value={c.slug}>
@@ -376,7 +376,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                   Tags (comma separated)
                 </label>
                 <input
@@ -384,12 +384,12 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                   value={formTags}
                   onChange={(e) => setFormTags(e.target.value)}
                   placeholder="portrait, cinematic, film"
-                  className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                   Prompt *
                 </label>
                 <textarea
@@ -398,15 +398,15 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                   onChange={(e) => setFormPrompt(e.target.value)}
                   placeholder="Describe the prompt for this image... (plain text or JSON)"
                   rows={6}
-                  className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                 />
-                <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-600">
+                <p className="mt-1 text-[10px] text-[#8a837a] dark:text-[#4a443c]">
                   Supports plain text or JSON format
                 </p>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                   Prompt (中文)
                 </label>
                 <textarea
@@ -414,12 +414,12 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                   onChange={(e) => setFormPromptZh(e.target.value)}
                   placeholder="中文翻译（可选）"
                   rows={4}
-                  className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                   Prompt (日本語)
                 </label>
                 <textarea
@@ -427,13 +427,13 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                   onChange={(e) => setFormPromptJa(e.target.value)}
                   placeholder="日本語翻訳（オプション）"
                   rows={4}
-                  className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                 />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                     Width (optional)
                   </label>
                   <input
@@ -441,11 +441,11 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                     value={formWidth}
                     onChange={(e) => setFormWidth(e.target.value)}
                     placeholder="768"
-                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                    className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                     Height (optional)
                   </label>
                   <input
@@ -453,13 +453,13 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                     value={formHeight}
                     onChange={(e) => setFormHeight(e.target.value)}
                     placeholder="1024"
-                    className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                    className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                   Tweet URL (optional)
                 </label>
                 <input
@@ -467,19 +467,19 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                   value={formTweetUrl}
                   onChange={(e) => setFormTweetUrl(e.target.value)}
                   placeholder="https://x.com/author/status/123..."
-                  className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
                 />
-                <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-600">
+                <p className="mt-1 text-[10px] text-[#8a837a] dark:text-[#4a443c]">
                   If provided, clicking the author link will go to this tweet instead of their profile
                 </p>
               </div>
 
               {formUrl && (
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
                     Preview
                   </label>
-                  <div className="flex h-48 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-white/5">
+                  <div className="flex h-48 items-center justify-center overflow-hidden rounded-lg bg-[#e0d9ce] dark:bg-[#1a1814] ring-1 ring-[#d5cfc4] dark:ring-white/5">
                     {previewError ? (
                       <p className="text-xs text-red-400 dark:text-red-500 px-4 text-center">
                         Image failed to load — check if the URL is accessible
@@ -503,7 +503,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-zinc-900 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-[#141210] dark:bg-[#f5f2ed] px-5 py-2.5 text-sm font-semibold text-[#f5f2ed] dark:text-[#141210] transition-colors hover:bg-[#2a2520] dark:hover:bg-[#d5cfc4] disabled:opacity-50"
                 >
                   {submitting
                     ? "Saving..."
@@ -514,7 +514,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-xl bg-zinc-100 dark:bg-zinc-800 px-4 py-2.5 text-sm text-zinc-500 dark:text-zinc-400 ring-1 ring-zinc-200 dark:ring-white/5 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  className="rounded-xl bg-[#e0d9ce] dark:bg-[#1a1814] px-4 py-2.5 text-sm text-[#5c564e] dark:text-[#8a837a] ring-1 ring-[#d5cfc4] dark:ring-white/5 hover:bg-[#d5cfc4] dark:hover:bg-[#2a2520] hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
                 >
                   Cancel
                 </button>
@@ -524,11 +524,11 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
         )}
 
         {loading ? (
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">Loading...</p>
+          <p className="text-sm text-[#8a837a] dark:text-[#5c564e]">Loading...</p>
         ) : images.length === 0 ? (
-          <div className="rounded-2xl bg-white dark:bg-zinc-900 p-12 text-center ring-1 ring-zinc-200 dark:ring-white/5">
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">No images yet</p>
-            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">
+          <div className="rounded-2xl bg-[#f5f2ed] dark:bg-[#141210] p-12 text-center ring-1 ring-[#d5cfc4] dark:ring-white/5">
+            <p className="text-sm text-[#8a837a] dark:text-[#5c564e]">No images yet</p>
+            <p className="mt-1 text-xs text-[#8a837a] dark:text-[#4a443c]">
               Click &ldquo;Add New Image&rdquo; to get started
             </p>
           </div>
@@ -550,9 +550,9 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
               return (
                 <div
                   key={image.id}
-                  className="flex items-center gap-4 rounded-xl bg-white dark:bg-zinc-900 p-3 ring-1 ring-zinc-200 dark:ring-white/5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/80"
+                  className="flex items-center gap-4 rounded-xl bg-[#f5f2ed] dark:bg-[#141210] p-3 ring-1 ring-[#d5cfc4] dark:ring-white/5 transition-colors hover:bg-[#ebe7e0] dark:hover:bg-[#1a1814]/80"
                 >
-                  <div className="h-16 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                  <div className="h-16 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-[#e0d9ce] dark:bg-[#1a1814]">
                     <Image
                       src={image.url}
                       alt=""
@@ -565,14 +565,14 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                    <p className="truncate text-sm font-medium text-[#2a2520] dark:text-[#d5cfc4]">
                       {label}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
+                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-[#8a837a] dark:text-[#5c564e]">
                       <span>{image.author || "Unknown"}</span>
-                      <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                      <span className="text-[#a39b90] dark:text-[#2a2520]">|</span>
                       <span>{image.model}</span>
-                      <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px]">
+                      <span className="rounded bg-[#e0d9ce] dark:bg-[#1a1814] px-1.5 py-0.5 text-[10px]">
                         {image.category}
                       </span>
                     </div>
@@ -581,7 +581,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                   <div className="flex flex-shrink-0 items-center gap-1">
                     <button
                       onClick={() => openEditForm(image)}
-                      className="rounded-lg p-2 text-zinc-400 dark:text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-600 dark:hover:text-zinc-200"
+                      className="rounded-lg p-2 text-[#8a837a] dark:text-[#5c564e] transition-colors hover:bg-[#e0d9ce] dark:hover:bg-[#2a2520] hover:text-[#4a443c] dark:hover:text-[#d5cfc4]"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -589,7 +589,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                     </button>
                     <button
                       onClick={() => handleDelete(image.id)}
-                      className="rounded-lg p-2 text-zinc-400 dark:text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400"
+                      className="rounded-lg p-2 text-[#8a837a] dark:text-[#5c564e] transition-colors hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

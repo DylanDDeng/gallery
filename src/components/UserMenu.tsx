@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { isBillingEnabled, isSelfServiceApiKeysEnabled } from "@/lib/billing-feature";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 import { createClient } from "@/lib/supabase-browser";
 
@@ -15,7 +15,6 @@ export default function UserMenu() {
   const toggleShowFavoritesOnly = useAppStore((s) => s.toggleShowFavoritesOnly);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
   const billingEnabled = isBillingEnabled();
 
   const avatarUrl =
@@ -60,7 +59,7 @@ export default function UserMenu() {
     return (
       <button
         onClick={handleSignIn}
-        className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium text-zinc-600 dark:text-zinc-300 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium text-[#4a443c] dark:text-[#a39b90] transition-colors hover:bg-[#e0d9ce] dark:hover:bg-[#1a1814]"
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24">
           <path
@@ -89,25 +88,25 @@ export default function UserMenu() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden transition-colors hover:bg-zinc-300 dark:hover:bg-zinc-600"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#d5cfc4] dark:bg-[#2a2520] overflow-hidden transition-colors hover:bg-[#a39b90] dark:hover:bg-[#4a443c]"
       >
         {avatarUrl ? (
           <Image src={avatarUrl} alt="" fill sizes="36px" className="object-cover" />
         ) : (
-          <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-200">
+          <span className="text-xs font-semibold text-[#4a443c] dark:text-[#d5cfc4]">
             {displayName.charAt(0).toUpperCase()}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-700">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#d5cfc4] dark:border-[#2a2520] bg-[#f5f2ed] dark:bg-[#1a1814] shadow-lg z-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#e0d9ce] dark:border-[#2a2520]">
+            <p className="text-sm font-medium text-[#141210] dark:text-[#e0d9ce] truncate">
               {displayName}
             </p>
             {user.email && (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+              <p className="text-xs text-[#5c564e] dark:text-[#8a837a] truncate mt-0.5">
                 {user.email}
               </p>
             )}
@@ -117,7 +116,7 @@ export default function UserMenu() {
               <Link
                 href="/credits"
                 onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-[#4a443c] transition-colors hover:bg-[#ebe7e0] dark:text-[#a39b90] dark:hover:bg-[#2a2520]/50"
               >
                 <svg
                   className="h-4 w-4"
@@ -133,7 +132,7 @@ export default function UserMenu() {
                   />
                 </svg>
                 <span>Credits</span>
-                <span className="ml-auto rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] dark:bg-zinc-700">
+                <span className="ml-auto rounded bg-[#d5cfc4] px-1.5 py-0.5 text-[10px] dark:bg-[#2a2520]">
                   {credits ?? "—"} credits
                 </span>
               </Link>
@@ -147,7 +146,7 @@ export default function UserMenu() {
             className={`flex w-full items-center gap-2.5 text-left px-4 py-2.5 text-sm transition-colors ${
               showFavoritesOnly
                 ? "text-red-500 bg-red-500/5"
-                : "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
+                : "text-[#4a443c] dark:text-[#a39b90] hover:bg-[#ebe7e0] dark:hover:bg-[#2a2520]/50"
             }`}
           >
             <svg className="h-4 w-4" fill={showFavoritesOnly ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
@@ -155,30 +154,26 @@ export default function UserMenu() {
             </svg>
             Favorites
             {favorites.length > 0 && (
-              <span className="ml-auto rounded bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 text-[10px]">
+              <span className="ml-auto rounded bg-[#d5cfc4] dark:bg-[#2a2520] px-1.5 py-0.5 text-[10px]">
                 {favorites.length}
               </span>
             )}
           </button>
-          {selfServiceApiKeysEnabled && (
-            <>
-              <Link
-                href="/settings"
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-2.5 text-left px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Settings
-              </Link>
-              <div className="border-t border-zinc-100 dark:border-zinc-700" />
-            </>
-          )}
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2.5 text-left px-4 py-2.5 text-sm text-[#4a443c] dark:text-[#a39b90] hover:bg-[#ebe7e0] dark:hover:bg-[#2a2520]/50 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Settings
+          </Link>
+          <div className="border-t border-[#e0d9ce] dark:border-[#2a2520]" />
           <button
             onClick={handleSignOut}
-            className="w-full text-left px-4 py-2.5 text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
+            className="w-full text-left px-4 py-2.5 text-sm text-[#4a443c] dark:text-[#a39b90] hover:bg-[#ebe7e0] dark:hover:bg-[#2a2520]/50 transition-colors"
           >
             Sign out
           </button>

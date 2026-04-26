@@ -41,6 +41,5 @@ export const config = {
     "/api/generations/:path*",
     "/api/orders/:path*",
     "/api/reference-images/:path*",
-    "/api/user/api-keys/:path*",
   ],
 };

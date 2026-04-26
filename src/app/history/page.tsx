@@ -112,7 +112,7 @@ export default function HistoryPage() {
   const statusStyles: Record<string, string> = {
     completed: "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400",
     failed: "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400",
-    cancelled: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+    cancelled: "bg-[#e0d9ce] text-[#5c564e] dark:bg-[#1a1814] dark:text-[#8a837a]",
     queued: "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
     processing: "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
     pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400",
@@ -120,23 +120,23 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
+    <div className="min-h-screen bg-[#f5f2ed] dark:bg-[#0c0b09]">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#f5f2ed]/80 dark:bg-[#0c0b09]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/")}
-              className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
+              className="text-xs text-[#8a837a] dark:text-[#5c564e] hover:text-[#4a443c] dark:hover:text-[#a39b90]"
             >
               &larr; Back to site
             </button>
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-            <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">History</h1>
+            <div className="h-4 w-px bg-[#d5cfc4] dark:bg-[#1a1814]" />
+            <h1 className="text-lg font-bold text-[#141210] dark:text-[#e0d9ce]">History</h1>
           </div>
           <button
             onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition-colors hover:bg-[#e0d9ce] dark:hover:bg-[#1a1814] hover:text-[#2a2520] dark:hover:text-[#a39b90]"
           >
             {theme === "light" ? (
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,13 +153,13 @@ export default function HistoryPage() {
 
       <div className="mx-auto max-w-[800px] px-6 py-8">
         {/* Tabs */}
-        <div className="mb-6 flex gap-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 p-1">
+        <div className="mb-6 flex gap-1 rounded-xl bg-[#e0d9ce] dark:bg-[#141210] p-1">
           <button
             onClick={() => setActiveTab("generations")}
             className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === "generations"
-                ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
-                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                ? "bg-[#f5f2ed] dark:bg-[#1a1814] text-[#141210] dark:text-[#e0d9ce] shadow-sm"
+                : "text-[#5c564e] dark:text-[#8a837a] hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
             }`}
           >
             Generations
@@ -169,8 +169,8 @@ export default function HistoryPage() {
               onClick={() => setActiveTab("orders")}
               className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === "orders"
-                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
-                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  ? "bg-[#f5f2ed] dark:bg-[#1a1814] text-[#141210] dark:text-[#e0d9ce] shadow-sm"
+                  : "text-[#5c564e] dark:text-[#8a837a] hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
               }`}
             >
               Orders
@@ -180,15 +180,15 @@ export default function HistoryPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d5cfc4] dark:border-[#2a2520] border-t-[#8a837a]" />
           </div>
         ) : activeTab === "generations" ? (
           generations.length === 0 ? (
-            <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900 p-12 text-center">
-              <p className="text-sm text-zinc-400 dark:text-zinc-500">No generations yet</p>
+            <div className="rounded-2xl bg-[#ebe7e0] dark:bg-[#141210] p-12 text-center">
+              <p className="text-sm text-[#8a837a] dark:text-[#5c564e]">No generations yet</p>
               <button
                 onClick={() => router.push("/generate")}
-                className="mt-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                className="mt-3 text-sm font-medium text-[#4a443c] dark:text-[#8a837a] hover:text-[#141210] dark:hover:text-[#d5cfc4]"
               >
                 Create your first generation &rarr;
               </button>
@@ -198,7 +198,7 @@ export default function HistoryPage() {
               {generations.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-start gap-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 p-4 ring-1 ring-zinc-200 dark:ring-white/10"
+                  className="flex items-start gap-4 rounded-xl bg-[#ebe7e0] dark:bg-[#141210] p-4 ring-1 ring-[#d5cfc4] dark:ring-[#c4bdb4]/10"
                 >
                   {task.status === "completed" && task.result_url ? (
                     <Image
@@ -209,13 +209,13 @@ export default function HistoryPage() {
                       className="h-20 w-20 rounded-lg object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="h-20 w-20 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                    <div className="h-20 w-20 rounded-lg bg-[#e0d9ce] dark:bg-[#1a1814] flex items-center justify-center flex-shrink-0">
                       {task.status === "failed" ? (
                         <svg className="h-6 w-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       ) : (
-                        <div className="h-5 w-5 animate-spin rounded-full border border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+                        <div className="h-5 w-5 animate-spin rounded-full border border-[#d5cfc4] dark:border-[#2a2520] border-t-[#8a837a]" />
                       )}
                     </div>
                   )}
@@ -226,13 +226,13 @@ export default function HistoryPage() {
                         {task.status}
                       </span>
                       {billingEnabled && task.credits_cost > 0 && (
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                        <span className="text-xs text-[#8a837a] dark:text-[#5c564e]">
                           {task.credits_cost} credit{task.credits_cost !== 1 ? "s" : ""}
                         </span>
                       )}
                     </div>
 
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300 mb-1 line-clamp-2">
+                    <p className="text-sm text-[#2a2520] dark:text-[#a39b90] mb-1 line-clamp-2">
                       {task.prompt}
                     </p>
 
@@ -242,7 +242,7 @@ export default function HistoryPage() {
                       </p>
                     )}
 
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    <p className="text-xs text-[#8a837a] dark:text-[#5c564e]">
                       {new Date(task.created_at).toLocaleString()}
                     </p>
                   </div>
@@ -261,11 +261,11 @@ export default function HistoryPage() {
             </div>
           )
         ) : !billingEnabled ? null : orders.length === 0 ? (
-          <div className="rounded-2xl bg-zinc-50 dark:bg-zinc-900 p-12 text-center">
-            <p className="text-sm text-zinc-400 dark:text-zinc-500">No orders yet</p>
+          <div className="rounded-2xl bg-[#ebe7e0] dark:bg-[#141210] p-12 text-center">
+            <p className="text-sm text-[#8a837a] dark:text-[#5c564e]">No orders yet</p>
             <button
               onClick={() => router.push("/credits")}
-              className="mt-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              className="mt-3 text-sm font-medium text-[#4a443c] dark:text-[#8a837a] hover:text-[#141210] dark:hover:text-[#d5cfc4]"
             >
               Buy credits &rarr;
             </button>
@@ -275,7 +275,7 @@ export default function HistoryPage() {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="flex items-center justify-between rounded-xl bg-zinc-50 dark:bg-zinc-900 p-4 ring-1 ring-zinc-200 dark:ring-white/10"
+                className="flex items-center justify-between rounded-xl bg-[#ebe7e0] dark:bg-[#141210] p-4 ring-1 ring-[#d5cfc4] dark:ring-[#c4bdb4]/10"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -283,15 +283,15 @@ export default function HistoryPage() {
                       {order.status}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <p className="text-sm font-medium text-[#2a2520] dark:text-[#a39b90]">
                     {order.amount.toLocaleString()} credits
                   </p>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                  <p className="text-xs text-[#8a837a] dark:text-[#5c564e]">
                     {new Date(order.created_at).toLocaleString()}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <p className="text-sm font-semibold text-[#141210] dark:text-[#e0d9ce]">
                     ${(order.price_cents / 100).toFixed(2)}
                   </p>
                 </div>

@@ -3,10 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  isBillingEnabled,
-  isSelfServiceApiKeysEnabled,
-} from "@/lib/billing-feature";
+import { isBillingEnabled } from "@/lib/billing-feature";
 import {
   buildRemixGenerateUrl,
   parseGenerationDraftFromSearchParams,
@@ -161,7 +158,6 @@ export default function GeneratePage() {
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const billingEnabled = isBillingEnabled();
-  const selfServiceApiKeysEnabled = isSelfServiceApiKeysEnabled();
   const isRemixMode = searchParams.get("mode") === "remix";
   const sourceImageId = searchParams.get("sourceImageId");
   const returnTo = searchParams.get("returnTo") ?? "gallery";
@@ -171,7 +167,6 @@ export default function GeneratePage() {
   const [currentTask, setCurrentTask] = useState<GenerationTask | null>(null);
   const [stagedTasks, setStagedTasks] = useState<RemixSeriesItem[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
   const [referenceImages, setReferenceImages] = useState<Partial<ImagePrompt>[]>([]);
   const [isRestoringSeries, setIsRestoringSeries] = useState(false);
@@ -184,22 +179,6 @@ export default function GeneratePage() {
   const remixHydrationRequestRef = useRef(0);
   const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
   const selectedCreditsCost = getGenerationCreditsCost(selectedModel, selectedResolution);
-
-  const checkApiKey = useCallback(async () => {
-    try {
-      const res = await fetch("/api/user/api-keys");
-      const json = await res.json();
-      if (res.ok) {
-        const hasDoubao = json.data?.some(
-          (key: { provider: string }) => key.provider === "doubao"
-        );
-        setHasApiKey(hasDoubao || false);
-      }
-    } catch (checkError) {
-      console.error("Error checking API key:", checkError);
-      setHasApiKey(false);
-    }
-  }, []);
 
   const fetchRemixContext = useCallback(
     async (nextSourceImageId: string) => {
@@ -225,13 +204,7 @@ export default function GeneratePage() {
       router.push("/");
       return;
     }
-
-    if (selfServiceApiKeysEnabled) {
-      void checkApiKey();
-    } else {
-      setHasApiKey(true);
-    }
-  }, [checkApiKey, router, selfServiceApiKeysEnabled, user]);
+  }, [router, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -735,9 +708,6 @@ export default function GeneratePage() {
           await fetchCredits();
         }
         setError(json.error || "Failed to create generation");
-        if (selfServiceApiKeysEnabled && json.error?.includes("API key")) {
-          setHasApiKey(false);
-        }
         return;
       }
 
@@ -829,7 +799,7 @@ export default function GeneratePage() {
   const generateDisabled =
     submitting ||
     !prompt.trim() ||
-    (selfServiceApiKeysEnabled && !hasApiKey) ||
+    false ||
     (billingEnabled && creditCount < selectedCreditsCost);
 
   const resultTasks = useMemo(() => {
@@ -929,8 +899,8 @@ export default function GeneratePage() {
       : `Generate image · ${selectedCreditsCost} credits`;
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#f5f2ed] text-[#141210] dark:bg-[#0c0b09] dark:text-[#e0d9ce]">
+      <header className="sticky top-0 z-40 border-b border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#f5f2ed]/80 dark:bg-[#0c0b09]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <button
@@ -940,14 +910,14 @@ export default function GeneratePage() {
             >
               <Image src="/logo.png" alt="" width={32} height={32} className="h-8 w-8" />
               <h1
-                className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100"
+                className="text-2xl font-bold tracking-tight text-[#141210] dark:text-[#e0d9ce]"
                 style={{ fontFamily: "'Caveat', cursive" }}
               >
                 Aestara
               </h1>
             </button>
-            <span className="text-zinc-300 dark:text-zinc-700">/</span>
-            <span className="truncate text-sm text-zinc-500 dark:text-zinc-400">
+            <span className="text-[#a39b90] dark:text-[#2a2520]">/</span>
+            <span className="truncate text-sm text-[#5c564e] dark:text-[#8a837a]">
               Remix studio
             </span>
           </div>
@@ -956,7 +926,7 @@ export default function GeneratePage() {
               <button
                 type="button"
                 onClick={() => router.push("/credits")}
-                className="hidden sm:inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                className="hidden sm:inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-[#5c564e] transition-colors hover:bg-[#e0d9ce] hover:text-[#2a2520] dark:text-[#8a837a] dark:hover:bg-[#1a1814] dark:hover:text-[#d5cfc4]"
               >
                 {credits ?? "—"} credits
               </button>
@@ -966,7 +936,7 @@ export default function GeneratePage() {
               type="button"
               onClick={toggleTheme}
               aria-label="Toggle theme"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition-colors hover:bg-[#e0d9ce] hover:text-[#2a2520] dark:hover:bg-[#1a1814] dark:hover:text-[#a39b90]"
             >
               {theme === "light" ? (
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -986,7 +956,7 @@ export default function GeneratePage() {
         <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
           <form
             onSubmit={(event) => void handleSubmit(event)}
-            className="lg:sticky lg:top-[77px] lg:self-start rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-4"
+            className="lg:sticky lg:top-[77px] lg:self-start rounded-2xl border border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#ebe7e0]/50 dark:bg-[#141210]/50 p-4"
           >
             <input
               ref={referenceInputRef}
@@ -998,14 +968,14 @@ export default function GeneratePage() {
 
             <div className="mb-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
                   References
                 </span>
                 <button
                   type="button"
                   onClick={handlePickReferenceImage}
                   disabled={isUploadingReference}
-                  className="text-xs text-zinc-500 transition-colors hover:text-zinc-900 disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  className="text-xs text-[#5c564e] transition-colors hover:text-[#141210] disabled:opacity-50 dark:text-[#8a837a] dark:hover:text-[#e0d9ce]"
                 >
                   {isUploadingReference ? "Uploading…" : "+ Add"}
                 </button>
@@ -1020,8 +990,8 @@ export default function GeneratePage() {
                         title={asset.label}
                         className={`h-full w-full overflow-hidden rounded-lg ring-1 transition-all ${
                           asset.selected
-                            ? "ring-2 ring-zinc-900 dark:ring-white"
-                            : "ring-zinc-200 hover:ring-zinc-300 dark:ring-white/10 dark:hover:ring-white/20"
+                            ? "ring-2 ring-[#141210] dark:ring-white"
+                            : "ring-[#d5cfc4] hover:ring-[#a39b90] dark:ring-[#c4bdb4]/10 dark:hover:ring-white/20"
                         }`}
                       >
                         {asset.imageUrl ? (
@@ -1041,7 +1011,7 @@ export default function GeneratePage() {
                           onClick={asset.onRemove}
                           aria-label={`Remove ${asset.label}`}
                           title={`Remove ${asset.label}`}
-                          className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/72 text-white shadow-sm backdrop-blur-sm transition-transform hover:scale-105 hover:bg-black/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                          className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/72 text-[#f5f2ed] shadow-sm backdrop-blur-sm transition-transform hover:scale-105 hover:bg-black/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                         >
                           <svg
                             className="h-4 w-4"
@@ -1062,7 +1032,7 @@ export default function GeneratePage() {
                   ))}
                 </div>
               ) : (
-                <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-400 dark:border-white/10 dark:text-zinc-500">
+                <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-[#d5cfc4] text-xs text-[#8a837a] dark:border-[#f5f2ed]/10 dark:text-[#5c564e]">
                   No references staged
                 </div>
               )}
@@ -1070,10 +1040,10 @@ export default function GeneratePage() {
 
             <div className="mb-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
                   Prompt
                 </span>
-                <span className="text-xs text-zinc-400 dark:text-zinc-600">
+                <span className="text-xs text-[#8a837a] dark:text-[#4a443c]">
                   {prompt.length}/10000
                 </span>
               </div>
@@ -1082,13 +1052,13 @@ export default function GeneratePage() {
                 onChange={(event) => setPrompt(event.target.value)}
                 placeholder="Describe the image you want to generate…"
                 rows={8}
-                className="w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm leading-6 text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-white/25"
+                className="w-full resize-none rounded-lg border border-[#d5cfc4] bg-[#f5f2ed] px-3 py-2.5 text-sm leading-6 text-[#141210] outline-none placeholder:text-[#8a837a] focus:border-[#8a837a] dark:border-[#f5f2ed]/10 dark:bg-[#141210] dark:text-[#e0d9ce] dark:placeholder:text-[#4a443c] dark:focus:border-[#f5f2ed]/25"
               />
             </div>
 
             <div className="mb-4 space-y-3">
               <div>
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
                   Model
                 </span>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -1101,8 +1071,8 @@ export default function GeneratePage() {
                         onClick={() => setSelectedModel(model.id)}
                         className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                           isActive
-                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
+                            ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
+                            : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
                         }`}
                       >
                         {model.name}
@@ -1113,7 +1083,7 @@ export default function GeneratePage() {
               </div>
 
               <div>
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
                   Aspect ratio
                 </span>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -1126,8 +1096,8 @@ export default function GeneratePage() {
                         onClick={() => setSelectedAspectRatio(ratio.id)}
                         className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                           isActive
-                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
+                            ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
+                            : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
                         }`}
                       >
                         {ratio.label}
@@ -1138,7 +1108,7 @@ export default function GeneratePage() {
               </div>
 
               <div>
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
                   Resolution
                 </span>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -1151,8 +1121,8 @@ export default function GeneratePage() {
                         onClick={() => setSelectedResolution(resolution.id)}
                         className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                           isActive
-                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/5 dark:text-zinc-400 dark:hover:bg-white/10"
+                            ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
+                            : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
                         }`}
                       >
                         {getResolutionCreditsLabel(selectedModel, resolution.id)}
@@ -1163,9 +1133,9 @@ export default function GeneratePage() {
               </div>
             </div>
 
-            <div className="mb-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
+            <div className="mb-3 rounded-lg border border-[#d5cfc4] bg-[#ebe7e0] px-3 py-2 text-xs text-[#4a443c] dark:border-[#f5f2ed]/10 dark:bg-[#f5f2ed]/5 dark:text-[#a39b90]">
               {MODEL_OPTIONS.find((model) => model.id === selectedModel)?.name} uses{" "}
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">
+              <span className="font-medium text-[#141210] dark:text-[#e0d9ce]">
                 {selectedCreditsCost} credits
               </span>{" "}
               at {selectedResolution}. Higher resolutions consume more credits.
@@ -1180,21 +1150,21 @@ export default function GeneratePage() {
             <button
               type="submit"
               disabled={generateDisabled}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#141210] px-4 py-2.5 text-sm font-medium text-[#f5f2ed] transition-colors hover:bg-[#1a1814] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#f5f2ed] dark:text-[#141210] dark:hover:bg-[#e0d9ce]"
             >
               {submitting ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-zinc-900/30 dark:border-t-zinc-900" />
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#f5f2ed]/30 border-t-white dark:border-[#141210]/30 dark:border-t-[#141210]" />
               ) : null}
               {generateLabel}
             </button>
           </form>
 
-          <section className="min-w-0 rounded-2xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-900/50 p-4">
+          <section className="min-w-0 rounded-2xl border border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#ebe7e0]/50 dark:bg-[#141210]/50 p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              <h2 className="text-sm font-medium text-[#2a2520] dark:text-[#d5cfc4]">
                 Generated images
               </h2>
-              <span className="text-xs text-zinc-400 dark:text-zinc-500">
+              <span className="text-xs text-[#8a837a] dark:text-[#5c564e]">
                 {resultCount} renders
               </span>
             </div>
@@ -1202,10 +1172,10 @@ export default function GeneratePage() {
             {featuredAsset ? (
               <>
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <div className="relative flex min-h-[320px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-zinc-100 p-3 dark:bg-zinc-800/50 sm:p-4">
+                  <div className="relative flex min-h-[320px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-[#e0d9ce] p-3 dark:bg-[#1a1814]/50 sm:p-4">
                     {featuredAsset.pending || !featuredAsset.imageUrl ? (
                       <div className="flex aspect-[4/5] items-center justify-center">
-                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-400 dark:border-zinc-700 dark:border-t-zinc-500" />
+                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d5cfc4] border-t-[#a39b90] dark:border-[#2a2520] dark:border-t-[#5c564e]" />
                       </div>
                     ) : (
                       <Image
@@ -1224,7 +1194,7 @@ export default function GeneratePage() {
                           event.stopPropagation();
                           featuredAsset.onDownload?.();
                         }}
-                        className="absolute bottom-3 right-3 rounded-md bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+                        className="absolute bottom-3 right-3 rounded-md bg-[#0c0b09]/60 px-3 py-1.5 text-xs font-medium text-[#f5f2ed] backdrop-blur-sm transition-colors hover:bg-black/80"
                       >
                         {downloadingTaskId === featuredAsset.id ? "Saving…" : "Download"}
                       </button>
@@ -1232,7 +1202,7 @@ export default function GeneratePage() {
                   </div>
 
                   {thumbnailCards.length > 1 ? (
-                    <div className="flex max-h-[calc(100vh-180px)] flex-row gap-1.5 overflow-x-auto rounded-xl bg-zinc-50 px-1.5 py-3 dark:bg-zinc-900/50 sm:w-[72px] sm:flex-col sm:items-center sm:overflow-x-visible sm:overflow-y-auto">
+                    <div className="flex max-h-[calc(100vh-180px)] flex-row gap-1.5 overflow-x-auto rounded-xl bg-[#ebe7e0] px-1.5 py-3 dark:bg-[#141210]/50 sm:w-[72px] sm:flex-col sm:items-center sm:overflow-x-visible sm:overflow-y-auto">
                       {thumbnailCards.map((asset) => (
                       <button
                         key={asset.id}
@@ -1242,16 +1212,16 @@ export default function GeneratePage() {
                         disabled={asset.pending}
                         className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg transition-all duration-300 ${
                           asset.id === featuredAsset.id
-                            ? "ring-2 ring-zinc-900 scale-105 dark:ring-white/80"
+                            ? "ring-2 ring-[#141210] scale-105 dark:ring-white/80"
                             : "opacity-50 hover:opacity-80"
                         } ${asset.pending ? "cursor-default" : ""}`}
                       >
                         {asset.pending || !asset.imageUrl ? (
-                          <div className="flex h-full w-full items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                          <div className="flex h-full w-full items-center justify-center bg-[#e0d9ce] dark:bg-[#1a1814]">
                             {asset.pending ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-400 dark:border-zinc-700 dark:border-t-zinc-500" />
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#d5cfc4] border-t-[#a39b90] dark:border-[#2a2520] dark:border-t-[#5c564e]" />
                             ) : (
-                              <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                              <span className="text-[10px] text-[#8a837a] dark:text-[#5c564e]">
                                 {asset.label}
                               </span>
                             )}
@@ -1275,9 +1245,9 @@ export default function GeneratePage() {
                 </div>
               </>
             ) : (
-              <div className="flex aspect-[4/5] max-h-[640px] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 px-6 text-center dark:border-white/10">
+              <div className="flex aspect-[4/5] max-h-[640px] flex-col items-center justify-center rounded-xl border border-dashed border-[#d5cfc4] px-6 text-center dark:border-[#f5f2ed]/10">
                 <svg
-                  className="mb-3 h-8 w-8 text-zinc-300 dark:text-zinc-600"
+                  className="mb-3 h-8 w-8 text-[#a39b90] dark:text-[#4a443c]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1289,11 +1259,11 @@ export default function GeneratePage() {
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-                <p className="text-sm text-zinc-600 dark:text-zinc-300">
+                <p className="text-sm text-[#4a443c] dark:text-[#a39b90]">
                   {isRestoringSeries ? "Restoring saved variations…" : "No images yet"}
                 </p>
                 {!isRestoringSeries ? (
-                  <p className="mt-1 max-w-xs text-xs text-zinc-400 dark:text-zinc-500">
+                  <p className="mt-1 max-w-xs text-xs text-[#8a837a] dark:text-[#5c564e]">
                     Describe what you want on the left, then click Generate.
                   </p>
                 ) : null}

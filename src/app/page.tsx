@@ -1,205 +1,101 @@
 "use client";
 
-import SiteFooter from "@/components/SiteFooter";
-import Image from "next/image";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { MOCK_IMAGES } from "@/lib/constants";
-import CategoryFilter from "@/components/CategoryFilter";
+import Link from "next/link";
+import { useEffect, useState, useRef } from "react";
 import MasonryGrid from "@/components/MasonryGrid";
+import MinimalSidebar from "@/components/MinimalSidebar";
 import ImageModal from "@/components/ImageModal";
 import SearchModal from "@/components/SearchModal";
 import UserMenu from "@/components/UserMenu";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
 import { hydrateImageDimensions } from "@/lib/image-dimensions";
-import { fetchCachedJson } from "@/lib/public-feed-cache";
-import type { ImagePrompt } from "@/lib/types";
-
-const PAGE_SIZE = 20;
 
 export default function Home() {
-  const storeState = useAppStore.getState();
-  const initialIsDefaultFeed =
-    !storeState.searchQuery.trim() &&
-    storeState.activeCategory === "all" &&
-    storeState.activeTimeFilter === "all" &&
-    storeState.activeModel === "all" &&
-    !storeState.showFavoritesOnly;
-  const [images, setImages] = useState<ImagePrompt[]>(() => storeState.allImages);
-  const [isLoading, setIsLoading] = useState(() => storeState.allImages.length === 0);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasMore, setHasMore] = useState(() =>
-    initialIsDefaultFeed ? storeState.defaultFeedHasMore : false
-  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const imagesRef = useRef<ImagePrompt[]>([]);
-  const loadingRef = useRef(false);
-  const hasMoreRef = useRef(false);
-  const initialLoadRef = useRef(storeState.allImages.length === 0);
-  const feedVersionRef = useRef(0);
-  const defaultFeedImagesRef = useRef<ImagePrompt[]>(
-    initialIsDefaultFeed ? storeState.allImages : []
-  );
-  const defaultFeedHasMoreRef = useRef(
-    initialIsDefaultFeed ? storeState.defaultFeedHasMore : false
-  );
+  const initialLoadRef = useRef(false);
+
+  const allImages = useAppStore((s) => s.allImages);
+  const isLoading = useAppStore((s) => s.isLoading);
+  const isLoadingMore = useAppStore((s) => s.isLoadingMore);
+  const hasMore = useAppStore((s) => s.hasMore);
+  const feedVersion = useAppStore((s) => s.feedVersion);
+  const resetFeed = useAppStore((s) => s.resetFeed);
+  const loadInitialPage = useAppStore((s) => s.loadInitialPage);
   const setAllImages = useAppStore((s) => s.setAllImages);
-  const setDefaultFeedHasMore = useAppStore((s) => s.setDefaultFeedHasMore);
   const searchQuery = useAppStore((s) => s.searchQuery);
   const activeCategory = useAppStore((s) => s.activeCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
   const activeModel = useAppStore((s) => s.activeModel);
-  const favorites = useAppStore((s) => s.favorites);
   const favoritesLoaded = useAppStore((s) => s.favoritesLoaded);
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
+  const favorites = useAppStore((s) => s.favorites);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
-  const favoriteIdsParam = showFavoritesOnly ? favorites.join(",") : "";
-  const hasFavoriteSelection = favoriteIdsParam.length > 0;
-  const favoritesReadyForFeed = !showFavoritesOnly || favoritesLoaded;
-  const isDefaultFeed =
-    !debouncedSearchQuery &&
-    activeCategory === "all" &&
-    activeTimeFilter === "all" &&
-    activeModel === "all" &&
-    !showFavoritesOnly;
 
-  // Keep refs in sync with state
-  imagesRef.current = images;
-  hasMoreRef.current = hasMore;
-
+  // Debounce search query for search modal
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
+    const id = window.setTimeout(() => {
       setDebouncedSearchQuery(searchQuery.trim());
     }, 250);
-    return () => window.clearTimeout(timeoutId);
+    return () => window.clearTimeout(id);
   }, [searchQuery]);
 
-  const buildQueryString = useCallback(
-    (offset: number) => {
-      const params = new URLSearchParams({
-        limit: String(PAGE_SIZE),
-        offset: String(offset),
-      });
+  // Filter change → reset and reload
+  useEffect(() => {
+    if (!favoritesLoaded && showFavoritesOnly) return;
 
-      if (debouncedSearchQuery) {
-        params.set("search", debouncedSearchQuery);
-      }
+    const isDefaultFeed =
+      !searchQuery.trim() &&
+      activeCategory === "all" &&
+      activeTimeFilter === "all" &&
+      activeModel === "all" &&
+      !showFavoritesOnly;
 
-      if (activeCategory !== "all") {
-        params.set("category", activeCategory);
-      }
-
-      if (activeTimeFilter !== "all") {
-        params.set("time", activeTimeFilter);
-      }
-
-      if (activeModel !== "all") {
-        params.set("model", activeModel);
-      }
-
-      if (favoriteIdsParam) {
-        params.set("ids", favoriteIdsParam);
-      }
-
-      return params.toString();
-    },
-    [
-      activeCategory,
-      activeModel,
-      activeTimeFilter,
-      debouncedSearchQuery,
-      favoriteIdsParam,
-    ]
-  );
-
-  const fetchPage = useCallback(
-    async (offset: number) => {
-      const json = await fetchCachedJson<{
-        data?: ImagePrompt[];
-        hasMore?: boolean;
-      }>(`/api/images?${buildQueryString(offset)}`);
-
-      return {
-        data: (json.data ?? []) as ImagePrompt[],
-        hasMore: Boolean(json.hasMore),
-      };
-    },
-    [buildQueryString]
-  );
-
-  const syncImageDimensions = useCallback(
-    (nextImages: ImagePrompt[], feedVersion: number, cacheDefaultFeed: boolean) => {
-      void hydrateImageDimensions(nextImages).then((hydratedImages) => {
-        if (feedVersion !== feedVersionRef.current) return;
-
-        const hasDimensionChanges = hydratedImages.some((image, index) => {
-          const previous = nextImages[index];
-          return image.width !== previous?.width || image.height !== previous?.height;
-        });
-
-        if (!hasDimensionChanges) return;
-
-        imagesRef.current = hydratedImages;
-        setImages(hydratedImages);
-        setAllImages(hydratedImages);
-
-        if (cacheDefaultFeed) {
-          defaultFeedImagesRef.current = hydratedImages;
-        }
-      });
-    },
-    [setAllImages]
-  );
-
-  const loadMore = useCallback(async () => {
-    if (loadingRef.current || !hasMoreRef.current || isLoading) return;
-    if (!favoritesReadyForFeed || (showFavoritesOnly && !hasFavoriteSelection)) return;
-
-    const feedVersion = feedVersionRef.current;
-    loadingRef.current = true;
-    setIsLoadingMore(true);
-
-    try {
-      const { data, hasMore: more } = await fetchPage(imagesRef.current.length);
-
-      if (feedVersion !== feedVersionRef.current) return;
-
-      const accumulated = [...imagesRef.current, ...data];
-      imagesRef.current = accumulated;
-      setImages(accumulated);
-      setAllImages(accumulated);
-      setHasMore(more);
-
-      if (isDefaultFeed) {
-        defaultFeedImagesRef.current = accumulated;
-        defaultFeedHasMoreRef.current = more;
-        setDefaultFeedHasMore(more);
-      }
-
-      syncImageDimensions(accumulated, feedVersion, isDefaultFeed);
-    } catch {
-      // silently fail — user still sees what was loaded
-    } finally {
-      if (feedVersion === feedVersionRef.current) {
-        loadingRef.current = false;
-        setIsLoadingMore(false);
-      }
+    if (showFavoritesOnly && favorites.length === 0) {
+      resetFeed();
+      return;
     }
+
+    // If default feed and we already have images cached, use them
+    if (isDefaultFeed && allImages.length > 0 && initialLoadRef.current) {
+      return;
+    }
+
+    resetFeed();
+    loadInitialPage();
+    initialLoadRef.current = true;
   }, [
-    favoritesReadyForFeed,
-    hasFavoriteSelection,
-    fetchPage,
-    isLoading,
-    isDefaultFeed,
-    setAllImages,
-    setDefaultFeedHasMore,
+    searchQuery,
+    activeCategory,
+    activeTimeFilter,
+    activeModel,
     showFavoritesOnly,
-    syncImageDimensions,
+    favoritesLoaded,
+    favorites.length,
+    resetFeed,
+    loadInitialPage,
+    allImages.length,
   ]);
+
+  // Hydrate dimensions for newly loaded images
+  useEffect(() => {
+    if (allImages.length === 0) return;
+    const v = feedVersion;
+    hydrateImageDimensions(allImages).then((hydrated) => {
+      const current = useAppStore.getState();
+      if (current.feedVersion !== v) return;
+      const changed = hydrated.some(
+        (img, i) =>
+          img.width !== allImages[i]?.width ||
+          img.height !== allImages[i]?.height
+      );
+      if (changed) setAllImages(hydrated);
+    });
+  }, [allImages, feedVersion, setAllImages]);
+
+  const handleCloseSearch = () => setSearchOpen(false);
 
   // Keyboard shortcut: / to toggle search
   useEffect(() => {
@@ -216,186 +112,72 @@ export default function Home() {
     return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
-  // Close search but keep the query active
-  const handleCloseSearch = useCallback(() => {
-    setSearchOpen(false);
-  }, []);
-
-  useEffect(() => {
-    if (!favoritesReadyForFeed) {
-      if (imagesRef.current.length === 0) {
-        setIsLoading(true);
-      } else {
-        setIsRefreshing(true);
-      }
-      return;
-    }
-
-    if (showFavoritesOnly && !hasFavoriteSelection) {
-      feedVersionRef.current += 1;
-      imagesRef.current = [];
-      loadingRef.current = false;
-      setImages([]);
-      setAllImages([]);
-      setHasMore(false);
-      setDefaultFeedHasMore(false);
-      setIsLoading(false);
-      setIsLoadingMore(false);
-      setIsRefreshing(false);
-      initialLoadRef.current = false;
-      return;
-    }
-
-    let cancelled = false;
-    const feedVersion = feedVersionRef.current + 1;
-    feedVersionRef.current = feedVersion;
-    loadingRef.current = false;
-    setIsLoadingMore(false);
-    setHasMore(false);
-
-    if (isDefaultFeed && defaultFeedImagesRef.current.length > 0 && !initialLoadRef.current) {
-      imagesRef.current = defaultFeedImagesRef.current;
-      setImages(defaultFeedImagesRef.current);
-      setAllImages(defaultFeedImagesRef.current);
-      setHasMore(defaultFeedHasMoreRef.current);
-      setIsLoading(false);
-      setIsRefreshing(false);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    if (initialLoadRef.current && imagesRef.current.length === 0) {
-      setIsLoading(true);
-      setIsRefreshing(false);
-    } else {
-      imagesRef.current = [];
-      setImages([]);
-      setAllImages([]);
-      setIsLoading(true);
-      setIsRefreshing(false);
-    }
-
-    fetchPage(0)
-      .then(({ data, hasMore: more }) => {
-        if (cancelled) return;
-        if (feedVersion !== feedVersionRef.current) return;
-
-        if (data.length > 0 || !isDefaultFeed) {
-          imagesRef.current = data;
-          setImages(data);
-          setAllImages(data);
-          setHasMore(more);
-
-          if (isDefaultFeed) {
-            defaultFeedImagesRef.current = data;
-            defaultFeedHasMoreRef.current = more;
-            setDefaultFeedHasMore(more);
-          }
-
-          syncImageDimensions(data, feedVersion, isDefaultFeed);
-          return;
-        }
-
-        imagesRef.current = MOCK_IMAGES;
-        setImages(MOCK_IMAGES);
-        setAllImages(MOCK_IMAGES);
-        setHasMore(false);
-
-        if (isDefaultFeed) {
-          defaultFeedImagesRef.current = MOCK_IMAGES;
-          defaultFeedHasMoreRef.current = false;
-          setDefaultFeedHasMore(false);
-        }
-      })
-      .catch(() => {
-        if (cancelled || feedVersion !== feedVersionRef.current) return;
-
-        if (imagesRef.current.length > 0) {
-          setHasMore(false);
-          return;
-        }
-
-        if (isDefaultFeed) {
-          imagesRef.current = MOCK_IMAGES;
-          setImages(MOCK_IMAGES);
-          setAllImages(MOCK_IMAGES);
-        } else {
-          imagesRef.current = [];
-          setImages([]);
-          setAllImages([]);
-        }
-        setHasMore(false);
-        if (isDefaultFeed) {
-          defaultFeedHasMoreRef.current = false;
-          setDefaultFeedHasMore(false);
-        }
-      })
-      .finally(() => {
-        if (cancelled) return;
-        if (feedVersion !== feedVersionRef.current) return;
-
-        setIsLoading(false);
-        setIsRefreshing(false);
-        initialLoadRef.current = false;
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    activeCategory,
-    activeModel,
-    activeTimeFilter,
-    debouncedSearchQuery,
-    favoritesReadyForFeed,
-    hasFavoriteSelection,
-    fetchPage,
-    isDefaultFeed,
-    setAllImages,
-    setDefaultFeedHasMore,
-    showFavoritesOnly,
-    syncImageDimensions,
-  ]);
-
-  // IntersectionObserver for infinite scroll
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) loadMore();
-      },
-      { rootMargin: "400px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loadMore, isLoading]); // re-run when isLoading flips so sentinel ref is available
-
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
-          <div className="flex select-none items-center gap-3">
-            <Image src="/logo.png" alt="Aestara" width={32} height={32} className="h-8 w-8" />
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100" style={{ fontFamily: "'Caveat', cursive" }}>
+    <div className="min-h-screen bg-[#f5f2ed] dark:bg-[#0c0b09] text-[#2a2520] dark:text-[#c4bdb4]">
+      {/* Minimal Header */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-[#f5f2ed]/70 dark:bg-[#0c0b09]/70 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2 select-none">
+            <h1
+              className="text-xl font-bold tracking-tight text-[#2a2520] dark:text-[#c4bdb4]"
+              style={{ fontFamily: "'Caveat', cursive" }}
+            >
               Aestara
             </h1>
-          </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          </Link>
+          <nav className="hidden md:flex items-center gap-8 text-[11px] uppercase tracking-[0.15em] text-[#5c564e] dark:text-[#7a7269]">
+            <Link
+              href="/"
+              className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
+            >
+              Gallery
+            </Link>
+            <Link
+              href="/generate"
+              className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
+            >
+              Create
+            </Link>
+            <Link
+              href="/history"
+              className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
+            >
+              History
+            </Link>
+          </nav>
+          <div className="flex items-center gap-3">
             <UserMenu />
             <button
               onClick={toggleTheme}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-300"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#8a837a] transition-colors hover:text-[#2a2520] hover:bg-[#e8e4de] dark:text-[#5c564e] dark:hover:text-[#c4bdb4] dark:hover:bg-[#1a1814]"
             >
               {theme === "light" ? (
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                  />
                 </svg>
               ) : (
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
                 </svg>
               )}
             </button>
@@ -403,40 +185,35 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Body */}
-      <div className="mx-auto flex max-w-[1600px] gap-6 px-6 py-6">
-        <aside className="hidden w-[220px] flex-shrink-0 lg:block lg:sticky lg:top-[73px] lg:self-start">
-          <div className="p-3">
-            <button
-              onClick={() => setSearchOpen(true)}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
-                searchQuery
-                  ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
-                  : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
-              }`}
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Search
-              {searchQuery && (
-                <span className="ml-auto truncate max-w-[60px] text-[11px] opacity-70">{searchQuery}</span>
-              )}
-            </button>
-            <CategoryFilter isLoading={isLoading} isRefreshing={isRefreshing} />
-          </div>
+      {/* Top spacer for fixed header */}
+      <div className="h-14" />
+
+      {/* Main Gallery */}
+      <div
+        id="gallery"
+        className="mx-auto flex max-w-[1400px] scroll-mt-20 gap-12 px-6 py-16 lg:gap-20"
+      >
+        <aside className="hidden w-[200px] flex-shrink-0 lg:block lg:sticky lg:top-[73px] lg:self-start">
+          <MinimalSidebar
+            onSearchClick={() => setSearchOpen(true)}
+            isLoading={isLoading}
+          />
         </aside>
         <main className="min-w-0 flex-1">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+          {isLoading && allImages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-40 gap-6">
+              <div className="relative aspect-[3/4] w-56 bg-[#e8e4de] dark:bg-[#141210] overflow-hidden rounded-sm">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]" />
+              </div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
+                Loading
+              </p>
             </div>
           ) : (
             <MasonryGrid
-              images={images}
+              images={allImages}
               hasMore={hasMore}
               isLoadingMore={isLoadingMore}
-              sentinelRef={sentinelRef}
             />
           )}
         </main>
@@ -448,12 +225,17 @@ export default function Home() {
         onClose={handleCloseSearch}
         isLoadingResults={
           Boolean(searchQuery) &&
-          (isLoading || isRefreshing || debouncedSearchQuery !== searchQuery.trim())
+          (isLoading || debouncedSearchQuery !== searchQuery.trim())
         }
       />
       <LoginPrompt />
 
-      <SiteFooter />
+      {/* Minimal Footer */}
+      <footer className="py-16 text-center">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
+          Aestara — AI Image Generation
+        </p>
+      </footer>
     </div>
   );
 }

@@ -14,10 +14,10 @@ export default function TermsPage() {
       updatedAt="March 18, 2026"
     >
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           1. Service Overview
         </h2>
-        <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           Aestara provides an online AI image generation service. Users can create an
           account, purchase credits, submit prompts, and generate images through the
           platform. By accessing or using Aestara, you agree to these terms.
@@ -25,10 +25,10 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           2. Accounts and Eligibility
         </h2>
-        <ul className="space-y-3 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <ul className="space-y-3 text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           <li>You must provide accurate account information and keep it up to date.</li>
           <li>You are responsible for activity that occurs under your account.</li>
           <li>
@@ -39,10 +39,10 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           3. Credits, Pricing, and Billing
         </h2>
-        <div className="space-y-3 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <div className="space-y-3 text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           <p>
             Aestara sells one-time credit packages. Credits are consumed when you submit
             generation requests. Unless otherwise stated on the pricing page, one image
@@ -62,15 +62,15 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           4. Refund Policy
         </h2>
-        <div className="space-y-3 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <div className="space-y-3 text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           <p>
             You may request a refund within 7 days of purchase by contacting{" "}
             <a
               href="mailto:chengshengdeng@gmail.com"
-              className="underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-500 dark:decoration-zinc-600"
+              className="underline decoration-[#a39b90] underline-offset-2 hover:decoration-[#5c564e] dark:decoration-[#4a443c]"
             >
               chengshengdeng@gmail.com
             </a>
@@ -86,10 +86,10 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           5. Acceptable Use
         </h2>
-        <ul className="space-y-3 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <ul className="space-y-3 text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           <li>
             You may not use Aestara for unlawful, deceptive, abusive, infringing, or
             harmful activity.
@@ -111,10 +111,10 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           6. Generated Content
         </h2>
-        <div className="space-y-3 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <div className="space-y-3 text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           <p>
             AI systems can produce inaccurate, unexpected, or similar outputs. You are
             responsible for reviewing generated images before using, publishing, or selling
@@ -128,10 +128,10 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           7. Availability and Changes
         </h2>
-        <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           We may update, improve, suspend, or discontinue parts of the service at any
           time. We are not liable for downtime, model changes, or third-party outages that
           affect availability.
@@ -139,14 +139,14 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           8. Contact
         </h2>
-        <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           Questions about these terms can be sent to{" "}
           <a
             href="mailto:chengshengdeng@gmail.com"
-            className="underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-500 dark:decoration-zinc-600"
+            className="underline decoration-[#a39b90] underline-offset-2 hover:decoration-[#5c564e] dark:decoration-[#4a443c]"
           >
             chengshengdeng@gmail.com
           </a>

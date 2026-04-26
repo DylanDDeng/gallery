@@ -92,19 +92,19 @@ export default function CheckoutPage() {
   }, [error, orderId, paddleToken, scriptLoaded, transactionId]);
 
   return (
-    <main className="min-h-screen bg-white px-6 py-16 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <main className="min-h-screen bg-[#f5f2ed] px-6 py-16 text-[#141210] dark:bg-[#0c0b09] dark:text-[#e0d9ce]">
       <Script
         src="https://cdn.paddle.com/paddle/v2/paddle.js"
         strategy="afterInteractive"
         onLoad={() => setScriptLoaded(true)}
       />
 
-      <div className="mx-auto max-w-xl rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-zinc-900">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+      <div className="mx-auto max-w-xl rounded-3xl border border-[#d5cfc4] bg-[#f5f2ed] p-8 shadow-sm dark:border-[#f5f2ed]/10 dark:bg-[#141210]">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#8a837a] dark:text-[#5c564e]">
           Secure Checkout
         </p>
         <h1 className="mt-3 text-3xl font-semibold">Complete your credit purchase</h1>
-        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-3 text-sm text-[#5c564e] dark:text-[#8a837a]">
           Paddle Checkout should open automatically on this page.
         </p>
 
@@ -113,7 +113,7 @@ export default function CheckoutPage() {
             {error}
           </div>
         ) : (
-          <div className="mt-6 rounded-2xl bg-zinc-50 px-4 py-4 text-sm text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+          <div className="mt-6 rounded-2xl bg-[#ebe7e0] px-4 py-4 text-sm text-[#5c564e] dark:bg-[#1a1814] dark:text-[#8a837a]">
             {transactionId
               ? "If the checkout does not appear, verify that your Paddle website approval and client-side token are configured."
               : "This page is also safe to use as your default Paddle payment link."}
@@ -123,11 +123,11 @@ export default function CheckoutPage() {
         <div className="mt-8 flex items-center justify-between gap-4 text-sm">
           <Link
             href="/credits"
-            className="font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="font-medium text-[#4a443c] hover:text-[#141210] dark:text-[#8a837a] dark:hover:text-[#e0d9ce]"
           >
             Return to credits
           </Link>
-          <span className="text-zinc-400 dark:text-zinc-500">Order {orderId}</span>
+          <span className="text-[#8a837a] dark:text-[#5c564e]">Order {orderId}</span>
         </div>
       </div>
     </main>

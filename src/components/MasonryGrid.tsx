@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ImageCard from "./ImageCard";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
@@ -9,14 +9,11 @@ interface MasonryGridProps {
   images: ImagePrompt[];
   hasMore?: boolean;
   isLoadingMore?: boolean;
-  sentinelRef?: RefObject<HTMLDivElement | null>;
 }
 
 function getColumnCount(width: number) {
-  if (width >= 1536) return 5;
-  if (width >= 1280) return 4;
-  if (width >= 1024) return 3;
-  if (width >= 640) return 2;
+  if (width >= 1280) return 3;
+  if (width >= 768) return 2;
   return 1;
 }
 
@@ -24,41 +21,34 @@ function estimateHeight(image: ImagePrompt) {
   return image.width && image.height ? image.height / image.width : 4 / 3;
 }
 
-type MasonryLayout = {
-  columnCount: number;
-  imageIds: string[];
-  columns: ImagePrompt[][];
-  heights: number[];
-};
-
-function buildLayout(
+function buildColumns(
   images: ImagePrompt[],
   columnCount: number
-): MasonryLayout {
-  const nextColumns = Array.from({ length: columnCount }, () => [] as ImagePrompt[]);
+): ImagePrompt[][] {
+  const columns: ImagePrompt[][] = Array.from(
+    { length: columnCount },
+    () => []
+  );
   const heights = Array.from({ length: columnCount }, () => 0);
 
   for (const image of images) {
     const shortestColumnIndex = heights.indexOf(Math.min(...heights));
-    nextColumns[shortestColumnIndex].push(image);
+    columns[shortestColumnIndex].push(image);
     heights[shortestColumnIndex] += estimateHeight(image) + 0.12;
   }
 
-  return {
-    columnCount,
-    imageIds: images.map((image) => image.id),
-    columns: nextColumns,
-    heights,
-  };
+  return columns;
 }
 
-export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRef }: MasonryGridProps) {
+export default function MasonryGrid({
+  images,
+  hasMore,
+  isLoadingMore,
+}: MasonryGridProps) {
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const favorites = useAppStore((s) => s.favorites);
-  const searchQuery = useAppStore((s) => s.searchQuery);
-  const activeCategory = useAppStore((s) => s.activeCategory);
-  const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
-  const activeModel = useAppStore((s) => s.activeModel);
+  const loadNextPage = useAppStore((s) => s.loadNextPage);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [columnCount, setColumnCount] = useState(() =>
     typeof window === "undefined" ? 1 : getColumnCount(window.innerWidth)
   );
@@ -70,53 +60,47 @@ export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRe
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const filteredImages = useMemo(() => {
-    if (!showFavoritesOnly) {
-      return images;
-    }
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) loadNextPage();
+      },
+      { rootMargin: "600px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadNextPage]);
 
+  const filteredImages = useMemo(() => {
+    if (!showFavoritesOnly) return images;
     return images.filter((img) => favorites.includes(img.id));
   }, [favorites, images, showFavoritesOnly]);
 
   const hasActiveFeedFilters =
-    Boolean(searchQuery) ||
-    activeCategory !== "all" ||
-    activeTimeFilter !== "all" ||
-    activeModel !== "all";
+    Boolean(useAppStore.getState().searchQuery) ||
+    useAppStore.getState().activeCategory !== "all" ||
+    useAppStore.getState().activeTimeFilter !== "all" ||
+    useAppStore.getState().activeModel !== "all";
 
-  const layout = useMemo(
-    () => buildLayout(filteredImages, columnCount),
-    [columnCount, filteredImages]
+  const columns = useMemo(
+    () => buildColumns(filteredImages, columnCount),
+    [filteredImages, columnCount]
   );
 
   if (filteredImages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
-        <svg className="mb-4 h-14 w-14 text-zinc-300 dark:text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1}
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-        {showFavoritesOnly ? (
-          <>
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              No favorites yet
-            </p>
-            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">
-              Click the heart icon on any image to save it here
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">No images found</p>
-            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">
-              {hasActiveFeedFilters ? "Try adjusting your search or filter" : "New images will appear here once the gallery is populated"}
-            </p>
-          </>
-        )}
+      <div className="flex flex-col items-center justify-center py-40 text-[#8a837a] dark:text-[#5c564e]">
+        <p className="text-sm tracking-wide">No images found</p>
+        <p className="mt-2 text-xs opacity-60">
+          {showFavoritesOnly
+            ? "Save images to see them here"
+            : hasActiveFeedFilters
+            ? "Try adjusting your search or filter"
+            : "New works will appear here"}
+        </p>
       </div>
     );
   }
@@ -124,11 +108,11 @@ export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRe
   return (
     <>
       <div
-        className="grid items-start gap-3"
+        className="grid items-start gap-8 lg:gap-12"
         style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
       >
-        {layout.columns.map((column, index) => (
-          <div key={index} className="flex flex-col gap-3">
+        {columns.map((column, index) => (
+          <div key={index} className="flex flex-col gap-8 lg:gap-12">
             {column.map((image) => (
               <ImageCard key={image.id} image={image} />
             ))}
@@ -138,13 +122,15 @@ export default function MasonryGrid({ images, hasMore, isLoadingMore, sentinelRe
       {/* Sentinel for IntersectionObserver */}
       <div ref={sentinelRef} className="h-1" />
       {isLoadingMore && (
-        <div className="flex items-center justify-center py-8">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+        <div className="flex items-center justify-center py-16">
+          <div className="relative aspect-[3/4] w-40 bg-[#e8e4de] dark:bg-[#141210] overflow-hidden rounded-sm">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]" />
+          </div>
         </div>
       )}
       {!hasMore && filteredImages.length > 0 && (
-        <p className="py-6 text-center text-xs text-zinc-400 dark:text-zinc-600">
-          All images loaded
+        <p className="py-16 text-center text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
+          End of gallery
         </p>
       )}
     </>

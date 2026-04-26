@@ -55,6 +55,20 @@ function loadImageDimensions(url: string): Promise<ImageDimensions | null> {
   return request;
 }
 
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<unknown>
+) {
+  const results: unknown[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
 export async function hydrateImageDimensions<T extends ImageWithDimensions>(
   images: T[]
 ): Promise<T[]> {
@@ -65,11 +79,11 @@ export async function hydrateImageDimensions<T extends ImageWithDimensions>(
   }
 
   const uniqueUrls = Array.from(new Set(missingImages.map((image) => image.url)));
-  const resolved = await Promise.all(
-    uniqueUrls.map(async (url) => [url, await loadImageDimensions(url)] as const)
+  const resolved = await runWithConcurrency(uniqueUrls, 10, async (url) =>
+    [url, await loadImageDimensions(url)] as const
   );
   const dimensionsByUrl = new Map(
-    resolved.filter((entry): entry is readonly [string, ImageDimensions] => entry[1] !== null)
+    resolved.filter((entry): entry is readonly [string, ImageDimensions] => (entry as readonly [string, ImageDimensions | null])[1] !== null)
   );
 
   return images.map((image) => {

@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const model = searchParams.get("model");
   const time = searchParams.get("time");
   const idsParam = searchParams.get("ids");
-  const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20"), 1), 50);
+  const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20"), 1), 100);
   const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
   const ids = idsParam
     ?.split(",")

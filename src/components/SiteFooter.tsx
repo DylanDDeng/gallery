@@ -19,14 +19,14 @@ export default function SiteFooter({ className = "" }: SiteFooterProps) {
 
   return (
     <footer
-      className={`border-t border-zinc-100 py-6 text-center text-xs text-zinc-400 dark:border-zinc-900 ${className}`.trim()}
+      className={`border-t border-[#e0d9ce] py-6 text-center text-xs text-[#8a837a] dark:border-[#141210] ${className}`.trim()}
     >
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-center gap-x-5 gap-y-2 px-6">
         {footerLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className="transition-colors hover:text-zinc-600 dark:hover:text-zinc-300"
+            className="transition-colors hover:text-[#4a443c] dark:hover:text-[#a39b90]"
           >
             {link.label}
           </Link>

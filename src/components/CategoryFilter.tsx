@@ -32,7 +32,7 @@ export default function CategoryFilter({
 
   const spinner = (
     <svg
-      className="ml-auto h-3.5 w-3.5 animate-spin text-white/70"
+      className="ml-auto h-3.5 w-3.5 animate-spin text-[#f5f2ed]/70"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -176,8 +176,8 @@ export default function CategoryFilter({
         }}
         className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
           isAll
-            ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
-            : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
+            ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed]/10 dark:text-[#f5f2ed]"
+            : "text-[#5c564e] hover:bg-[#e0d9ce] dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/5 hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
         }`}
       >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,7 +198,7 @@ export default function CategoryFilter({
             setSelectedImage(randomImage);
           }
         }}
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
+        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[#5c564e] transition-all hover:bg-[#e0d9ce] dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/5 hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
           <path d="M4.22 2h15.56A2.22 2.22 0 0122 4.22v15.56A2.22 2.22 0 0119.78 22H4.22A2.22 2.22 0 012 19.78V4.22A2.22 2.22 0 014.22 2zm1.12 2.5a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm0 13.76a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm6.88-6.88a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm0-6.88a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm6.88 0a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm0 6.88a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm-6.88 6.88a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24zm6.88 0a1.12 1.12 0 100 2.24 1.12 1.12 0 000-2.24z"/>
@@ -209,9 +209,9 @@ export default function CategoryFilter({
       {/* Time filter */}
       {TIME_FILTERS.length > 0 && (
         <>
-          <div className="h-px bg-zinc-200 dark:bg-white/5" />
+          <div className="h-px bg-[#d5cfc4] dark:bg-[#f5f2ed]/5" />
           <div>
-            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-[#8a837a]">
               Time
             </p>
             <div className="space-y-0.5">
@@ -229,14 +229,14 @@ export default function CategoryFilter({
                     disabled={isBusy && isActive}
                     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
-                        ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
-                        : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
+                        ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed]/10 dark:text-[#f5f2ed]"
+                        : "text-[#5c564e] hover:bg-[#e0d9ce] dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/5 hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
                     } ${isBusy && isActive ? "opacity-80 cursor-wait" : ""}`}
                   >
                     {tf.name}
                     {isBusy && isActive && (
                       <svg
-                        className="ml-auto h-3.5 w-3.5 animate-spin text-white/70"
+                        className="ml-auto h-3.5 w-3.5 animate-spin text-[#f5f2ed]/70"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -267,9 +267,9 @@ export default function CategoryFilter({
       {/* Models filter */}
       {availableModels.length > 0 && (
         <>
-          <div className="h-px bg-zinc-200 dark:bg-white/5" />
+          <div className="h-px bg-[#d5cfc4] dark:bg-[#f5f2ed]/5" />
           <div>
-            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-[#8a837a]">
               Models
             </p>
             <div className="space-y-0.5">
@@ -286,8 +286,8 @@ export default function CategoryFilter({
                     disabled={isBusy && isActive}
                     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
-                        ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
-                        : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
+                        ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed]/10 dark:text-[#f5f2ed]"
+                        : "text-[#5c564e] hover:bg-[#e0d9ce] dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/5 hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
                     } ${isBusy && isActive ? "opacity-80 cursor-wait" : ""}`}
                   >
                     <Image
@@ -310,11 +310,11 @@ export default function CategoryFilter({
       {/* Category filter */}
       {visibleCategories.length > 0 && (
         <>
-          <div className="h-px bg-zinc-200 dark:bg-white/5" />
+          <div className="h-px bg-[#d5cfc4] dark:bg-[#f5f2ed]/5" />
           <div>
             <button
               onClick={() => setCategoriesExpanded((v) => !v)}
-              className="mb-3 flex w-full items-center justify-between px-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 transition-colors hover:text-zinc-600 dark:hover:text-zinc-300"
+              className="mb-3 flex w-full items-center justify-between px-3 text-[10px] font-semibold uppercase tracking-widest text-[#8a837a] transition-colors hover:text-[#4a443c] dark:hover:text-[#a39b90]"
             >
               <span>Categories</span>
               <svg
@@ -351,8 +351,8 @@ export default function CategoryFilter({
                     disabled={isBusy && isActive}
                     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all ${
                       isActive
-                        ? "bg-zinc-900 text-white dark:bg-white/10 dark:text-white"
-                        : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-200"
+                        ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed]/10 dark:text-[#f5f2ed]"
+                        : "text-[#5c564e] hover:bg-[#e0d9ce] dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/5 hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
                     } ${isBusy && isActive ? "opacity-80 cursor-wait" : ""}`}
                   >
                     {cat.name}

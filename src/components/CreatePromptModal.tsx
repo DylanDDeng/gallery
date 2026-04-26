@@ -124,14 +124,14 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0c0b09]/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-2xl mx-4 rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Create from Prompt</h2>
+      <div className="relative z-10 w-full max-w-2xl mx-4 rounded-3xl bg-[#f5f2ed] dark:bg-[#141210] shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e0d9ce] dark:border-[#1a1814]">
+          <h2 className="text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">Create from Prompt</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg text-[#8a837a] hover:text-[#4a443c] dark:hover:text-[#d5cfc4] hover:bg-[#e0d9ce] dark:hover:bg-[#1a1814] transition-colors"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -141,21 +141,21 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
 
         <div className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+            <label className="block text-sm font-medium text-[#2a2520] dark:text-[#a39b90] mb-2">
               Prompt
             </label>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={6}
-              className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-zinc-400 dark:focus:border-zinc-500 resize-none"
+              className="w-full rounded-xl border border-[#d5cfc4] dark:border-[#2a2520] bg-[#f5f2ed] dark:bg-[#1a1814] px-4 py-3 text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e] resize-none"
               placeholder="Describe the image you want to generate..."
             />
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              <label className="block text-sm font-medium text-[#2a2520] dark:text-[#a39b90] mb-2">
                 Model
               </label>
               <div className="space-y-2">
@@ -165,14 +165,14 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
                     onClick={() => setSelectedModel(model.id)}
                     className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
                       selectedModel === model.id
-                        ? "bg-zinc-100 border border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-100 dark:text-zinc-100"
-                        : "bg-zinc-50 dark:bg-zinc-800 border border-transparent text-zinc-700 dark:text-zinc-300 hover:border-zinc-200 dark:hover:border-zinc-700"
+                        ? "bg-[#e0d9ce] border border-[#141210] text-[#141210] dark:bg-[#1a1814] dark:border-[#e0d9ce] dark:text-[#e0d9ce]"
+                        : "bg-[#ebe7e0] dark:bg-[#1a1814] border border-transparent text-[#2a2520] dark:text-[#a39b90] hover:border-[#d5cfc4] dark:hover:border-[#2a2520]"
                     }`}
                   >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      selectedModel === model.id ? "border-zinc-900 dark:border-zinc-100" : "border-zinc-300 dark:border-zinc-600"
+                      selectedModel === model.id ? "border-[#141210] dark:border-[#e0d9ce]" : "border-[#a39b90] dark:border-[#4a443c]"
                     }`}>
-                      {selectedModel === model.id && <div className="w-2 h-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />}
+                      {selectedModel === model.id && <div className="w-2 h-2 rounded-full bg-[#141210] dark:bg-[#e0d9ce]" />}
                     </div>
                     <span className="text-sm font-medium">{model.name}</span>
                   </button>
@@ -181,14 +181,14 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
             </div>
 
             <div>
-              <label htmlFor="modal-aspect-ratio" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              <label htmlFor="modal-aspect-ratio" className="block text-sm font-medium text-[#2a2520] dark:text-[#a39b90] mb-2">
                 Aspect ratio
               </label>
               <select
                 id="modal-aspect-ratio"
                 value={selectedAspectRatio}
                 onChange={(event) => setSelectedAspectRatio(event.target.value as AspectRatio)}
-                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                className="w-full rounded-xl border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-4 py-3 text-sm text-[#141210] dark:text-[#e0d9ce] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
               >
                 {ASPECT_RATIO_OPTIONS.map((ratio) => (
                   <option key={ratio.id} value={ratio.id}>
@@ -199,14 +199,14 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
             </div>
 
             <div>
-              <label htmlFor="modal-resolution" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              <label htmlFor="modal-resolution" className="block text-sm font-medium text-[#2a2520] dark:text-[#a39b90] mb-2">
                 Resolution
               </label>
               <select
                 id="modal-resolution"
                 value={selectedResolution}
                 onChange={(event) => setSelectedResolution(event.target.value as OutputResolution)}
-                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                className="w-full rounded-xl border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-4 py-3 text-sm text-[#141210] dark:text-[#e0d9ce] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
               >
                 {OUTPUT_RESOLUTIONS.map((resolution) => (
                   <option key={resolution.id} value={resolution.id}>
@@ -217,9 +217,9 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
             </div>
           </div>
 
-          <div className="rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-800/60 dark:text-zinc-300 dark:ring-zinc-700">
+          <div className="rounded-xl bg-[#ebe7e0] px-4 py-3 text-sm text-[#4a443c] ring-1 ring-[#d5cfc4] dark:bg-[#1a1814]/60 dark:text-[#a39b90] dark:ring-[#2a2520]">
             Output size: {selectedAspectRatio} · {selectedResolution} · {selectedOutputSize.size}
-            <span className="ml-2 font-medium text-zinc-900 dark:text-zinc-100">
+            <span className="ml-2 font-medium text-[#141210] dark:text-[#e0d9ce]">
               · {selectedCreditsCost} credits
             </span>
           </div>
@@ -233,11 +233,11 @@ export default function CreatePromptModal({ initialPrompt, onClose }: CreateProm
           <button
             onClick={handleGenerate}
             disabled={generating || !prompt.trim()}
-            className="w-full rounded-2xl bg-zinc-900 py-4 text-lg font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="w-full rounded-2xl bg-[#141210] py-4 text-lg font-semibold text-[#f5f2ed] transition-colors hover:bg-[#2a2520] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#f5f2ed] dark:text-[#141210] dark:hover:bg-[#d5cfc4]"
           >
             {generating ? (
               <span className="flex items-center justify-center gap-2">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#f5f2ed]/30 border-t-white" />
                 Generating...
               </span>
             ) : (

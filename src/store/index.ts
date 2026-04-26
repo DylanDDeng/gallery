@@ -1,8 +1,11 @@
 import { create } from "zustand";
 import type { ImagePrompt } from "@/lib/types";
 import { createClient } from "@/lib/supabase-browser";
+import { MOCK_IMAGES } from "@/lib/constants";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
+const PAGE_SIZE = 50;
+const MAX_IMAGES = 1000;
 
 interface User {
   id: string;
@@ -26,6 +29,11 @@ interface AppState {
   favorites: string[];
   showFavoritesOnly: boolean;
   theme: "light" | "dark";
+  // Feed pagination
+  feedVersion: number;
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
   // Auth
   user: User | null;
   authInitialized: boolean;
@@ -46,14 +54,52 @@ interface AppState {
   isFavorite: (imageId: string) => boolean;
   toggleShowFavoritesOnly: () => void;
   toggleTheme: () => void;
+  // Feed actions
+  setIsLoading: (v: boolean) => void;
+  setIsLoadingMore: (v: boolean) => void;
+  setHasMore: (v: boolean) => void;
+  resetFeed: () => void;
+  loadInitialPage: () => Promise<void>;
+  loadNextPage: () => Promise<void>;
+  trimOldImages: () => void;
   // Auth actions
   setUser: (user: User | null) => void;
   setAuthInitialized: (initialized: boolean) => void;
   fetchFavorites: () => Promise<void>;
   setShowLoginPrompt: (show: boolean) => void;
+  // Credits actions
   setCredits: (credits: number | null) => void;
   fetchCredits: () => Promise<void>;
 }
+
+function buildQueryString(
+  offset: number,
+  state: Pick<
+    AppState,
+    | "searchQuery"
+    | "activeCategory"
+    | "activeTimeFilter"
+    | "activeModel"
+    | "showFavoritesOnly"
+    | "favorites"
+  >
+) {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE + 1),
+    offset: String(offset),
+  });
+  const sq = state.searchQuery.trim();
+  if (sq) params.set("search", sq);
+  if (state.activeCategory !== "all") params.set("category", state.activeCategory);
+  if (state.activeTimeFilter !== "all") params.set("time", state.activeTimeFilter);
+  if (state.activeModel !== "all") params.set("model", state.activeModel);
+  if (state.showFavoritesOnly && state.favorites.length > 0) {
+    params.set("ids", state.favorites.join(","));
+  }
+  return params.toString();
+}
+
+let loadMoreInFlight = false;
 
 export const useAppStore = create<AppState>((set, get) => ({
   selectedImage: null,
@@ -66,6 +112,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   favorites: [],
   showFavoritesOnly: false,
   theme: "light",
+  // Feed pagination
+  feedVersion: 0,
+  isLoading: false,
+  isLoadingMore: false,
+  hasMore: false,
   // Auth
   user: null,
   authInitialized: false,
@@ -97,24 +148,159 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { theme: next };
     }),
 
+  setIsLoading: (v) => set({ isLoading: v }),
+  setIsLoadingMore: (v) => set({ isLoadingMore: v }),
+  setHasMore: (v) => set({ hasMore: v }),
+
+  resetFeed: () =>
+    set((state) => ({
+      feedVersion: state.feedVersion + 1,
+      allImages: [],
+      hasMore: false,
+      isLoading: false,
+      isLoadingMore: false,
+    })),
+
+  loadInitialPage: async () => {
+    const state = get();
+    if (state.isLoading || state.isLoadingMore) return;
+    if (state.showFavoritesOnly && state.favorites.length === 0) return;
+    if (!state.favoritesLoaded && state.showFavoritesOnly) return;
+
+    const version = state.feedVersion + 1;
+    set({
+      feedVersion: version,
+      isLoading: true,
+      isLoadingMore: false,
+      hasMore: false,
+      allImages: [],
+    });
+
+    try {
+      const qs = buildQueryString(0, state);
+      const res = await fetch(`/api/images?${qs}`);
+      const json = (await res.json()) as {
+        data?: ImagePrompt[];
+        hasMore?: boolean;
+        error?: string;
+      };
+
+      if (!res.ok) throw new Error(json.error || "Failed");
+
+      const current = get();
+      if (current.feedVersion !== version) return;
+
+      const rawData = json.data ?? [];
+      const hasMore = rawData.length > PAGE_SIZE;
+      const data = hasMore ? rawData.slice(0, PAGE_SIZE) : rawData;
+
+      const isDefaultFeed =
+        !state.searchQuery.trim() &&
+        state.activeCategory === "all" &&
+        state.activeTimeFilter === "all" &&
+        state.activeModel === "all" &&
+        !state.showFavoritesOnly;
+
+      if (data.length === 0 && isDefaultFeed) {
+        set({
+          allImages: MOCK_IMAGES,
+          hasMore: false,
+          isLoading: false,
+          defaultFeedHasMore: false,
+        });
+      } else {
+        set({
+          allImages: data,
+          hasMore,
+          isLoading: false,
+          defaultFeedHasMore: hasMore,
+        });
+      }
+    } catch {
+      const current = get();
+      if (current.feedVersion === version) {
+        set({ isLoading: false });
+      }
+    }
+  },
+
+  loadNextPage: async () => {
+    const state = get();
+    if (loadMoreInFlight || !state.hasMore || state.isLoading || state.isLoadingMore) return;
+    if (state.showFavoritesOnly && state.favorites.length === 0) return;
+    if (!state.favoritesLoaded && state.showFavoritesOnly) return;
+
+    const version = state.feedVersion;
+    loadMoreInFlight = true;
+    set({ isLoadingMore: true });
+
+    try {
+      const offset = state.allImages.length;
+      const qs = buildQueryString(offset, state);
+      const res = await fetch(`/api/images?${qs}`);
+      const json = (await res.json()) as {
+        data?: ImagePrompt[];
+        hasMore?: boolean;
+        error?: string;
+      };
+
+      if (!res.ok) throw new Error(json.error || "Failed");
+
+      const current = get();
+      if (current.feedVersion !== version) return;
+
+      const rawData = json.data ?? [];
+      const hasMore = rawData.length > PAGE_SIZE;
+      const data = hasMore ? rawData.slice(0, PAGE_SIZE) : rawData;
+
+      const accumulated = [...current.allImages, ...data];
+      set({
+        allImages: accumulated,
+        hasMore,
+        isLoadingMore: false,
+        isLoading: false,
+        defaultFeedHasMore: hasMore,
+      });
+    } catch {
+      set({ isLoadingMore: false });
+    } finally {
+      loadMoreInFlight = false;
+    }
+  },
+
+  trimOldImages: () => {
+    const state = get();
+    if (state.allImages.length <= MAX_IMAGES) return;
+
+    const trimCount = state.allImages.length - MAX_IMAGES + 50;
+    const toRemove = state.allImages.slice(0, trimCount);
+    const remaining = state.allImages.slice(trimCount);
+
+    const selectedId = state.selectedImage?.id;
+    if (selectedId && toRemove.some((img) => img.id === selectedId)) {
+      const selected = state.selectedImage;
+      remaining.unshift(selected!);
+      if (remaining.length > MAX_IMAGES) remaining.pop();
+    }
+
+    set({ allImages: remaining });
+  },
+
   toggleFavorite: (imageId) => {
     const { user, favorites } = get();
     const wasFavorite = favorites.includes(imageId);
 
-    // Not logged in → show login prompt
     if (!user) {
       set({ showLoginPrompt: true });
       return;
     }
 
-    // Optimistic update
     set({
       favorites: wasFavorite
         ? favorites.filter((id) => id !== imageId)
         : [...favorites, imageId],
     });
 
-    // Sync to Supabase (fire-and-forget, rollback on error)
     const supabase = createClient();
     if (wasFavorite) {
       supabase
@@ -124,9 +310,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         .eq("user_id", user.id)
         .then(({ error }) => {
           if (error) {
-            set((s) => ({
-              favorites: [...s.favorites, imageId],
-            }));
+            set((s) => ({ favorites: [...s.favorites, imageId] }));
           }
         });
     } else {
@@ -167,6 +351,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setShowLoginPrompt: (show) => set({ showLoginPrompt: show }),
+
   // Credits actions
   setCredits: (credits: number | null) =>
     set((state) => ({
@@ -184,6 +369,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       credits,
       creditsVersion: state.creditsVersion + 1,
     })),
+
   fetchCredits: async () => {
     const { user, creditsVersion } = get();
     if (!user) {

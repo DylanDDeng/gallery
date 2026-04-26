@@ -20,10 +20,10 @@ export default function RefundPolicyPage() {
       updatedAt="March 18, 2026"
     >
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           Eligibility
         </h2>
-        <div className="space-y-3 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <div className="space-y-3 text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           <p>
             Refund requests may be submitted within 7 days of the original purchase date.
           </p>
@@ -35,10 +35,10 @@ export default function RefundPolicyPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           Limits
         </h2>
-        <ul className="space-y-3 text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <ul className="space-y-3 text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           <li>Credits that have already been substantially consumed may not be refundable.</li>
           <li>Refunds may be denied where fraud, abuse, or payment disputes are suspected.</li>
           <li>
@@ -49,14 +49,14 @@ export default function RefundPolicyPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-3 text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           How to Request a Refund
         </h2>
-        <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-[15px] leading-relaxed text-[#4a443c] dark:text-[#8a837a]">
           Email{" "}
           <a
             href="mailto:chengshengdeng@gmail.com"
-            className="underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-500 dark:decoration-zinc-600"
+            className="underline decoration-[#a39b90] underline-offset-2 hover:decoration-[#5c564e] dark:decoration-[#4a443c]"
           >
             chengshengdeng@gmail.com
           </a>{" "}

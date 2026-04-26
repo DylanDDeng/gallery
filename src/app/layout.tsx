@@ -74,6 +74,10 @@ export default async function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap"
           rel="stylesheet"
         />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap"
+          rel="stylesheet"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -87,7 +91,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+      <body className="font-sans antialiased bg-[#f5f2ed] dark:bg-[#0c0b09] text-[#2a2520] dark:text-[#c4bdb4]">
         <Providers initialUser={initialUser} initialCredits={initialCredits}>
           {children}
         </Providers>

@@ -26,8 +26,6 @@ export async function GET() {
     ),
     paymentProvider: getServerEnv("PAYMENT_PROVIDER") || null,
     billingEnabled: getServerEnv("NEXT_PUBLIC_BILLING_ENABLED") || null,
-    selfServiceApiKeysEnabled:
-      getServerEnv("NEXT_PUBLIC_SELF_SERVICE_API_KEYS_ENABLED") || null,
     vercelEnv: getServerEnv("VERCEL_ENV") || null,
     vercelUrl: getServerEnv("VERCEL_URL") || null,
     vercelProjectProductionUrl:

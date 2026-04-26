@@ -115,10 +115,10 @@ function StudioCanvasNode({ data, id, selected }: NodeProps<Node<StudioCanvasNod
   );
   return (
     <div
-      className={`group relative w-full overflow-hidden border bg-white/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:bg-white/8 ${
+      className={`group relative w-full overflow-hidden border bg-[#f5f2ed]/80 shadow-[0_24px_80px_rgba(35,25,15,0.16)] backdrop-blur-xl dark:bg-[#f5f2ed]/8 ${
         data.selected
           ? "border-rose-400/80 ring-2 ring-rose-400/35 dark:border-rose-300/70 dark:ring-rose-300/25"
-          : "border-white/55 dark:border-white/10"
+          : "border-[#f5f2ed]/55 dark:border-[#f5f2ed]/10"
       } ${isInteractive ? "cursor-pointer" : ""} ${
         data.placeholder ? "canvas-card-pulse" : ""
       } ${data.animateIn ? "canvas-card-fade-in" : ""}`}
@@ -136,13 +136,13 @@ function StudioCanvasNode({ data, id, selected }: NodeProps<Node<StudioCanvasNod
           minHeight={MIN_HEIGHT}
           maxWidth={MAX_WIDTH}
           maxHeight={MAX_HEIGHT}
-          lineClassName="!border-white/0"
-          handleClassName="!w-2.5 !h-2.5 !rounded-full !bg-white/80 !shadow-[0_1px_4px_rgba(0,0,0,0.2)] !border !border-white/50 hover:!w-3.5 hover:!h-3.5 hover:!bg-white !transition-all !duration-150"
+          lineClassName="!border-[#f5f2ed]/0"
+          handleClassName="!w-2.5 !h-2.5 !rounded-full !bg-[#f5f2ed]/80 !shadow-[0_1px_4px_rgba(0,0,0,0.2)] !border !border-[#f5f2ed]/50 hover:!w-3.5 hover:!h-3.5 hover:!bg-[#f5f2ed] !transition-all !duration-150"
           onResizeEnd={data.onResizeEnd}
         />
       )}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-        <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-white/90 backdrop-blur-sm">
+        <span className="rounded-full bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-[#f5f2ed]/90 backdrop-blur-sm">
           {data.label}
         </span>
         {data.kind === "result" && data.onDownload ? (
@@ -152,7 +152,7 @@ function StudioCanvasNode({ data, id, selected }: NodeProps<Node<StudioCanvasNod
               event.stopPropagation();
               data.onDownload?.();
             }}
-            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/65"
+            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-[#f5f2ed]/90 backdrop-blur-sm transition-colors hover:bg-black/65"
             aria-label="Download generated image"
             title="Download image"
           >
@@ -166,7 +166,7 @@ function StudioCanvasNode({ data, id, selected }: NodeProps<Node<StudioCanvasNod
         <div
           className="flex aspect-[3/4] w-full items-center justify-center bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(237,2333,228,0.88))] dark:bg-[linear-gradient(135deg,rgba(34,36,43=0.95),rgba(19,21,26,0.92))]"
         >
-          <div className="h-12 w-12 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700 dark:border-zinc-700 dark:border-t-zinc-200" />
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-[#a39b90] border-t-[#2a2520] dark:border-[#2a2520] dark:border-t-[#d5cfc4]" />
         </div>
       ) : (
         <Image
@@ -368,23 +368,23 @@ function StudioCanvasInner({
         <MiniMap
           pannable
           zoomable
-          className="!bottom-4 !right-4 !h-24 !w-40 !rounded-2xl !border !border-white/55 !bg-white/78 !backdrop-blur-xl dark:!border-white/10 dark:!bg-[#14161b]/82"
+          className="!bottom-4 !right-4 !h-24 !w-40 !rounded-2xl !border !border-[#f5f2ed]/55 !bg-[#f5f2ed]/78 !backdrop-blur-xl dark:!border-[#f5f2ed]/10 dark:!bg-[#14161b]/82"
           nodeColor={(node) =>
             node.data.kind === "reference" ? "rgba(244, 63, 94, 0.75)" : "rgba(59, 130, 246, 0.72)"
           }
         />
         <Controls
           position="bottom-left"
-          className="!bottom-4 !left-4 !overflow-hidden !rounded-2xl !border !border-white/55 !bg-white/78 !shadow-[0_18px_42px_rgba(35,25,15,0.12)] !backdrop-blur-xl dark:!border-white/10 dark:!bg-[#14161b]/82"
+          className="!bottom-4 !left-4 !overflow-hidden !rounded-2xl !border !border-[#f5f2ed]/55 !bg-[#f5f2ed]/78 !shadow-[0_18px_42px_rgba(35,25,15,0.12)] !backdrop-blur-xl dark:!border-[#f5f2ed]/10 dark:!bg-[#14161b]/82"
         />
       </ReactFlow>
       {cards.length === 0 ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="rounded-[28px] border border-white/55 bg-white/84 px-10 py-8 text-center shadow-[0_20px_70px_rgba(35,25,15,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-[#15171c]/88">
-            <p className="text-[32px] leading-none text-zinc-900 dark:text-white">
+          <div className="rounded-[28px] border border-[#f5f2ed]/55 bg-[#f5f2ed]/84 px-10 py-8 text-center shadow-[0_20px_70px_rgba(35,25,15,0.12)] backdrop-blur-xl dark:border-[#f5f2ed]/10 dark:bg-[#15171c]/88">
+            <p className="text-[32px] leading-none text-[#141210] dark:text-[#f5f2ed]">
               {emptyTitle}
             </p>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+            <p className="mt-4 max-w-sm text-sm leading-6 text-[#5c564e] dark:text-[#8a837a]">
               {emptyDescription}
             </p>
           </div>

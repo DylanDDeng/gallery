@@ -207,7 +207,7 @@ function CreditsContent() {
   }
 
   return (
-    <div className="relative min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="relative min-h-screen bg-[#f5f2ed] text-[#141210] dark:bg-[#0c0b09] dark:text-[#e0d9ce]">
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-[20%] left-1/2 aspect-square w-[800px] -translate-x-1/2 rounded-full bg-indigo-400/10 blur-[120px] dark:bg-indigo-500/10" />
@@ -216,11 +216,11 @@ function CreditsContent() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/80 backdrop-blur-xl dark:border-white/5 dark:bg-zinc-950/80">
+      <header className="sticky top-0 z-40 border-b border-[#d5cfc4] bg-[#f5f2ed]/80 backdrop-blur-xl dark:border-[#f5f2ed]/5 dark:bg-[#0c0b09]/80">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
           <button
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 text-sm text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+            className="flex items-center gap-2 text-sm text-[#8a837a] transition-colors hover:text-[#4a443c] dark:text-[#5c564e] dark:hover:text-[#a39b90]"
           >
             <svg
               className="h-4 w-4"
@@ -240,7 +240,7 @@ function CreditsContent() {
 
           <div className="flex items-center gap-4">
             {user && (
-              <div className="hidden items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm dark:border-white/10 dark:bg-zinc-900/80 sm:flex">
+              <div className="hidden items-center gap-2 rounded-full border border-[#d5cfc4] bg-[#ebe7e0] px-3 py-1.5 text-sm dark:border-[#f5f2ed]/10 dark:bg-[#141210]/80 sm:flex">
                 <svg
                   className="h-4 w-4 text-amber-500"
                   viewBox="0 0 24 24"
@@ -248,10 +248,10 @@ function CreditsContent() {
                 >
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
-                <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                <span className="font-medium text-[#2a2520] dark:text-[#d5cfc4]">
                   {credits?.toLocaleString() ?? "0"}
                 </span>
-                <span className="text-zinc-400 dark:text-zinc-500">
+                <span className="text-[#8a837a] dark:text-[#5c564e]">
                   credits
                 </span>
               </div>
@@ -263,7 +263,7 @@ function CreditsContent() {
       <main className="relative mx-auto max-w-6xl px-6 py-16">
         {/* Page header */}
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-zinc-400">
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#8a837a]">
             Credits
           </p>
           <h1
@@ -272,7 +272,7 @@ function CreditsContent() {
           >
             Top up your balance and keep creating
           </h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          <p className="mt-4 text-[15px] leading-relaxed text-[#5c564e] dark:text-[#8a837a]">
             Purchase credits to generate images. No subscriptions, no monthly
             reset — your balance stays until you use it.
           </p>
@@ -280,10 +280,10 @@ function CreditsContent() {
 
         {/* Balance card */}
         <div className="mx-auto mt-12 max-w-md">
-          <div className="relative overflow-hidden rounded-[28px] border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white p-8 text-center shadow-sm dark:border-white/10 dark:from-zinc-900 dark:to-zinc-950">
+          <div className="relative overflow-hidden rounded-[28px] border border-[#d5cfc4] bg-gradient-to-br from-[#ebe7e0] to-white p-8 text-center shadow-sm dark:border-[#f5f2ed]/10 dark:from-[#141210] dark:to-[#0c0b09]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.07),_transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.10),_transparent_60%)]" />
             <div className="relative">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-lg dark:bg-white dark:text-zinc-900">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#141210] text-[#f5f2ed] shadow-lg dark:bg-[#f5f2ed] dark:text-[#141210]">
                 <svg
                   className="h-7 w-7"
                   viewBox="0 0 24 24"
@@ -292,17 +292,17 @@ function CreditsContent() {
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
               </div>
-              <p className="mt-4 text-sm font-medium uppercase tracking-[0.18em] text-zinc-400">
+              <p className="mt-4 text-sm font-medium uppercase tracking-[0.18em] text-[#8a837a]">
                 Your Balance
               </p>
               {credits === null ? (
-                <div className="mx-auto mt-3 h-12 w-32 animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+                <div className="mx-auto mt-3 h-12 w-32 animate-pulse rounded-xl bg-[#d5cfc4] dark:bg-[#1a1814]" />
               ) : (
                 <p className="mt-2 text-5xl font-semibold tracking-tight tabular-nums">
                   {credits ?? 0}
                 </p>
               )}
-              <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
+              <p className="mt-1 text-sm text-[#8a837a] dark:text-[#5c564e]">
                 credits available
               </p>
             </div>
@@ -356,7 +356,7 @@ function CreditsContent() {
 
         {/* Packages */}
         <div className="mx-auto mt-14 max-w-5xl">
-          <p className="text-center text-xs font-medium uppercase tracking-[0.24em] text-zinc-400">
+          <p className="text-center text-xs font-medium uppercase tracking-[0.24em] text-[#8a837a]">
             Purchase Credits
           </p>
           <div className="mt-8 grid gap-5 lg:grid-cols-3">
@@ -373,8 +373,8 @@ function CreditsContent() {
                   className={cn(
                     "group relative flex flex-col rounded-[28px] border p-7 text-left transition-all duration-300 focus:outline-none",
                     isPopular
-                      ? "border-zinc-900 bg-zinc-900 text-white shadow-xl active:scale-[0.98] dark:border-white dark:bg-white dark:text-zinc-900"
-                      : "border-zinc-200 bg-zinc-50/80 text-zinc-900 shadow-sm hover:-translate-y-1 hover:shadow-md active:scale-[0.98] dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-100",
+                      ? "border-[#141210] bg-[#141210] text-[#f5f2ed] shadow-xl active:scale-[0.98] dark:border-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
+                      : "border-[#d5cfc4] bg-[#ebe7e0]/80 text-[#141210] shadow-sm hover:-translate-y-1 hover:shadow-md active:scale-[0.98] dark:border-[#f5f2ed]/10 dark:bg-[#141210]/80 dark:text-[#e0d9ce]",
                     disabled && purchasing !== pkg.id && "cursor-not-allowed opacity-40",
                     disabled && purchasing === pkg.id && "cursor-wait"
                   )}
@@ -384,16 +384,16 @@ function CreditsContent() {
                       className={cn(
                         "absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[28px]",
                         isPopular
-                          ? "bg-zinc-900 dark:bg-white"
-                          : "bg-white dark:bg-zinc-900"
+                          ? "bg-[#141210] dark:bg-[#f5f2ed]"
+                          : "bg-[#f5f2ed] dark:bg-[#141210]"
                       )}
                     >
                       <svg
                         className={cn(
                           "h-5 w-5 animate-spin",
                           isPopular
-                            ? "text-white dark:text-zinc-900"
-                            : "text-zinc-900 dark:text-white"
+                            ? "text-[#f5f2ed] dark:text-[#141210]"
+                            : "text-[#141210] dark:text-[#f5f2ed]"
                         )}
                         viewBox="0 0 24 24"
                         fill="none"
@@ -416,8 +416,8 @@ function CreditsContent() {
                         className={cn(
                           "text-xs font-medium tracking-wide",
                           isPopular
-                            ? "text-white/70 dark:text-zinc-900/70"
-                            : "text-zinc-500 dark:text-zinc-400"
+                            ? "text-[#f5f2ed]/70 dark:text-[#141210]/70"
+                            : "text-[#5c564e] dark:text-[#8a837a]"
                         )}
                       >
                         Processing...
@@ -428,7 +428,7 @@ function CreditsContent() {
                   {/* Popular badge */}
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-white shadow-md dark:bg-white dark:text-zinc-900">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#141210] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-[#f5f2ed] shadow-md dark:bg-[#f5f2ed] dark:text-[#141210]">
                         <svg
                           className="h-3 w-3"
                           viewBox="0 0 24 24"
@@ -447,8 +447,8 @@ function CreditsContent() {
                         className={cn(
                           "text-sm font-medium uppercase tracking-[0.18em]",
                           isPopular
-                            ? "text-white/60 dark:text-zinc-500"
-                            : "text-zinc-400 dark:text-zinc-500"
+                            ? "text-[#f5f2ed]/60 dark:text-[#5c564e]"
+                            : "text-[#8a837a] dark:text-[#5c564e]"
                         )}
                       >
                         {copy.label}
@@ -457,8 +457,8 @@ function CreditsContent() {
                         className={cn(
                           "mt-3 max-w-[26ch] text-sm leading-6",
                           isPopular
-                            ? "text-white/75 dark:text-zinc-600"
-                            : "text-zinc-500 dark:text-zinc-400"
+                            ? "text-[#f5f2ed]/75 dark:text-[#4a443c]"
+                            : "text-[#5c564e] dark:text-[#8a837a]"
                         )}
                       >
                         {copy.blurb}
@@ -468,8 +468,8 @@ function CreditsContent() {
                       className={cn(
                         "text-right text-sm font-medium",
                         isPopular
-                          ? "text-white/70 dark:text-zinc-500"
-                          : "text-zinc-400 dark:text-zinc-500"
+                          ? "text-[#f5f2ed]/70 dark:text-[#5c564e]"
+                          : "text-[#8a837a] dark:text-[#5c564e]"
                       )}
                     >
                       {pkg.credits.toLocaleString()}
@@ -485,8 +485,8 @@ function CreditsContent() {
                       className={cn(
                         "text-sm",
                         isPopular
-                          ? "text-white/50 dark:text-zinc-400"
-                          : "text-zinc-400 dark:text-zinc-500"
+                          ? "text-[#f5f2ed]/50 dark:text-[#8a837a]"
+                          : "text-[#8a837a] dark:text-[#5c564e]"
                       )}
                     >
                       ${(pkg.priceCents / 100 / pkg.credits).toFixed(3)}
@@ -498,8 +498,8 @@ function CreditsContent() {
                     className={cn(
                       "mt-4 w-fit rounded-xl px-3 py-1.5 text-xs",
                       isPopular
-                        ? "bg-white/10 text-white/80 dark:bg-zinc-950 dark:text-zinc-500"
-                        : "bg-white text-zinc-500 shadow-sm dark:bg-zinc-800 dark:text-zinc-400"
+                        ? "bg-[#f5f2ed]/10 text-[#f5f2ed]/80 dark:bg-[#0c0b09] dark:text-[#5c564e]"
+                        : "bg-[#f5f2ed] text-[#5c564e] shadow-sm dark:bg-[#1a1814] dark:text-[#8a837a]"
                     )}
                   >
                     About {getApproximateRenderCount(pkg.credits).toLocaleString()}{" "}
@@ -513,7 +513,7 @@ function CreditsContent() {
 
         {/* How it works */}
         <div className="mx-auto mt-20 max-w-4xl">
-          <p className="text-center text-xs font-medium uppercase tracking-[0.24em] text-zinc-400">
+          <p className="text-center text-xs font-medium uppercase tracking-[0.24em] text-[#8a837a]">
             How it works
           </p>
           <div className="mt-12 grid gap-12 sm:grid-cols-3">
@@ -532,13 +532,13 @@ function CreditsContent() {
               },
             ].map((item, i) => (
               <div key={i} className="flex flex-col">
-                <span className="text-6xl font-semibold leading-none tabular-nums text-zinc-200 dark:text-zinc-800">
+                <span className="text-6xl font-semibold leading-none tabular-nums text-[#d5cfc4] dark:text-[#1a1814]">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <p className="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <p className="mt-4 text-sm font-medium text-[#141210] dark:text-[#e0d9ce]">
                   {item.title}
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+                <p className="mt-2 text-sm leading-relaxed text-[#5c564e] dark:text-[#8a837a]">
                   {item.desc}
                 </p>
               </div>
@@ -547,8 +547,8 @@ function CreditsContent() {
         </div>
 
         {/* Billing notes */}
-        <div className="mx-auto mt-20 max-w-3xl border-t border-zinc-200 pt-12 text-sm text-zinc-500 dark:border-white/10 dark:text-zinc-400">
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-zinc-400">
+        <div className="mx-auto mt-20 max-w-3xl border-t border-[#d5cfc4] pt-12 text-sm text-[#5c564e] dark:border-[#f5f2ed]/10 dark:text-[#8a837a]">
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#8a837a]">
             Billing notes
           </p>
           <ul className="mt-6 space-y-3">
@@ -569,8 +569,8 @@ function CreditsContent() {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white dark:bg-zinc-950">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 dark:border-zinc-700 border-t-zinc-400" />
+    <div className="flex min-h-screen items-center justify-center bg-[#f5f2ed] dark:bg-[#0c0b09]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d5cfc4] dark:border-[#2a2520] border-t-[#8a837a]" />
     </div>
   );
 }

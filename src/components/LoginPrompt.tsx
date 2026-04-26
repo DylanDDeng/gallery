@@ -22,19 +22,19 @@ export default function LoginPrompt() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0c0b09]/50 backdrop-blur-sm"
         onClick={() => setShowLoginPrompt(false)}
       />
-      <div className="relative w-full max-w-sm mx-4 rounded-2xl bg-white dark:bg-zinc-900 p-6 shadow-2xl border border-zinc-200 dark:border-zinc-700">
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="relative w-full max-w-sm mx-4 rounded-2xl bg-[#f5f2ed] dark:bg-[#141210] p-6 shadow-2xl border border-[#d5cfc4] dark:border-[#2a2520]">
+        <h3 className="text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
           Sign in to save favorites
         </h3>
-        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-2 text-sm text-[#5c564e] dark:text-[#8a837a]">
           Create an account or sign in with Google to keep your favorites saved across sessions.
         </p>
         <button
           onClick={handleSignIn}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors shadow-sm"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#f5f2ed] dark:bg-[#1a1814] border border-[#d5cfc4] dark:border-[#4a443c] px-4 py-2.5 text-sm font-medium text-[#2a2520] dark:text-[#d5cfc4] hover:bg-[#ebe7e0] dark:hover:bg-[#2a2520] transition-colors shadow-sm"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
@@ -58,7 +58,7 @@ export default function LoginPrompt() {
         </button>
         <button
           onClick={() => setShowLoginPrompt(false)}
-          className="mt-2 w-full py-2 text-xs text-zinc-400 hover:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+          className="mt-2 w-full py-2 text-xs text-[#8a837a] hover:text-[#5c564e] dark:hover:text-[#a39b90] transition-colors"
         >
           Maybe later
         </button>
