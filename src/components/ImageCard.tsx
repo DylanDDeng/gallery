@@ -79,6 +79,24 @@ function ImageCard({ image }: ImageCardProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </button>
+
+        {/* Author link to X — appears on hover if tweet_url exists */}
+        {image.tweet_url && (
+          <a
+            href={image.tweet_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          >
+            <span className="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm text-[#f5f2ed]/80 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider hover:bg-black/30 transition-colors">
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              {image.author}
+            </span>
+          </a>
+        )}
       </div>
 
       {/* Caption below — editorial style */}
