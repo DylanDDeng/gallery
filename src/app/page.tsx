@@ -15,6 +15,13 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const initialLoadRef = useRef(false);
+  const lastLoadedParamsRef = useRef({
+    searchQuery: "__initial__",
+    activeCategory: "__initial__",
+    activeTimeFilter: "__initial__",
+    activeModel: "__initial__",
+    showFavoritesOnly: null as boolean | null,
+  });
 
   const allImages = useAppStore((s) => s.allImages);
   const isLoading = useAppStore((s) => s.isLoading);
@@ -46,26 +53,34 @@ export default function Home() {
   useEffect(() => {
     if (!favoritesLoaded && showFavoritesOnly) return;
 
-    const isDefaultFeed =
-      !searchQuery.trim() &&
-      activeCategory === "all" &&
-      activeTimeFilter === "all" &&
-      activeModel === "all" &&
-      !showFavoritesOnly;
+    const currentParams = {
+      searchQuery,
+      activeCategory,
+      activeTimeFilter,
+      activeModel,
+      showFavoritesOnly,
+    };
+
+    const last = lastLoadedParamsRef.current;
+    const paramsChanged =
+      last.searchQuery !== searchQuery ||
+      last.activeCategory !== activeCategory ||
+      last.activeTimeFilter !== activeTimeFilter ||
+      last.activeModel !== activeModel ||
+      last.showFavoritesOnly !== showFavoritesOnly;
+
+    // 只有参数真正变化时才重新加载
+    if (!paramsChanged) return;
 
     if (showFavoritesOnly && favorites.length === 0) {
       resetFeed();
       return;
     }
 
-    // If default feed and we already have images cached, use them
-    if (isDefaultFeed && useAppStore.getState().allImages.length > 0 && initialLoadRef.current) {
-      return;
-    }
-
     resetFeed();
     loadInitialPage();
     initialLoadRef.current = true;
+    lastLoadedParamsRef.current = currentParams;
   }, [
     searchQuery,
     activeCategory,
