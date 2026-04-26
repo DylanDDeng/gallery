@@ -59,7 +59,7 @@ export default function Home() {
     }
 
     // If default feed and we already have images cached, use them
-    if (isDefaultFeed && allImages.length > 0 && initialLoadRef.current) {
+    if (isDefaultFeed && useAppStore.getState().allImages.length > 0 && initialLoadRef.current) {
       return;
     }
 
@@ -76,7 +76,6 @@ export default function Home() {
     favorites.length,
     resetFeed,
     loadInitialPage,
-    allImages.length,
   ]);
 
   // Hydrate dimensions for newly loaded images
