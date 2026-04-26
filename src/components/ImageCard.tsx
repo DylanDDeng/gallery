@@ -80,23 +80,6 @@ function ImageCard({ image }: ImageCardProps) {
           </svg>
         </button>
 
-        {/* Author link to X — appears on hover if tweet_url exists */}
-        {image.tweet_url && (
-          <a
-            href={image.tweet_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-          >
-            <span className="inline-flex items-center gap-1.5 bg-black/20 backdrop-blur-sm text-[#f5f2ed]/80 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider hover:bg-black/30 transition-colors">
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-              {image.author}
-            </span>
-          </a>
-        )}
       </div>
 
       {/* Caption below — editorial style */}
@@ -108,7 +91,21 @@ function ImageCard({ image }: ImageCardProps) {
           {image.category || "Untitled"}
         </p>
         <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[#8a837a] dark:text-[#5c564e]">
-          {image.author} — {image.model}
+          {image.tweet_url ? (
+            <a
+              href={image.tweet_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-[#5c564e] dark:hover:text-[#a39b90] hover:underline underline-offset-2 transition-colors cursor-pointer"
+            >
+              {image.author}
+            </a>
+          ) : (
+            image.author
+          )}
+          <span className="mx-1.5">—</span>
+          {image.model}
         </p>
       </div>
     </div>
