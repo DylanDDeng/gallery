@@ -42,7 +42,7 @@ function ImageCard({ image }: ImageCardProps) {
     <div className="group">
       {/* Image frame — like a gallery print with subtle border */}
       <div
-        className="relative cursor-pointer overflow-hidden bg-[#e8e4de] dark:bg-[#141210] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)] transition-all duration-700 group-hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] dark:group-hover:shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+        className="relative cursor-pointer overflow-hidden bg-[#e8e4de] dark:bg-[#141210] shadow-[0_1px_8px_rgba(42,37,32,0.05)] dark:shadow-[0_1px_8px_rgba(0,0,0,0.35)] transition-all duration-1000 ease-out group-hover:shadow-[0_24px_72px_rgba(42,37,32,0.13)] dark:group-hover:shadow-[0_24px_72px_rgba(0,0,0,0.6)] group-hover:-translate-y-1.5"
         style={style}
         onClick={() => setSelectedImage(image)}
       >
@@ -51,7 +51,7 @@ function ImageCard({ image }: ImageCardProps) {
           alt={summary}
           width={image.width || 768}
           height={image.height || 1024}
-          className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.02] group-hover:brightness-105"
+          className={`h-full w-full object-cover transition duration-1000 ease-out group-hover:scale-[1.01] group-hover:brightness-105 ${isDecoded ? 'photo-focus-in' : 'blur-[6px] opacity-0'}`}
           sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
           priority={false}
           onLoad={handleLoad}

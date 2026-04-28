@@ -98,6 +98,44 @@ body {
   animation: canvas-card-fade-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+@keyframes photo-focus-in {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: scale(1.03);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+.photo-focus-in {
+  animation: photo-focus-in 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes hero-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes scroll-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 /* Scrollbar for warm paper theme */
 ::-webkit-scrollbar {
   width: 4px;

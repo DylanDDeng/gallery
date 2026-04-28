@@ -1,192 +1,199 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
-import { MOCK_IMAGES } from "@/lib/constants";
+import { useState, useCallback } from "react";
+import type { ImagePrompt } from "@/lib/types";
 
-const FEATURED = MOCK_IMAGES.slice(0, 5);
+interface HomeHeroProps {
+  latestImage: ImagePrompt | null;
+  onOpen: () => void;
+}
 
-export default function HomeHero() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+export default function HomeHero({ latestImage, onOpen }: HomeHeroProps) {
+  const [phase, setPhase] = useState<"idle" | "flipping" | "exiting" | "gone">("idle");
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const goTo = useCallback(
-    (index: number) => {
-      if (isTransitioning) return;
-      setIsTransitioning(true);
-      setActiveIndex(index);
-      setTimeout(() => setIsTransitioning(false), 800);
-    },
-    [isTransitioning]
-  );
+  const handleFlip = useCallback(() => {
+    if (phase !== "idle") return;
+    setPhase("flipping");
 
-  const next = useCallback(() => {
-    goTo((activeIndex + 1) % FEATURED.length);
-  }, [activeIndex, goTo]);
+    // Phase 1: 翻页动画 1.8s
+    setTimeout(() => {
+      setPhase("exiting");
+      // Phase 2: 滑走 + 通知父组件 1.2s
+      setTimeout(() => {
+        setPhase("gone");
+        onOpen();
+      }, 1200);
+    }, 1800);
+  }, [phase, onOpen]);
 
-  // Auto-advance every 5s
-  useEffect(() => {
-    const timer = setInterval(next, 5000);
-    return () => clearInterval(timer);
-  }, [next]);
+  if (phase === "gone") return null;
 
-  const current = FEATURED[activeIndex];
+  if (!latestImage) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#e8e4de] dark:bg-[#141210] flex items-center justify-center">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a]">
+          Loading...
+        </p>
+      </div>
+    );
+  }
+
+  const isFlipping = phase === "flipping";
+  const isExiting = phase === "exiting";
 
   return (
-    <section className="relative overflow-hidden border-b border-[#d5cfc4] dark:border-[#f5f2ed]/10">
-      <div className="mx-auto max-w-[1600px] px-6 py-16 md:py-24 lg:py-32">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          {/* Left: Editorial Text */}
-          <div className="lg:col-span-5 space-y-8">
-            <div className="space-y-5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#8a837a]">
-                AI Image Generation
+    <div
+      className={`fixed inset-0 z-50 transition-all duration-800 ease-[cubic-bezier(0.4,0,0.2,1)]
+        ${isExiting ? "opacity-0 pointer-events-none" : "opacity-100"}
+      `}
+      style={{
+        perspective: "2000px",
+        transform: isExiting ? "translateX(-60%)" : "translateX(0)",
+      }}
+    >
+      {/* 3D 翻页容器 */}
+      <div
+        className="relative w-full h-full"
+        style={{
+          transformStyle: "preserve-3d",
+          transition: "transform 1800ms cubic-bezier(0.4, 0, 0.2, 1)",
+          transform: isFlipping || isExiting
+            ? "rotateY(-140deg)"
+            : "rotateY(0deg)",
+          transformOrigin: "left center",
+        }}
+      >
+        {/* ===== 封面（正面）===== */}
+        <div
+          className="absolute inset-0 overflow-hidden bg-[#1a1814]"
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          {/* 背景图 */}
+          <Image
+            src={latestImage.url}
+            alt={latestImage.category || "Cover"}
+            fill
+            className={`object-cover transition-all duration-1000 ${
+              isLoaded ? "photo-focus-in" : "blur-[10px] opacity-0"
+            }`}
+            priority
+            onLoad={() => setIsLoaded(true)}
+          />
+
+          {/* 暗角叠加 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
+
+          {/* 封面内容 */}
+          <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16 lg:p-20">
+            <div className="max-w-[1600px] w-full mx-auto">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#f5f2ed]/60 mb-3">
+                Vol. 01
               </p>
               <h1
-                className="text-5xl md:text-6xl lg:text-[5.5rem] font-normal leading-[0.95] tracking-tight text-[#141210] dark:text-[#ebe7e0]"
+                className="text-6xl md:text-7xl lg:text-[6rem] font-bold tracking-tight text-[#f5f2ed] drop-shadow-lg"
+                style={{ fontFamily: "'Caveat', cursive" }}
+              >
+                Aestara
+              </h1>
+              <p
+                className="mt-3 text-[11px] text-[#f5f2ed]/50 uppercase tracking-[0.2em]"
                 style={{ fontFamily: "'Instrument Serif', serif" }}
               >
-                Where
-                <br />
-                imagination
-                <br />
-                <em className="italic">meets craft</em>
-              </h1>
-            </div>
-            <p className="text-base md:text-lg text-[#5c564e] dark:text-[#8a837a] leading-relaxed max-w-md">
-              Explore a curated gallery of AI-generated imagery. Create your
-              own, remix styles, and build your collection.
-            </p>
-            <div className="flex items-center gap-4 pt-2">
-              <Link
-                href="/generate"
-                className="inline-flex items-center gap-2 rounded-full bg-[#141210] px-7 py-3.5 text-sm font-medium text-[#f5f2ed] transition-all hover:bg-[#1a1814] dark:bg-[#f5f2ed] dark:text-[#141210] dark:hover:bg-[#d5cfc4]"
-              >
-                Start Creating
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                  />
-                </svg>
-              </Link>
-              <button
-                onClick={() => {
-                  document
-                    .getElementById("gallery")
-                    ?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="inline-flex items-center gap-2 rounded-full border border-[#a39b90] px-7 py-3.5 text-sm font-medium text-[#2a2520] transition-all hover:border-[#8a837a] hover:bg-[#ebe7e0] dark:border-[#2a2520] dark:text-[#a39b90] dark:hover:border-[#5c564e] dark:hover:bg-[#1a1814]/50"
-              >
-                Browse Gallery
-              </button>
+                {latestImage.category || "Untitled"} · {latestImage.author}
+              </p>
             </div>
           </div>
 
-          {/* Right: Carousel */}
-          <div className="lg:col-span-7 relative">
-            <div className="group/carousel relative aspect-[4/3] md:aspect-[16/10] overflow-hidden rounded-sm bg-[#e0d9ce] dark:bg-[#1a1814] shadow-2xl">
-              {FEATURED.map((img, i) => {
-                const isActive = i === activeIndex;
-                return (
-                  <div
-                    key={img.id}
-                    className="absolute inset-0 transition-all duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-                    style={{
-                      opacity: isActive ? 1 : 0,
-                      transform: isActive ? "scale(1)" : "scale(1.06)",
-                      zIndex: isActive ? 2 : 1,
-                    }}
-                  >
-                    <Image
-                      src={img.url}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 1024px) 100vw, 60vw"
-                      priority={i === 0}
-                    />
-                  </div>
-                );
-              })}
-
-              {/* Subtle editorial overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
-
-              {/* Side navigation arrows */}
-              <button
-                onClick={() =>
-                  goTo((activeIndex - 1 + FEATURED.length) % FEATURED.length)
-                }
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#f5f2ed]/10 backdrop-blur-md flex items-center justify-center text-[#f5f2ed]/70 hover:text-[#f5f2ed] hover:bg-[#f5f2ed]/20 transition-all opacity-0 group-hover/carousel:opacity-100"
-                aria-label="Previous"
+          {/* 右下角折角 */}
+          <button
+            onClick={handleFlip}
+            className="absolute bottom-0 right-0 w-28 h-28 md:w-36 md:h-36 cursor-pointer group z-10"
+            aria-label="Open magazine"
+          >
+            {/* 折角阴影 */}
+            <div
+              className="absolute bottom-0 right-0 w-0 h-0"
+              style={{
+                borderStyle: "solid",
+                borderWidth: "0 0 144px 144px",
+                borderColor: "transparent transparent rgba(0,0,0,0.15) transparent",
+                transform: "translate(2px, 2px)",
+                filter: "blur(3px)",
+              }}
+            />
+            {/* 折角主体 */}
+            <div
+              className="absolute bottom-0 right-0 w-0 h-0 transition-transform duration-300 group-hover:scale-105 origin-bottom-right"
+              style={{
+                borderStyle: "solid",
+                borderWidth: "0 0 144px 144px",
+                borderColor: "transparent transparent #f5f2ed transparent",
+              }}
+            />
+            {/* 折角上的提示文字 */}
+            <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex flex-col items-center gap-1 text-[#2a2520] opacity-50 group-hover:opacity-100 transition-all duration-300">
+              <span className="text-[10px] uppercase tracking-[0.2em] font-medium">
+                Open
+              </span>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={next}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#f5f2ed]/10 backdrop-blur-md flex items-center justify-center text-[#f5f2ed]/70 hover:text-[#f5f2ed] hover:bg-[#f5f2ed]/20 transition-all opacity-0 group-hover/carousel:opacity-100"
-                aria-label="Next"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-
-              {/* Bottom: progress dots + caption */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between gap-4">
-                <div className="min-w-0">
-                  <p
-                    className="text-[#f5f2ed] text-lg italic leading-snug line-clamp-2 drop-shadow-sm"
-                    style={{ fontFamily: "'Instrument Serif', serif" }}
-                  >
-                    {current.category || "Untitled"}
-                  </p>
-                  <p className="text-[#f5f2ed]/50 text-[10px] uppercase tracking-[0.15em] mt-1 drop-shadow-sm">
-                    {current.author} · {current.model}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {FEATURED.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => goTo(i)}
-                      className={`transition-all duration-500 rounded-full ${
-                        i === activeIndex
-                          ? "w-6 h-1.5 bg-[#f5f2ed]"
-                          : "w-1.5 h-1.5 bg-[#f5f2ed]/40 hover:bg-[#f5f2ed]/60"
-                      }`}
-                      aria-label={`Go to slide ${i + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
             </div>
+          </button>
 
-            {/* Editorial caption below image */}
-            <div className="mt-5 flex items-start justify-between gap-6">
-              <p className="text-xs text-[#8a837a] dark:text-[#5c564e] leading-relaxed max-w-sm">
-                {FEATURED.length} featured works selected from the community gallery
-              </p>
-              <div className="flex items-center gap-3 text-[11px] text-[#8a837a] dark:text-[#5c564e] uppercase tracking-wider">
-                <span>{String(activeIndex + 1).padStart(2, "0")}</span>
-                <span className="w-6 h-px bg-[#a39b90] dark:bg-[#2a2520]" />
-                <span>{String(FEATURED.length).padStart(2, "0")}</span>
-              </div>
-            </div>
+          {/* 左侧书脊阴影（增强 3D 感） */}
+          <div
+            className="absolute top-0 left-0 bottom-0 w-2 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(to right, rgba(0,0,0,0.15), transparent)",
+            }}
+          />
+        </div>
+
+        {/* ===== 背面（书页背面）===== */}
+        <div
+          className="absolute inset-0 bg-[#f5f2ed] dark:bg-[#1a1814] flex items-center justify-center"
+          style={{
+            backfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+          }}
+        >
+          {/* 纸张纹理 */}
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{
+              backgroundImage: `radial-gradient(circle at 30% 40%, rgba(0,0,0,0.03) 0%, transparent 60%),
+                               radial-gradient(circle at 70% 60%, rgba(0,0,0,0.02) 0%, transparent 50%)`,
+            }}
+          />
+          {/* 书脊处阴影 */}
+          <div
+            className="absolute top-0 left-0 bottom-0 w-3"
+            style={{
+              background:
+                "linear-gradient(to right, rgba(0,0,0,0.08), transparent)",
+            }}
+          />
+          <div className="text-center">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
+              Opening Gallery...
+            </p>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import MasonryGrid from "@/components/MasonryGrid";
 import MinimalSidebar from "@/components/MinimalSidebar";
+import HomeHero from "@/components/HomeHero";
 import ImageModal from "@/components/ImageModal";
 import SearchModal from "@/components/SearchModal";
 import UserMenu from "@/components/UserMenu";
@@ -14,6 +15,8 @@ import { hydrateImageDimensions } from "@/lib/image-dimensions";
 export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [magazineOpened, setMagazineOpened] = useState(false);
+  const [galleryReady, setGalleryReady] = useState(false);
   const initialLoadRef = useRef(false);
   const lastLoadedParamsRef = useRef({
     searchQuery: "__initial__",
@@ -111,6 +114,15 @@ export default function Home() {
 
   const handleCloseSearch = () => setSearchOpen(false);
 
+  // Gallery transition: show loading for 1.5s after magazine opens
+  useEffect(() => {
+    if (magazineOpened) {
+      setGalleryReady(false);
+      const timer = setTimeout(() => setGalleryReady(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [magazineOpened]);
+
   // Keyboard shortcut: / to toggle search
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -199,57 +211,80 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Top spacer for fixed header */}
-      <div className="h-14" />
+      {/* Magazine Cover — flips open on click */}
+      <HomeHero 
+        latestImage={allImages[0] ?? null} 
+        onOpen={() => setMagazineOpened(true)}
+      />
 
-      {/* Main Gallery */}
-      <div
-        id="gallery"
-        className="mx-auto flex max-w-[1400px] scroll-mt-20 gap-12 px-6 py-16 lg:gap-20"
-      >
-        <aside className="hidden w-[200px] flex-shrink-0 lg:block lg:sticky lg:top-[73px] lg:self-start">
-          <MinimalSidebar
-            onSearchClick={() => setSearchOpen(true)}
-            isLoading={isLoading}
-          />
-        </aside>
-        <main className="min-w-0 flex-1">
-          {isLoading && allImages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-40 gap-6">
-              <div className="relative aspect-[3/4] w-56 bg-[#e8e4de] dark:bg-[#141210] overflow-hidden rounded-sm">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]" />
-              </div>
+      {/* Gallery Content */}
+      <div className={`transition-opacity duration-[1500ms] ${magazineOpened ? 'opacity-100' : 'opacity-0'}`}>
+        {/* Loading State — shown after flip, before gallery fades in */}
+        {magazineOpened && !galleryReady && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-8">
+            <div className="relative aspect-[3/4] w-48 bg-[#e8e4de] dark:bg-[#141210] overflow-hidden rounded-sm shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]" />
+            </div>
+            <div className="text-center space-y-2">
               <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
-                Loading
+                Loading Gallery
+              </p>
+              <p className="text-[9px] uppercase tracking-[0.2em] text-[#a39b90] dark:text-[#4a443c]">
+                Please wait...
               </p>
             </div>
-          ) : (
-            <MasonryGrid
-              images={allImages}
-              hasMore={hasMore}
-              isLoadingMore={isLoadingMore}
+          </div>
+        )}
+
+        {/* Main Gallery */}
+        <div
+          id="gallery"
+          className="mx-auto flex max-w-[1400px] scroll-mt-20 gap-12 px-6 py-16 lg:gap-20"
+        >
+          <aside className="hidden w-[200px] flex-shrink-0 lg:block lg:sticky lg:top-[73px] lg:self-start">
+            <MinimalSidebar
+              onSearchClick={() => setSearchOpen(true)}
+              isLoading={isLoading}
             />
-          )}
-        </main>
+          </aside>
+          <main className="min-w-0 flex-1">
+            {isLoading && allImages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-40 gap-6">
+                <div className="relative aspect-[3/4] w-56 bg-[#e8e4de] dark:bg-[#141210] overflow-hidden rounded-sm">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]" />
+                </div>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
+                  Loading
+                </p>
+              </div>
+            ) : (
+              <MasonryGrid
+                images={allImages}
+                hasMore={hasMore}
+                isLoadingMore={isLoadingMore}
+              />
+            )}
+          </main>
+        </div>
+
+        <ImageModal />
+        <SearchModal
+          open={searchOpen}
+          onClose={handleCloseSearch}
+          isLoadingResults={
+            Boolean(searchQuery) &&
+            (isLoading || debouncedSearchQuery !== searchQuery.trim())
+          }
+        />
+        <LoginPrompt />
+
+        {/* Minimal Footer */}
+        <footer className="py-16 text-center">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
+            Aestara — AI Image Generation
+          </p>
+        </footer>
       </div>
-
-      <ImageModal />
-      <SearchModal
-        open={searchOpen}
-        onClose={handleCloseSearch}
-        isLoadingResults={
-          Boolean(searchQuery) &&
-          (isLoading || debouncedSearchQuery !== searchQuery.trim())
-        }
-      />
-      <LoginPrompt />
-
-      {/* Minimal Footer */}
-      <footer className="py-16 text-center">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
-          Aestara — AI Image Generation
-        </p>
-      </footer>
     </div>
   );
 }
