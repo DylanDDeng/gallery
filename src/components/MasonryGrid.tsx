@@ -9,10 +9,13 @@ interface MasonryGridProps {
   images: ImagePrompt[];
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  sidebarCollapsed?: boolean;
 }
 
-function getColumnCount(width: number) {
-  if (width >= 1280) return 3;
+function getColumnCount(width: number, sidebarCollapsed: boolean) {
+  if (width >= 1536) return sidebarCollapsed ? 4 : 3;
+  if (width >= 1280) return sidebarCollapsed ? 4 : 3;
+  if (width >= 1024) return sidebarCollapsed ? 3 : 2;
   if (width >= 768) return 2;
   return 1;
 }
@@ -44,21 +47,22 @@ export default function MasonryGrid({
   images,
   hasMore,
   isLoadingMore,
+  sidebarCollapsed = false,
 }: MasonryGridProps) {
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const favorites = useAppStore((s) => s.favorites);
   const loadNextPage = useAppStore((s) => s.loadNextPage);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [columnCount, setColumnCount] = useState(() =>
-    typeof window === "undefined" ? 1 : getColumnCount(window.innerWidth)
+    typeof window === "undefined" ? 1 : getColumnCount(window.innerWidth, sidebarCollapsed)
   );
 
   useEffect(() => {
-    const handleResize = () => setColumnCount(getColumnCount(window.innerWidth));
+    const handleResize = () => setColumnCount(getColumnCount(window.innerWidth, sidebarCollapsed));
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [sidebarCollapsed]);
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {

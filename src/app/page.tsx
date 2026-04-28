@@ -17,6 +17,7 @@ export default function Home() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [magazineOpened, setMagazineOpened] = useState(false);
   const [galleryReady, setGalleryReady] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const initialLoadRef = useRef(false);
   const lastLoadedParamsRef = useRef({
     searchQuery: "__initial__",
@@ -241,12 +242,43 @@ export default function Home() {
           id="gallery"
           className="mx-auto flex max-w-[1400px] scroll-mt-20 gap-12 px-6 py-16 lg:gap-20"
         >
-          <aside className="hidden w-[200px] flex-shrink-0 lg:block lg:sticky lg:top-[73px] lg:self-start">
-            <MinimalSidebar
-              onSearchClick={() => setSearchOpen(true)}
-              isLoading={isLoading}
-            />
-          </aside>
+          {/* Sidebar with collapse toggle */}
+          <div className="hidden lg:flex flex-shrink-0">
+            <aside
+              className={`lg:sticky lg:top-[73px] lg:self-start transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
+                sidebarCollapsed ? "w-0 opacity-0" : "w-[200px] opacity-100"
+              }`}
+            >
+              <MinimalSidebar
+                onSearchClick={() => setSearchOpen(true)}
+                isLoading={isLoading}
+              />
+            </aside>
+
+            {/* Toggle sidebar button */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="w-8 h-8 mt-1 ml-2 rounded-full text-[#8a837a] hover:text-[#2a2520] hover:bg-[#e8e4de] dark:text-[#5c564e] dark:hover:text-[#c4bdb4] dark:hover:bg-[#1a1814] transition-all duration-300 flex-shrink-0"
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <svg
+                className={`w-4 h-4 mx-auto transition-transform duration-300 ${
+                  sidebarCollapsed ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+          </div>
+
           <main className="min-w-0 flex-1">
             {isLoading && allImages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-40 gap-6">
@@ -262,6 +294,7 @@ export default function Home() {
                 images={allImages}
                 hasMore={hasMore}
                 isLoadingMore={isLoadingMore}
+                sidebarCollapsed={sidebarCollapsed}
               />
             )}
           </main>
