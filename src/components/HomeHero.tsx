@@ -5,11 +5,11 @@ import { useState, useCallback } from "react";
 import type { ImagePrompt } from "@/lib/types";
 
 interface HomeHeroProps {
-  latestImage: ImagePrompt | null;
+  coverImage: ImagePrompt;
   onOpen: () => void;
 }
 
-export default function HomeHero({ latestImage, onOpen }: HomeHeroProps) {
+export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
   const [phase, setPhase] = useState<"idle" | "flipping" | "exiting" | "gone">("idle");
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -29,16 +29,6 @@ export default function HomeHero({ latestImage, onOpen }: HomeHeroProps) {
   }, [phase, onOpen]);
 
   if (phase === "gone") return null;
-
-  if (!latestImage) {
-    return (
-      <div className="fixed inset-0 z-50 bg-[#e8e4de] dark:bg-[#141210] flex items-center justify-center">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a]">
-          Loading...
-        </p>
-      </div>
-    );
-  }
 
   const isFlipping = phase === "flipping";
   const isExiting = phase === "exiting";
@@ -72,8 +62,8 @@ export default function HomeHero({ latestImage, onOpen }: HomeHeroProps) {
         >
           {/* 背景图 */}
           <Image
-            src={latestImage.url}
-            alt={latestImage.category || "Cover"}
+            src={coverImage.url}
+            alt={coverImage.category || "Cover"}
             fill
             className={`object-cover transition-all duration-1000 ${
               isLoaded ? "photo-focus-in" : "blur-[10px] opacity-0"
@@ -101,7 +91,7 @@ export default function HomeHero({ latestImage, onOpen }: HomeHeroProps) {
                 className="mt-3 text-[11px] text-[#f5f2ed]/50 uppercase tracking-[0.2em]"
                 style={{ fontFamily: "'Instrument Serif', serif" }}
               >
-                {latestImage.category || "Untitled"} · {latestImage.author}
+                {coverImage.category || "Untitled"} · {coverImage.author}
               </p>
             </div>
           </div>

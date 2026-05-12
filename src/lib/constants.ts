@@ -1,6 +1,21 @@
 // For local development without Supabase, we use mock data
 import type { ImagePrompt, Category } from "./types";
 
+export const MAGAZINE_COVER_IMAGE: ImagePrompt = {
+  id: "magazine-cover-generated-image-444",
+  url: "https://image-1325800846.cos.ap-nanjing.myqcloud.com/Generated%20image%20444.png",
+  author: "@BubbleBrain",
+  model: "GPT Image 2",
+  category: "portrait",
+  tags: [],
+  width: null,
+  height: null,
+  created_at: "2026-05-12T03:57:08.658307+00:00",
+  tweet_url: "https://x.com/BubbleBrain/status/2054029294381502779?s=20",
+  has_prompt_zh: true,
+  has_prompt_ja: true,
+};
+
 export const MOCK_IMAGES: ImagePrompt[] = [
   {
     id: "1",

@@ -11,6 +11,7 @@ import UserMenu from "@/components/UserMenu";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
 import { hydrateImageDimensions } from "@/lib/image-dimensions";
+import { MAGAZINE_COVER_IMAGE } from "@/lib/constants";
 
 export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -203,8 +204,8 @@ export default function Home() {
       </header>
 
       {/* Magazine Cover — flips open on click */}
-      <HomeHero 
-        latestImage={allImages[0] ?? null} 
+      <HomeHero
+        coverImage={MAGAZINE_COVER_IMAGE}
         onOpen={() => setMagazineOpened(true)}
       />
 
