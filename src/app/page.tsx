@@ -16,7 +16,6 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [magazineOpened, setMagazineOpened] = useState(false);
-  const [galleryReady, setGalleryReady] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const initialLoadRef = useRef(false);
   const lastLoadedParamsRef = useRef({
@@ -115,15 +114,6 @@ export default function Home() {
 
   const handleCloseSearch = () => setSearchOpen(false);
 
-  // Gallery transition: show loading for 1.5s after magazine opens
-  useEffect(() => {
-    if (magazineOpened) {
-      setGalleryReady(false);
-      const timer = setTimeout(() => setGalleryReady(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [magazineOpened]);
-
   // Keyboard shortcut: / to toggle search
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -220,23 +210,6 @@ export default function Home() {
 
       {/* Gallery Content */}
       <div className={`transition-opacity duration-[1500ms] ${magazineOpened ? 'opacity-100' : 'opacity-0'}`}>
-        {/* Loading State — shown after flip, before gallery fades in */}
-        {magazineOpened && !galleryReady && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-8">
-            <div className="relative aspect-[3/4] w-48 bg-[#e8e4de] dark:bg-[#141210] overflow-hidden rounded-sm shadow-lg">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]" />
-            </div>
-            <div className="text-center space-y-2">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
-                Loading Gallery
-              </p>
-              <p className="text-[9px] uppercase tracking-[0.2em] text-[#a39b90] dark:text-[#4a443c]">
-                Please wait...
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Main Gallery */}
         <div
           id="gallery"
@@ -281,13 +254,46 @@ export default function Home() {
 
           <main className="min-w-0 flex-1">
             {isLoading && allImages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-40 gap-6">
-                <div className="relative aspect-[3/4] w-56 bg-[#e8e4de] dark:bg-[#141210] overflow-hidden rounded-sm">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]" />
+              <div className="flex flex-col items-center justify-center py-40 gap-8">
+                {/* Photo developing animation */}
+                <div className="relative">
+                  {/* Photo frame with white border */}
+                  <div className="relative w-48 h-64 bg-[#faf8f5] dark:bg-[#1a1814] p-2 shadow-lg">
+                    {/* Inner photo area */}
+                    <div className="relative w-full h-full bg-[#e8e4de] dark:bg-[#141210] overflow-hidden">
+                      {/* Developing image effect */}
+                      <div
+                        className="absolute inset-0 bg-gradient-to-br from-[#c8c2b8] via-[#d5cfc4] to-[#c8c2b8] dark:from-[#2a2520] dark:via-[#3a352f] dark:to-[#2a2520]"
+                        style={{
+                          animation: "photo-develop 3s ease-in-out infinite"
+                        }}
+                      />
+                      {/* Scan line */}
+                      <div
+                        className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent"
+                        style={{
+                          animation: "scan-line 2s ease-in-out infinite"
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {/* Shutter ring */}
+                  <div
+                    className="absolute -inset-3 border-2 border-[#d5cfc4] dark:border-[#3a352f] rounded-sm"
+                    style={{
+                      animation: "shutter-breathe 2s ease-in-out infinite"
+                    }}
+                  />
                 </div>
-                <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
-                  Loading
-                </p>
+                {/* Loading text */}
+                <div className="text-center space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
+                    Loading Gallery
+                  </p>
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-[#a39b90] dark:text-[#4a443c]">
+                    Developing photos...
+                  </p>
+                </div>
               </div>
             ) : (
               <MasonryGrid
