@@ -16,8 +16,15 @@ import type { ImagePrompt } from "@/lib/types";
 
 const PRELOAD_THRESHOLD = 8;
 
+const PROMPT_LANG_LABEL_KEYS = {
+  en: "promptEn",
+  zh: "promptZh",
+  ja: "promptJa",
+} as const;
+
 export default function ImageModal() {
   const t = useTranslations("imageModal");
+  const tLang = useTranslations("language");
   const locale = useLocale() as Locale;
   const router = useRouter();
   const selectedImage = useAppStore((s) => s.selectedImage);
@@ -192,7 +199,6 @@ export default function ImageModal() {
         sourceCategory: activeImage.category,
         returnTo: "gallery",
         returnImageId: activeImage.id,
-        locale,
       })
     );
   };
@@ -409,7 +415,7 @@ export default function ImageModal() {
                 {availableLangs.length > 1 && (
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-[8px] uppercase tracking-[0.2em] text-[#a39b90]/80">
-                      {t("promptLanguage")}
+                      {tLang("promptLanguage")}
                     </span>
                     <div className="flex items-center gap-1">
                       {availableLangs.map((lang) => (
@@ -422,7 +428,7 @@ export default function ImageModal() {
                               : "text-[#a39b90] hover:text-[#8a837a]"
                           }`}
                         >
-                          {t(`lang.${lang}`)}
+                          {tLang(PROMPT_LANG_LABEL_KEYS[lang])}
                         </button>
                       ))}
                     </div>

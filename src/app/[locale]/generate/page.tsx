@@ -635,7 +635,6 @@ export default function GeneratePage() {
             returnTo: returnTo === "original" ? "original" : "gallery",
             returnImageId:
               searchParams.get("returnImageId") || sourceImageId || undefined,
-            locale,
           })
         );
       } catch (uploadError) {
@@ -653,7 +652,6 @@ export default function GeneratePage() {
       }
     },
     [
-      locale,
       prompt,
       referenceImages,
       returnTo,
@@ -705,12 +703,10 @@ export default function GeneratePage() {
           returnTo: returnTo === "original" ? "original" : "gallery",
           returnImageId:
             searchParams.get("returnImageId") || sourceImageId || undefined,
-          locale,
         })
       );
     },
     [
-      locale,
       referenceImages,
       remixDraft?.sourceImage,
       remixDraft?.sourceImageId,
@@ -761,11 +757,10 @@ export default function GeneratePage() {
           returnTo: returnTo === "original" ? "original" : "gallery",
           returnImageId:
             searchParams.get("returnImageId") || sourceImageId || undefined,
-          locale,
         })
       );
     },
-    [locale, returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
+    [returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
   );
 
   const handleUseAsReference = useCallback(
@@ -793,11 +788,10 @@ export default function GeneratePage() {
           sourceImageUrl: task.result_url,
           sourcePrompt: task.prompt,
           returnTo: "gallery",
-          locale,
         })
       );
     },
-    [locale, router]
+    [router]
   );
 
   const handleModelChange = useCallback((nextModel: typeof selectedModel) => {

@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase-browser";
 
 export default function UserMenu() {
   const t = useTranslations("auth");
+  const tNav = useTranslations("nav");
+  const tCommon = useTranslations("common");
   const user = useAppStore((s) => s.user);
   const credits = useAppStore((s) => s.credits);
   const favorites = useAppStore((s) => s.favorites);
@@ -133,9 +135,9 @@ export default function UserMenu() {
                     d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5-1.343 5-3-2.239-3-5-3zm0 0V6m0 8v2m-7-5v2c0 1.657 3.134 3 7 3s7-1.343 7-3v-2"
                   />
                 </svg>
-                <span>{t("credits")}</span>
+                <span>{tNav("credits")}</span>
                 <span className="ml-auto rounded bg-[#d5cfc4] px-1.5 py-0.5 text-[10px] dark:bg-[#2a2520]">
-                  {t("creditsCount", { count: credits ?? "—" })}
+                  {tCommon("creditsCount", { count: credits ?? "—" })}
                 </span>
               </Link>
             </>
@@ -170,7 +172,7 @@ export default function UserMenu() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            {t("settings")}
+            {tNav("settings")}
           </Link>
           <div className="border-t border-[#e0d9ce] dark:border-[#2a2520]" />
           <button

@@ -6,7 +6,8 @@ import { useAppStore } from "@/store";
 import { createClient } from "@/lib/supabase-browser";
 
 export default function LoginPrompt() {
-  const t = useTranslations("auth");
+  const t = useTranslations("auth.loginPrompt");
+  const tAuth = useTranslations("auth");
   const router = useRouter();
   const showLoginPrompt = useAppStore((s) => s.showLoginPrompt);
   const loginPromptReason = useAppStore((s) => s.loginPromptReason);
@@ -70,7 +71,7 @@ export default function LoginPrompt() {
               fill="#EA4335"
             />
           </svg>
-          {t("continueWithGoogle")}
+          {tAuth("continueWithGoogle")}
         </button>
         <button
           onClick={handleDismiss}

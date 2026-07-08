@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { type Locale } from "@/i18n/routing";
 
@@ -10,9 +11,10 @@ const LOCALE_OPTIONS: { value: Locale; label: string }[] = [
   { value: "zh", label: "中文" },
 ];
 
-export default function LanguageSwitcher() {
+function LanguageSwitcherInner() {
   const locale = useLocale() as Locale;
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -35,7 +37,10 @@ export default function LanguageSwitcher() {
       setOpen(false);
       return;
     }
-    router.replace(pathname, { locale: nextLocale });
+
+    const query = searchParams.toString();
+    const href = query ? `${pathname}?${query}` : pathname;
+    router.replace(href, { locale: nextLocale });
     setOpen(false);
   };
 
@@ -88,5 +93,29 @@ export default function LanguageSwitcher() {
         </div>
       )}
     </div>
+  );
+}
+
+function LanguageSwitcherFallback() {
+  const locale = useLocale() as Locale;
+  const currentLabel =
+    LOCALE_OPTIONS.find((option) => option.value === locale)?.label ?? locale;
+
+  return (
+    <button
+      type="button"
+      disabled
+      className="flex h-8 items-center gap-1.5 rounded-lg border border-[#d5cfc4] bg-[#f5f2ed] px-2.5 text-xs font-medium text-[#4a443c] opacity-70 dark:border-[#2a2520] dark:bg-[#1a1814] dark:text-[#a39b90]"
+    >
+      <span>{currentLabel}</span>
+    </button>
+  );
+}
+
+export default function LanguageSwitcher() {
+  return (
+    <Suspense fallback={<LanguageSwitcherFallback />}>
+      <LanguageSwitcherInner />
+    </Suspense>
   );
 }

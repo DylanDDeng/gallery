@@ -49,6 +49,7 @@ export default function MinimalSidebar({
   isLoading?: boolean;
 }) {
   const t = useTranslations("sidebar");
+  const tCommon = useTranslations("common");
   const searchQuery = useAppStore((s) => s.searchQuery);
   const activeCategory = useAppStore((s) => s.activeCategory);
   const setActiveCategory = useAppStore((s) => s.setActiveCategory);
@@ -110,7 +111,7 @@ export default function MinimalSidebar({
         {TIME_FILTERS.map((tf) => (
           <MenuItem
             key={tf.slug}
-            label={t(tf.slug)}
+            label={tCommon(`timeFilters.${tf.slug}`)}
             onClick={() => {
               setActiveTimeFilter(tf.slug);
               if (showFavoritesOnly) toggleShowFavoritesOnly();
@@ -142,7 +143,7 @@ export default function MinimalSidebar({
         {CATEGORIES.filter((c) => c.slug !== "all").map((cat) => (
           <MenuItem
             key={cat.slug}
-            label={t(`categories.${cat.slug}`)}
+            label={tCommon(`categories.${cat.slug}`)}
             onClick={() => {
               setActiveCategory(cat.slug);
               setActiveModel("all");

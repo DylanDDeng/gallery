@@ -141,6 +141,7 @@
     "en": "English",
     "zh": "中文",
     "ja": "日本語",
+    "promptLanguage": "Prompt language",
     "promptEn": "EN",
     "promptZh": "中",
     "promptJa": "日",
@@ -240,6 +241,7 @@
     "hero": {
       "volume": "Vol. 01",
       "open": "Open",
+      "openAriaLabel": "Open gallery",
       "openingGallery": "Opening Gallery...",
       "coverAlt": "Cover"
     }

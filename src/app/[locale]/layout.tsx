@@ -1,3 +1,4 @@
+import "../globals.css";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -35,13 +36,6 @@ export async function generateMetadata({
     icons: {
       icon: "/favicon.ico",
       apple: "/apple-icon.png",
-    },
-    alternates: {
-      canonical: locale === "en" ? "/" : `/${locale}`,
-      languages: {
-        en: "/",
-        zh: "/zh",
-      },
     },
     openGraph: {
       title: t("title"),

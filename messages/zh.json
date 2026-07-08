@@ -141,6 +141,7 @@
     "en": "English",
     "zh": "中文",
     "ja": "日本語",
+    "promptLanguage": "提示词语言",
     "promptEn": "EN",
     "promptZh": "中",
     "promptJa": "日",
@@ -240,6 +241,7 @@
     "hero": {
       "volume": "第 01 期",
       "open": "打开",
+      "openAriaLabel": "打开画廊",
       "openingGallery": "正在打开画廊...",
       "coverAlt": "封面"
     }
