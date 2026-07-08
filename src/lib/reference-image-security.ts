@@ -1,27 +1,17 @@
-import { getGenerationsStoragePublicPrefix, isUserOwnedStorageUrl } from "@/lib/reference-image-url";
+import {
+  getGenerationsStoragePublicPrefix,
+  isUserOwnedStorageUrl,
+  pickTrustedReferenceUrl,
+} from "@/lib/reference-image-url";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export { getGenerationsStoragePublicPrefix, isUserOwnedStorageUrl } from "@/lib/reference-image-url";
+export {
+  getGenerationsStoragePublicPrefix,
+  isUserOwnedStorageUrl,
+  pickTrustedReferenceUrl,
+} from "@/lib/reference-image-url";
 
 export const MAX_REFERENCE_IMAGE_BYTES = 15 * 1024 * 1024;
-
-async function isUserGenerationResultUrl(url: string, userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("generation_tasks")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("result_url", url)
-    .eq("status", "completed")
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Error validating generation result URL:", error);
-    return false;
-  }
-
-  return Boolean(data?.id);
-}
 
 async function resolveUrlFromImageId(sourceImageId: string) {
   const { data, error } = await supabaseAdmin
@@ -53,34 +43,13 @@ export async function resolveTrustedReferenceImageUrl(
       ? options.sourceImageUrl.trim()
       : null;
 
-  if (normalizedSourceImageId) {
-    const imageUrl = await resolveUrlFromImageId(normalizedSourceImageId);
-    if (!imageUrl) {
-      return { url: null, error: "Source image not found" as const };
-    }
+  const catalogUrl = normalizedSourceImageId
+    ? await resolveUrlFromImageId(normalizedSourceImageId)
+    : null;
 
-    if (
-      normalizedSourceImageUrl &&
-      normalizedSourceImageUrl !== imageUrl &&
-      !isUserOwnedStorageUrl(normalizedSourceImageUrl, userId)
-    ) {
-      return { url: null, error: "Source image URL does not match source image" as const };
-    }
-
-    return { url: imageUrl, error: null };
+  if (normalizedSourceImageId && !catalogUrl) {
+    return { url: null, error: "Source image not found" as const };
   }
 
-  if (!normalizedSourceImageUrl) {
-    return { url: null, error: null };
-  }
-
-  if (isUserOwnedStorageUrl(normalizedSourceImageUrl, userId)) {
-    return { url: normalizedSourceImageUrl, error: null };
-  }
-
-  if (await isUserGenerationResultUrl(normalizedSourceImageUrl, userId)) {
-    return { url: normalizedSourceImageUrl, error: null };
-  }
-
-  return { url: null, error: "Reference image must use your uploaded or generated images" as const };
+  return pickTrustedReferenceUrl(userId, normalizedSourceImageUrl, catalogUrl);
 }

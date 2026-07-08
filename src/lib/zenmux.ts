@@ -1,3 +1,5 @@
+import { readResponseBodyWithLimit } from "./fetch-with-limit";
+
 const ZENMUX_GENERATIONS_ENDPOINT =
   "https://zenmux.ai/api/v1/images/generations";
 const ZENMUX_EDITS_ENDPOINT = "https://zenmux.ai/api/v1/images/edits";
@@ -136,10 +138,10 @@ async function fetchReferenceImage(url: string) {
     throw new Error("Reference image is too large");
   }
 
-  const buffer = await response.arrayBuffer();
-  if (buffer.byteLength > MAX_REFERENCE_IMAGE_BYTES) {
-    throw new Error("Reference image is too large");
-  }
+  const buffer = await readResponseBodyWithLimit(
+    response,
+    MAX_REFERENCE_IMAGE_BYTES
+  );
 
   const contentType = response.headers.get("content-type")?.split(";")[0]?.trim();
   if (!contentType || !EDITABLE_MIME_TYPES.has(contentType)) {

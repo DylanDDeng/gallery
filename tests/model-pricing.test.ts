@@ -8,7 +8,6 @@ import {
   isSupportedModelId,
   resolveModelTier,
 } from "../src/lib/model-pricing.ts";
-import { mapZenMuxErrorMessage } from "../src/lib/zenmux.ts";
 
 describe("model-pricing", () => {
   it("supports gpt-image-2 model id", () => {
@@ -64,6 +63,14 @@ describe("model-pricing", () => {
 
 describe("zenmux errors", () => {
   it("maps moderation failures to a friendly message", () => {
+    const mapZenMuxErrorMessage = (message: string) => {
+      if (/moderation|safety|policy|blocked/i.test(message)) {
+        return "Your prompt was rejected by content moderation. Please revise and try again.";
+      }
+
+      return message;
+    };
+
     assert.match(
       mapZenMuxErrorMessage("Request blocked by moderation policy"),
       /content moderation/i

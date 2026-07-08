@@ -1,9 +1,11 @@
-import { getServerEnv } from "./server-env";
-
 const STORAGE_BUCKET = "generations";
 
+function getSupabaseUrl() {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL;
+}
+
 export function getGenerationsStoragePublicPrefix() {
-  const supabaseUrl = getServerEnv("NEXT_PUBLIC_SUPABASE_URL")?.replace(/\/$/, "");
+  const supabaseUrl = getSupabaseUrl()?.replace(/\/$/, "");
   if (!supabaseUrl) {
     return null;
   }
@@ -23,4 +25,34 @@ export function isUserOwnedStorageUrl(url: string, userId: string) {
 
   const objectPath = url.slice(prefix.length);
   return objectPath.startsWith(`${userId}/`);
+}
+
+export function pickTrustedReferenceUrl(
+  userId: string,
+  sourceImageUrl: string | null,
+  catalogUrl: string | null
+) {
+  if (sourceImageUrl && isUserOwnedStorageUrl(sourceImageUrl, userId)) {
+    return { url: sourceImageUrl, error: null as string | null };
+  }
+
+  if (catalogUrl) {
+    if (!sourceImageUrl || sourceImageUrl === catalogUrl) {
+      return { url: catalogUrl, error: null };
+    }
+
+    return {
+      url: null,
+      error: "Reference image must use your uploaded or generated images",
+    };
+  }
+
+  if (!sourceImageUrl) {
+    return { url: null, error: null };
+  }
+
+  return {
+    url: null,
+    error: "Reference image must use your uploaded or generated images",
+  };
 }

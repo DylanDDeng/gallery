@@ -71,6 +71,7 @@ interface AssetCard {
 }
 
 const REFERENCE_IMAGE_BUCKET = "generations";
+const MAX_REFERENCE_UPLOAD_BYTES = 15 * 1024 * 1024;
 const ALLOWED_REFERENCE_MIME_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -473,6 +474,11 @@ export default function GeneratePage() {
 
       if (isGptImageModel(selectedModel) && file.type === "image/gif") {
         setError("GPT Image 2 only supports PNG, JPEG, or WEBP reference images.");
+        return;
+      }
+
+      if (file.size > MAX_REFERENCE_UPLOAD_BYTES) {
+        setError("Reference images must be 15 MB or smaller.");
         return;
       }
 
