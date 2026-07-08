@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { formatDate } from "@/lib/format";
+import { translateError } from "@/lib/translate-error";
+import type { Locale } from "@/i18n/routing";
 import { isBillingEnabled } from "@/lib/billing-feature";
 import {
   buildRemixGenerateUrl,
@@ -152,18 +158,6 @@ function removeReferenceImage(
   return images.filter((image) => image.url?.trim() !== imageUrl);
 }
 
-function getReferenceImageLabel(
-  image: Partial<ImagePrompt> & { url: string },
-  index: number,
-  activeUrl: string | null
-) {
-  if (image.url === activeUrl) {
-    return "Current reference";
-  }
-
-  return `Reference ${index + 1}`;
-}
-
 function getPromptExcerpt(text: string, maxLength = 104) {
   const trimmed = text.trim();
   if (trimmed.length <= maxLength) {
@@ -172,22 +166,12 @@ function getPromptExcerpt(text: string, maxLength = 104) {
   return `${trimmed.slice(0, maxLength).trimEnd()}…`;
 }
 
-function formatCreatedAt(value?: string) {
-  if (!value) return "Just now";
-  const timestamp = new Date(value);
-  if (Number.isNaN(timestamp.getTime())) {
-    return "Just now";
-  }
-
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(timestamp);
-}
-
 export default function GeneratePage() {
+  const t = useTranslations("generate");
+  const tNav = useTranslations("nav");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
+  const locale = useLocale() as Locale;
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAppStore((s) => s.user);
@@ -246,7 +230,7 @@ export default function GeneratePage() {
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(json.error || "Failed to load remix context");
+        throw new Error(json.error || t("errors.failedRemixContext"));
       }
 
       return {
@@ -254,7 +238,7 @@ export default function GeneratePage() {
         tasks: Array.isArray(json.tasks) ? (json.tasks as RemixSeriesItem[]) : [],
       };
     },
-    []
+    [t]
   );
 
   useEffect(() => {
@@ -547,22 +531,22 @@ export default function GeneratePage() {
       }
 
       if (!file.type.startsWith("image/")) {
-        setError("Please choose an image file.");
+        setError(t("errors.chooseImageFile"));
         return;
       }
 
       if (!ALLOWED_REFERENCE_MIME_TYPES.has(file.type)) {
-        setError("Please upload a PNG, JPEG, WEBP, or GIF image.");
+        setError(t("errors.uploadFormats"));
         return;
       }
 
       if (isGptImageModel(selectedModel) && file.type === "image/gif") {
-        setError("GPT Image 2 only supports PNG, JPEG, or WEBP reference images.");
+        setError(t("errors.gptNoGif"));
         return;
       }
 
       if (file.size > MAX_REFERENCE_UPLOAD_BYTES) {
-        setError("Reference images must be 15 MB or smaller.");
+        setError(t("errors.maxFileSize"));
         return;
       }
 
@@ -579,13 +563,12 @@ export default function GeneratePage() {
 
         if (authError) {
           throw new Error(
-            authError.message ||
-              "Please sign in again before uploading a reference image."
+            authError.message || t("errors.signInToUpload")
           );
         }
 
         if (!authUser) {
-          throw new Error("Please sign in again before uploading a reference image.");
+          throw new Error(t("errors.signInToUpload"));
         }
 
         const extension = file.name.includes(".")
@@ -606,7 +589,7 @@ export default function GeneratePage() {
           });
 
         if (uploadError) {
-          throw new Error(uploadError.message || "Failed to upload reference image");
+          throw new Error(uploadError.message || t("errors.failedToUpload"));
         }
 
         const {
@@ -659,10 +642,10 @@ export default function GeneratePage() {
         setError(
           uploadError instanceof Error &&
             /row-level security policy/i.test(uploadError.message)
-            ? "Your upload session is not authorized for storage. Please refresh and sign in again."
+            ? t("errors.uploadUnauthorized")
             : uploadError instanceof Error
               ? uploadError.message
-              : "Failed to upload the reference image. Please try again."
+              : t("errors.uploadRetry")
         );
       } finally {
         setIsUploadingReference(false);
@@ -676,6 +659,7 @@ export default function GeneratePage() {
       searchParams,
       sourceImageId,
       stagedTasks,
+      t,
       user,
     ]
   );
@@ -863,9 +847,9 @@ export default function GeneratePage() {
     });
 
     if (hadGifReference) {
-      setError("GIF references were removed because GPT Image 2 does not support them.");
+      setError(t("errors.gifRemoved"));
     }
-  }, [referenceImages, remixDraft]);
+  }, [referenceImages, remixDraft, t]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -928,7 +912,10 @@ export default function GeneratePage() {
         if (billingEnabled && (shouldOptimisticallyDeduct || res.status === 402)) {
           await fetchCredits();
         }
-        setError(json.error || "Failed to create generation");
+        setError(
+          translateError(tErrors, json.errorCode, json.error) ||
+            t("errors.failedToCreate"),
+        );
         return;
       }
 
@@ -982,7 +969,7 @@ export default function GeneratePage() {
         await fetchCredits();
       }
       console.error("Error creating generation:", submitError);
-      setError("An error occurred. Please try again.");
+      setError(t("errors.genericError"));
     } finally {
       setSubmitting(false);
     }
@@ -1012,12 +999,12 @@ export default function GeneratePage() {
         window.URL.revokeObjectURL(objectUrl);
       } catch (downloadError) {
         console.error("Error downloading generated image:", downloadError);
-        setError("Failed to download the generated image. Please try again.");
+        setError(t("errors.failedToDownload"));
       } finally {
         setDownloadingTaskId((current) => (current === task.id ? null : current));
       }
     },
-    [downloadingTaskId, isRemixMode]
+    [downloadingTaskId, isRemixMode, t]
   );
 
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
@@ -1057,8 +1044,13 @@ export default function GeneratePage() {
         .map((image, index) => ({
           id: `reference-card:${image.url}`,
           imageUrl: image.url,
-          label: getReferenceImageLabel(image, index, sourceImageUrl),
-          caption: image.prompt ? getPromptExcerpt(image.prompt, 70) : "Click to use for the next render.",
+          label:
+            image.url === sourceImageUrl
+              ? t("currentReference")
+              : t("referenceLabel", { index: index + 1 }),
+          caption: image.prompt
+            ? getPromptExcerpt(image.prompt, 70)
+            : t("referenceCaption"),
           kind: "reference" as const,
           selected: image.url === sourceImageUrl,
           onSelect: () => handleSelectReferenceImage(image),
@@ -1070,6 +1062,7 @@ export default function GeneratePage() {
       referenceImages,
       resultTaskUrls,
       sourceImageUrl,
+      t,
     ]
   );
 
@@ -1086,12 +1079,12 @@ export default function GeneratePage() {
           imageUrl: task.result_url,
           label: isRemixMode
             ? index === 0
-              ? "Latest print"
-              : `Variation ${index}`
+              ? t("latestPrint")
+              : t("variation", { index })
             : index === 0
-              ? "Latest print"
-              : `Print ${index}`,
-          caption: `${formatCreatedAt(task.created_at)} · ${
+              ? t("latestPrint")
+              : t("print", { index }),
+          caption: `${formatDate(task.created_at, locale)} · ${
             getModelPricing(task.model).name
           }`,
           kind: "result" as const,
@@ -1126,8 +1119,10 @@ export default function GeneratePage() {
       handleSelectReferenceImage,
       handleUseAsReference,
       isRemixMode,
+      locale,
       resultTasks,
       sourceImageUrl,
+      t,
     ]
   );
 
@@ -1136,13 +1131,13 @@ export default function GeneratePage() {
       submitting
         ? {
             id: "pending-render",
-            label: "Developing next print…",
-            caption: "The tray is still working — your new print will appear here.",
+            label: t("developingNextPrint"),
+            caption: t("pendingCaption"),
             kind: "result" as const,
             pending: true,
           }
         : null,
-    [submitting]
+    [submitting, t]
   );
 
   const featuredAsset = isRemixMode
@@ -1158,10 +1153,10 @@ export default function GeneratePage() {
   const resultCount = resultCards.length + (pendingCard ? 1 : 0);
 
   const generateLabel = submitting
-    ? "Developing…"
+    ? t("developing")
     : hasReferenceImage
-      ? `Develop variation · ${selectedCreditsCost} credits`
-      : `Develop print · ${selectedCreditsCost} credits`;
+      ? t("developVariation", { credits: selectedCreditsCost })
+      : t("developPrint", { credits: selectedCreditsCost });
 
   return (
     <div className="min-h-screen bg-[#f5f2ed] text-[#2a2520] dark:bg-[#0c0b09] dark:text-[#c4bdb4]">
@@ -1177,13 +1172,13 @@ export default function GeneratePage() {
                 className="text-2xl font-bold tracking-tight text-[#2a2520] dark:text-[#c4bdb4]"
                 style={{ fontFamily: "'Caveat', cursive" }}
               >
-                Aestara
+                {tCommon("brand")}
               </h1>
             </button>
             <span className="hidden items-center gap-2 sm:flex">
               <span className="text-[#a39b90] dark:text-[#5c564e]">·</span>
               <span className="text-[11px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
-                {isRemixMode ? "Remix studio" : "Studio"}
+                {isRemixMode ? t("remixStudio") : t("studio")}
               </span>
             </span>
           </div>
@@ -1193,7 +1188,7 @@ export default function GeneratePage() {
               onClick={() => router.push("/")}
               className="hidden text-[11px] uppercase tracking-[0.15em] text-[#8a837a] transition-colors hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4] md:block"
             >
-              Gallery
+              {tNav("gallery")}
             </button>
             {billingEnabled ? (
               <button
@@ -1201,14 +1196,15 @@ export default function GeneratePage() {
                 onClick={() => router.push("/credits")}
                 className="hidden text-[11px] uppercase tracking-[0.15em] text-[#8a837a] transition-colors hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4] sm:block"
               >
-                {credits ?? "—"} credits
+                {tCommon("creditsDisplay", { count: credits ?? 0 })}
               </button>
             ) : null}
+            <LanguageSwitcher />
             <UserMenu />
             <button
               type="button"
               onClick={toggleTheme}
-              aria-label="Toggle theme"
+              aria-label={tCommon("toggleTheme")}
               className="flex h-8 w-8 items-center justify-center rounded-full text-[#8a837a] transition-colors hover:bg-[#e8e4de] hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:bg-[#1a1814] dark:hover:text-[#c4bdb4]"
             >
               {theme === "light" ? (
@@ -1242,7 +1238,7 @@ export default function GeneratePage() {
             <div className="border-b border-[#d5cfc4] pb-6 dark:border-[#2a2520]">
               <div className="mb-3 flex items-baseline justify-between">
                 <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
-                  01 — Negatives
+                  {t("negatives")}
                 </span>
                 <button
                   type="button"
@@ -1250,7 +1246,7 @@ export default function GeneratePage() {
                   disabled={isUploadingReference}
                   className="text-[11px] uppercase tracking-[0.15em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] disabled:opacity-50 dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
                 >
-                  {isUploadingReference ? "Loading…" : "Load"}
+                  {isUploadingReference ? t("loading") : t("load")}
                 </button>
               </div>
               {referenceCards.length > 0 ? (
@@ -1282,8 +1278,8 @@ export default function GeneratePage() {
                         <button
                           type="button"
                           onClick={asset.onRemove}
-                          aria-label={`Remove ${asset.label}`}
-                          title={`Remove ${asset.label}`}
+                          aria-label={t("removeReference", { label: asset.label })}
+                          title={t("removeReference", { label: asset.label })}
                           className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5f2ed] text-[#8a837a] opacity-0 ring-1 ring-[#d5cfc4] transition-all hover:text-[#2a2520] focus-visible:opacity-100 group-hover:opacity-100 dark:bg-[#0c0b09] dark:text-[#5c564e] dark:ring-[#3a352f] dark:hover:text-[#c4bdb4]"
                         >
                           <svg className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1296,7 +1292,7 @@ export default function GeneratePage() {
                 </div>
               ) : (
                 <p className="text-[13px] italic text-[#8a837a] dark:text-[#5c564e]" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                  No negatives loaded — develop from the prompt alone, or load one.
+                  {t("noNegatives")}
                 </p>
               )}
             </div>
@@ -1304,16 +1300,16 @@ export default function GeneratePage() {
             <div className="border-b border-[#d5cfc4] py-6 dark:border-[#2a2520]">
               <div className="mb-3 flex items-baseline justify-between">
                 <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
-                  02 — Exposure notes
+                  {t("exposureNotes")}
                 </span>
                 <span className="text-[10px] tabular-nums text-[#a39b90] dark:text-[#4a443c]">
-                  {prompt.length}/10000
+                  {t("promptCounter", { current: prompt.length })}
                 </span>
               </div>
               <textarea
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
-                placeholder="Describe the print you want to develop…"
+                placeholder={t("promptPlaceholder")}
                 rows={8}
                 className="w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-7 text-[#2a2520] outline-none placeholder:italic placeholder:text-[#a39b90] dark:text-[#c4bdb4] dark:placeholder:text-[#4a443c]"
                 style={{ fontFamily: "'Instrument Serif', serif" }}
@@ -1323,7 +1319,7 @@ export default function GeneratePage() {
             <div className="space-y-5 border-b border-[#d5cfc4] py-6 dark:border-[#2a2520]">
               <div>
                 <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
-                  03 — Film stock
+                  {t("filmStock")}
                 </span>
                 <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-2">
                   {MODEL_OPTIONS.map((model) => {
@@ -1349,7 +1345,7 @@ export default function GeneratePage() {
               {usesAspectRatio ? (
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
-                    04 — Frame
+                    {t("frame")}
                   </span>
                   <div className="mt-2.5 flex flex-wrap gap-2">
                     {ASPECT_RATIO_OPTIONS.map((ratio) => {
@@ -1390,7 +1386,7 @@ export default function GeneratePage() {
               ) : (
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
-                    04 — Orientation
+                    {t("orientation")}
                   </span>
                   <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-2">
                     {getGptImageOrientationOptions().map((orientation) => {
@@ -1416,7 +1412,7 @@ export default function GeneratePage() {
 
               <div>
                 <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
-                  {usesAspectRatio ? "05 — Paper size" : "05 — Quality"}
+                  {usesAspectRatio ? t("paperSize") : t("quality")}
                 </span>
                 <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-2">
                   {usesAspectRatio
@@ -1478,7 +1474,10 @@ export default function GeneratePage() {
                 {generateLabel}
               </button>
               <p className="mt-3 text-center text-[10px] tracking-wide text-[#a39b90] dark:text-[#4a443c]">
-                {selectedModelPricing.name} · {selectedCreditsCost} credits per print
+                {t("creditsPerPrint", {
+                  model: selectedModelPricing.name,
+                  credits: selectedCreditsCost,
+                })}
               </p>
             </div>
           </form>
@@ -1516,7 +1515,7 @@ export default function GeneratePage() {
                         style={{ fontFamily: "'Instrument Serif', serif" }}
                       >
                         <span className="truncate">
-                          {featuredAsset.pending ? "Developing…" : featuredAsset.label}
+                          {featuredAsset.pending ? t("developing") : featuredAsset.label}
                         </span>
                         {!featuredAsset.pending ? (
                           <span className="flex-shrink-0">{featuredAsset.caption}</span>
@@ -1535,7 +1534,7 @@ export default function GeneratePage() {
                             }}
                             className="text-[11px] uppercase tracking-[0.2em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
                           >
-                            Use as reference
+                            {t("useAsReference")}
                           </button>
                         ) : null}
                         {featuredAsset.onDownload ? (
@@ -1548,8 +1547,8 @@ export default function GeneratePage() {
                             className="text-[11px] uppercase tracking-[0.2em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
                           >
                             {downloadingTaskId === featuredAsset.id
-                              ? "Saving…"
-                              : "Download print"}
+                              ? tCommon("saving")
+                              : t("downloadPrint")}
                           </button>
                         ) : null}
                       </div>
@@ -1561,10 +1560,10 @@ export default function GeneratePage() {
                   <div>
                     <div className="mb-3 flex items-baseline justify-between">
                       <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
-                        Contact sheet
+                        {t("contactSheet")}
                       </span>
                       <span className="text-[10px] tabular-nums tracking-wide text-[#a39b90] dark:text-[#4a443c]">
-                        {resultCount} frames
+                        {t("framesCount", { count: resultCount })}
                       </span>
                     </div>
                     <div className="film-strip overflow-x-auto">
@@ -1630,12 +1629,12 @@ export default function GeneratePage() {
                     style={{ fontFamily: "'Instrument Serif', serif" }}
                   >
                     {isRestoringSeries || isLoadingHistory
-                      ? "Recovering prints from the tray…"
-                      : "The paper is still blank."}
+                      ? t("recoveringPrints")
+                      : t("blankPaper")}
                   </p>
                   {!isRestoringSeries && !isLoadingHistory ? (
                     <p className="mt-3 text-[11px] leading-5 tracking-wide text-[#a39b90] dark:text-[#4a443c]">
-                      Write your exposure notes on the left, then develop your first print.
+                      {t("blankPaperHint")}
                     </p>
                   ) : null}
                 </div>

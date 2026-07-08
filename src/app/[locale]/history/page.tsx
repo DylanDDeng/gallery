@@ -2,8 +2,13 @@
 
 import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { isBillingEnabled } from "@/lib/billing-feature";
+import { formatDate } from "@/lib/format";
+import { translateError } from "@/lib/translate-error";
+import type { Locale } from "@/i18n/routing";
 import { useAppStore } from "@/store";
 
 interface Order {
@@ -28,6 +33,10 @@ interface GenerationTask {
 type Tab = "generations" | "orders";
 
 export default function HistoryPage() {
+  const t = useTranslations("history");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
+  const locale = useLocale() as Locale;
   const router = useRouter();
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
@@ -82,8 +91,20 @@ export default function HistoryPage() {
     void load();
   }, [billingEnabled, user, router, fetchGenerations, fetchOrders]);
 
+  const getStatusLabel = (status: string) => {
+    const key = `status.${status}` as
+      | "status.completed"
+      | "status.failed"
+      | "status.cancelled"
+      | "status.queued"
+      | "status.processing"
+      | "status.pending"
+      | "status.refunded";
+    return tCommon(key);
+  };
+
   const handleDelete = async (taskId: string) => {
-    if (!confirm("Are you sure you want to delete this task from your history?")) {
+    if (!confirm(t("deleteConfirm"))) {
       return;
     }
 
@@ -95,11 +116,13 @@ export default function HistoryPage() {
         void fetchGenerations();
       } else {
         const json = await res.json();
-        alert(json.error || "Failed to delete task");
+        alert(
+          translateError(tErrors, json.errorCode, json.error) || t("failedToDelete"),
+        );
       }
     } catch (error) {
       console.error("Error deleting task:", error);
-      alert("An error occurred");
+      alert(t("genericError"));
     } finally {
       setCancellingId(null);
     }
@@ -121,7 +144,6 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f2ed] dark:bg-[#0c0b09]">
-      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#f5f2ed]/80 dark:bg-[#0c0b09]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
@@ -129,30 +151,35 @@ export default function HistoryPage() {
               onClick={() => router.push("/")}
               className="text-xs text-[#8a837a] dark:text-[#5c564e] hover:text-[#4a443c] dark:hover:text-[#a39b90]"
             >
-              &larr; Back to site
+              {t("backToSite")}
             </button>
             <div className="h-4 w-px bg-[#d5cfc4] dark:bg-[#1a1814]" />
-            <h1 className="text-lg font-bold text-[#141210] dark:text-[#e0d9ce]">History</h1>
+            <h1 className="text-lg font-bold text-[#141210] dark:text-[#e0d9ce]">
+              {t("title")}
+            </h1>
           </div>
-          <button
-            onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition-colors hover:bg-[#e0d9ce] dark:hover:bg-[#1a1814] hover:text-[#2a2520] dark:hover:text-[#a39b90]"
-          >
-            {theme === "light" ? (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            ) : (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <button
+              onClick={toggleTheme}
+              aria-label={tCommon("toggleTheme")}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition-colors hover:bg-[#e0d9ce] dark:hover:bg-[#1a1814] hover:text-[#2a2520] dark:hover:text-[#a39b90]"
+            >
+              {theme === "light" ? (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-[800px] px-6 py-8">
-        {/* Tabs */}
         <div className="mb-6 flex gap-1 rounded-xl bg-[#e0d9ce] dark:bg-[#141210] p-1">
           <button
             onClick={() => setActiveTab("generations")}
@@ -162,7 +189,7 @@ export default function HistoryPage() {
                 : "text-[#5c564e] dark:text-[#8a837a] hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
             }`}
           >
-            Generations
+            {t("tabs.generations")}
           </button>
           {billingEnabled && (
             <button
@@ -173,7 +200,7 @@ export default function HistoryPage() {
                   : "text-[#5c564e] dark:text-[#8a837a] hover:text-[#2a2520] dark:hover:text-[#d5cfc4]"
               }`}
             >
-              Orders
+              {t("tabs.orders")}
             </button>
           )}
         </div>
@@ -185,12 +212,14 @@ export default function HistoryPage() {
         ) : activeTab === "generations" ? (
           generations.length === 0 ? (
             <div className="rounded-2xl bg-[#ebe7e0] dark:bg-[#141210] p-12 text-center">
-              <p className="text-sm text-[#8a837a] dark:text-[#5c564e]">No generations yet</p>
+              <p className="text-sm text-[#8a837a] dark:text-[#5c564e]">
+                {t("noGenerations")}
+              </p>
               <button
                 onClick={() => router.push("/generate")}
                 className="mt-3 text-sm font-medium text-[#4a443c] dark:text-[#8a837a] hover:text-[#141210] dark:hover:text-[#d5cfc4]"
               >
-                Create your first generation &rarr;
+                {t("createFirst")}
               </button>
             </div>
           ) : (
@@ -222,12 +251,14 @@ export default function HistoryPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles[task.status] || ""}`}>
-                        {task.status}
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[task.status] || ""}`}>
+                        {getStatusLabel(task.status)}
                       </span>
                       {billingEnabled && task.credits_cost > 0 && (
                         <span className="text-xs text-[#8a837a] dark:text-[#5c564e]">
-                          {task.credits_cost} credit{task.credits_cost !== 1 ? "s" : ""}
+                          {task.credits_cost === 1
+                            ? tCommon("creditCount", { count: task.credits_cost })
+                            : tCommon("creditsCount", { count: task.credits_cost })}
                         </span>
                       )}
                     </div>
@@ -243,7 +274,7 @@ export default function HistoryPage() {
                     )}
 
                     <p className="text-xs text-[#8a837a] dark:text-[#5c564e]">
-                      {new Date(task.created_at).toLocaleString()}
+                      {formatDate(task.created_at, locale)}
                     </p>
                   </div>
 
@@ -253,7 +284,9 @@ export default function HistoryPage() {
                       disabled={cancellingId === task.id}
                       className="flex-shrink-0 rounded-lg px-3 py-1.5 text-xs text-red-500 hover:bg-red-500/10 disabled:opacity-50"
                     >
-                      {cancellingId === task.id ? "Deleting..." : "Delete"}
+                      {cancellingId === task.id
+                        ? tCommon("deleting")
+                        : tCommon("delete")}
                     </button>
                   )}
                 </div>
@@ -262,12 +295,14 @@ export default function HistoryPage() {
           )
         ) : !billingEnabled ? null : orders.length === 0 ? (
           <div className="rounded-2xl bg-[#ebe7e0] dark:bg-[#141210] p-12 text-center">
-            <p className="text-sm text-[#8a837a] dark:text-[#5c564e]">No orders yet</p>
+            <p className="text-sm text-[#8a837a] dark:text-[#5c564e]">
+              {t("noOrders")}
+            </p>
             <button
               onClick={() => router.push("/credits")}
               className="mt-3 text-sm font-medium text-[#4a443c] dark:text-[#8a837a] hover:text-[#141210] dark:hover:text-[#d5cfc4]"
             >
-              Buy credits &rarr;
+              {t("buyCredits")}
             </button>
           </div>
         ) : (
@@ -279,15 +314,15 @@ export default function HistoryPage() {
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles[order.status] || ""}`}>
-                      {order.status}
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[order.status] || ""}`}>
+                      {getStatusLabel(order.status)}
                     </span>
                   </div>
                   <p className="text-sm font-medium text-[#2a2520] dark:text-[#a39b90]">
-                    {order.amount.toLocaleString()} credits
+                    {t("orderCredits", { amount: order.amount.toLocaleString() })}
                   </p>
                   <p className="text-xs text-[#8a837a] dark:text-[#5c564e]">
-                    {new Date(order.created_at).toLocaleString()}
+                    {formatDate(order.created_at, locale)}
                   </p>
                 </div>
                 <div className="text-right">

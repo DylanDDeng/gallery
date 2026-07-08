@@ -2,18 +2,31 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import {
   buildRemixGenerateUrl,
   readRemixGenerationDraft,
   saveRemixGenerationDraft,
 } from "@/lib/generation-draft";
+import { formatDate } from "@/lib/format";
+import type { Locale } from "@/i18n/routing";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
 
 const PRELOAD_THRESHOLD = 8;
 
+const PROMPT_LANG_LABEL_KEYS = {
+  en: "promptEn",
+  zh: "promptZh",
+  ja: "promptJa",
+} as const;
+
 export default function ImageModal() {
+  const t = useTranslations("imageModal");
+  const tCommon = useTranslations("common");
+  const tLang = useTranslations("language");
+  const locale = useLocale() as Locale;
   const router = useRouter();
   const selectedImage = useAppStore((s) => s.selectedImage);
   const allImages = useAppStore((s) => s.allImages);
@@ -355,10 +368,10 @@ export default function ImageModal() {
           <div className="px-8 pt-8 md:px-12 md:pt-12 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-[9px] uppercase tracking-[0.35em] text-[#a39b90]">
-                Aestara Archive
+                {t("archive")}
               </span>
               <span className="text-[9px] uppercase tracking-[0.2em] text-[#a39b90]">
-                {new Date(activeImage.created_at).toLocaleDateString("en-US", {
+                {formatDate(activeImage.created_at, locale, {
                   month: "short",
                   year: "numeric",
                 })}
@@ -381,7 +394,7 @@ export default function ImageModal() {
                   className="text-[36px] md:text-[48px] leading-[1.05] italic text-[#2a2520]/90"
                   style={{ fontFamily: "'Instrument Serif', serif" }}
                 >
-                  {activeImage.category || "Untitled"}
+                  {activeImage.category || tCommon("untitled")}
                 </p>
                 <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-[#8a837a]/70">
                   <span>{activeImage.author}</span>
@@ -398,23 +411,28 @@ export default function ImageModal() {
             <div className="mb-10">
               <div className="flex items-center justify-between mb-5">
                 <span className="text-[9px] uppercase tracking-[0.35em] text-[#a39b90]">
-                  Generation Notes
+                  {t("generationNotes")}
                 </span>
                 {availableLangs.length > 1 && (
-                  <div className="flex items-center gap-1">
-                    {availableLangs.map((lang) => (
-                      <button
-                        key={lang}
-                        onClick={() => setPromptLang(lang)}
-                        className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 transition-colors ${
-                          promptLang === lang
-                            ? "text-[#5c564e] border-b border-[#5c564e]/30"
-                            : "text-[#a39b90] hover:text-[#8a837a]"
-                        }`}
-                      >
-                        {{ en: "EN", zh: "中", ja: "日" }[lang]}
-                      </button>
-                    ))}
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[8px] uppercase tracking-[0.2em] text-[#a39b90]/80">
+                      {tLang("promptLanguage")}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {availableLangs.map((lang) => (
+                        <button
+                          key={lang}
+                          onClick={() => setPromptLang(lang)}
+                          className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 transition-colors ${
+                            promptLang === lang
+                              ? "text-[#5c564e] border-b border-[#5c564e]/30"
+                              : "text-[#a39b90] hover:text-[#8a837a]"
+                          }`}
+                        >
+                          {tLang(PROMPT_LANG_LABEL_KEYS[lang])}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -422,7 +440,7 @@ export default function ImageModal() {
               <div className="mb-4">
                 {isLoadingDetails ? (
                   <p className="text-[12px] leading-[1.9] text-[#a39b90]">
-                    Loading prompt details...
+                    {t("loadingPrompt")}
                   </p>
                 ) : detailErrorsById[selectedImage.id] ? (
                   <p className="text-[12px] leading-[1.9] text-red-400/60">
@@ -442,7 +460,7 @@ export default function ImageModal() {
                   </div>
                 ) : (
                   <p className="text-[12px] leading-[1.9] text-[#a39b90]">
-                    No prompt available.
+                    {t("noPrompt")}
                   </p>
                 )}
               </div>
@@ -452,7 +470,7 @@ export default function ImageModal() {
                   onClick={copyPrompt}
                   className="text-[9px] uppercase tracking-[0.25em] text-[#a39b90] hover:text-[#5c564e] transition-colors duration-300 pl-4"
                 >
-                  {copied ? "Copied" : "Copy Text"}
+                  {copied ? t("copied") : t("copyText")}
                 </button>
               )}
             </div>
@@ -462,7 +480,7 @@ export default function ImageModal() {
               <div className="mb-10">
                 <div className="h-px bg-[#d5cfc4]/60 mb-5" />
                 <p className="text-[9px] uppercase tracking-[0.35em] text-[#a39b90] mb-4">
-                  Index
+                  {t("index")}
                 </p>
                 <div className="flex flex-wrap gap-x-5 gap-y-2">
                   {activeImage.tags.map((tag, i) => (
@@ -488,7 +506,7 @@ export default function ImageModal() {
               disabled={!promptText || isLoadingDetails}
               className="text-[10px] uppercase tracking-[0.2em] text-[#8a837a]/50 hover:text-[#5c564e]/80 transition-colors duration-300 disabled:opacity-30"
             >
-              Remix
+              {t("remix")}
             </button>
             <div className="flex items-center gap-3 text-[9px] uppercase tracking-[0.2em] text-[#a39b90]">
               <span>{activeImage.width || "—"}</span>

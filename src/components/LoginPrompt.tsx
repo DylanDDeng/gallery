@@ -1,25 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { useAppStore } from "@/store";
 import { createClient } from "@/lib/supabase-browser";
 
-const COPY = {
-  favorites: {
-    title: "Sign in to save favorites",
-    description:
-      "Create an account or sign in with Google to keep your favorites saved across sessions.",
-    dismiss: "Maybe later",
-  },
-  generate: {
-    title: "Sign in to create",
-    description:
-      "Sign in with Google to access the studio and develop your prints.",
-    dismiss: "Back to gallery",
-  },
-} as const;
-
 export default function LoginPrompt() {
+  const t = useTranslations("auth.loginPrompt");
+  const tAuth = useTranslations("auth");
   const router = useRouter();
   const showLoginPrompt = useAppStore((s) => s.showLoginPrompt);
   const loginPromptReason = useAppStore((s) => s.loginPromptReason);
@@ -28,7 +16,6 @@ export default function LoginPrompt() {
   if (!showLoginPrompt) return null;
 
   const reason = loginPromptReason ?? "favorites";
-  const copy = COPY[reason];
 
   const handleSignIn = async () => {
     const supabase = createClient();
@@ -57,10 +44,10 @@ export default function LoginPrompt() {
       />
       <div className="relative w-full max-w-sm mx-4 rounded-2xl bg-[#f5f2ed] dark:bg-[#141210] p-6 shadow-2xl border border-[#d5cfc4] dark:border-[#2a2520]">
         <h3 className="text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
-          {copy.title}
+          {t(`${reason}.title`)}
         </h3>
         <p className="mt-2 text-sm text-[#5c564e] dark:text-[#8a837a]">
-          {copy.description}
+          {t(`${reason}.description`)}
         </p>
         <button
           onClick={() => void handleSignIn()}
@@ -84,13 +71,13 @@ export default function LoginPrompt() {
               fill="#EA4335"
             />
           </svg>
-          Continue with Google
+          {tAuth("continueWithGoogle")}
         </button>
         <button
           onClick={handleDismiss}
           className="mt-2 w-full py-2 text-xs text-[#8a837a] hover:text-[#5c564e] dark:hover:text-[#a39b90] transition-colors"
         >
-          {copy.dismiss}
+          {t(`${reason}.dismiss`)}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase-server";
+import { ErrorCode } from "@/lib/error-codes";
 
 /**
  * Ensures the user is authenticated.
@@ -13,7 +14,10 @@ export async function ensureAuth() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized", errorCode: ErrorCode.UNAUTHORIZED },
+      { status: 401 }
+    );
   }
 
   return user;

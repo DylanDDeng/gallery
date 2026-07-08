@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
+import { ErrorCode } from "@/lib/error-codes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
@@ -24,14 +25,20 @@ export async function POST(request: Request) {
 
     if (!fileType) {
       return NextResponse.json(
-        { error: "Reference image metadata is required" },
+        {
+          error: "Reference image metadata is required",
+          errorCode: ErrorCode.INVALID_REFERENCE_IMAGE,
+        },
         { status: 400 }
       );
     }
 
     if (!ALLOWED_MIME_TYPES.has(fileType)) {
       return NextResponse.json(
-        { error: "Please upload a PNG, JPEG, WEBP, or GIF image." },
+        {
+          error: "Please upload a PNG, JPEG, WEBP, or GIF image.",
+          errorCode: ErrorCode.INVALID_REFERENCE_IMAGE,
+        },
         { status: 400 }
       );
     }
@@ -40,7 +47,10 @@ export async function POST(request: Request) {
 
     if (fileBuffer.byteLength === 0) {
       return NextResponse.json(
-        { error: "Reference image file is required" },
+        {
+          error: "Reference image file is required",
+          errorCode: ErrorCode.INVALID_REFERENCE_IMAGE,
+        },
         { status: 400 }
       );
     }

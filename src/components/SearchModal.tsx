@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
 
@@ -12,6 +13,7 @@ interface SearchModalProps {
 }
 
 export default function SearchModal({ open, onClose, isLoadingResults }: SearchModalProps) {
+  const t = useTranslations("search");
   const searchQuery = useAppStore((s) => s.searchQuery);
   const setSearchQuery = useAppStore((s) => s.setSearchQuery);
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
@@ -71,7 +73,7 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search prompts, tags, authors..."
+            placeholder={t("placeholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 bg-transparent text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#5c564e] outline-none"
@@ -87,7 +89,7 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
             </button>
           )}
           <kbd className="hidden sm:inline-flex items-center rounded-md border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-1.5 py-0.5 text-[10px] font-medium text-[#8a837a]">
-            ESC
+            {t("esc")}
           </kbd>
         </div>
 
@@ -96,7 +98,7 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
           {searchQuery && isLoadingResults && (
             <div className="flex flex-col items-center justify-center py-12 text-[#8a837a]">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#d5cfc4] dark:border-[#2a2520] border-t-[#8a837a]" />
-              <p className="mt-3 text-sm">Searching...</p>
+              <p className="mt-3 text-sm">{t("searching")}</p>
             </div>
           )}
 
@@ -133,13 +135,13 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
               <svg className="mb-3 h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <p className="text-sm">No results found</p>
+              <p className="text-sm">{t("noResults")}</p>
             </div>
           )}
 
           {!searchQuery && (
             <p className="py-8 text-center text-sm text-[#8a837a]">
-              Type to search images...
+              {t("typeToSearch")}
             </p>
           )}
         </div>

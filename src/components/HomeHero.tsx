@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { ImagePrompt } from "@/lib/types";
 
 interface HomeHeroProps {
@@ -10,6 +11,8 @@ interface HomeHeroProps {
 }
 
 export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
+  const t = useTranslations("home");
+  const tCommon = useTranslations("common");
   const [phase, setPhase] = useState<"idle" | "flipping" | "exiting" | "gone">("idle");
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -63,7 +66,7 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
           {/* 背景图 */}
           <Image
             src={coverImage.url}
-            alt={coverImage.category || "Cover"}
+            alt={coverImage.category || tCommon("untitled")}
             fill
             className={`object-cover transition-all duration-1000 ${
               isLoaded ? "photo-focus-in" : "blur-[10px] opacity-0"
@@ -79,7 +82,7 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
           <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16 lg:p-20">
             <div className="max-w-[1600px] w-full mx-auto">
               <p className="text-[10px] uppercase tracking-[0.3em] text-[#f5f2ed]/60 mb-3">
-                Vol. 01
+                {t("hero.volume")}
               </p>
               <h1
                 className="text-6xl md:text-7xl lg:text-[6rem] font-bold tracking-tight text-[#f5f2ed] drop-shadow-lg"
@@ -91,7 +94,7 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
                 className="mt-3 text-[11px] text-[#f5f2ed]/50 uppercase tracking-[0.2em]"
                 style={{ fontFamily: "'Instrument Serif', serif" }}
               >
-                {coverImage.category || "Untitled"} · {coverImage.author}
+                {coverImage.category || tCommon("untitled")} · {coverImage.author}
               </p>
             </div>
           </div>
@@ -100,7 +103,7 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
           <button
             onClick={handleFlip}
             className="absolute bottom-0 right-0 w-28 h-28 md:w-36 md:h-36 cursor-pointer group z-10"
-            aria-label="Open magazine"
+            aria-label={t("hero.openAriaLabel")}
           >
             {/* 折角阴影 */}
             <div
@@ -125,7 +128,7 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
             {/* 折角上的提示文字 */}
             <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex flex-col items-center gap-1 text-[#2a2520] opacity-50 group-hover:opacity-100 transition-all duration-300">
               <span className="text-[10px] uppercase tracking-[0.2em] font-medium">
-                Open
+                {t("hero.open")}
               </span>
               <svg
                 className="w-4 h-4"
@@ -179,7 +182,7 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
           />
           <div className="text-center">
             <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
-              Opening Gallery...
+              {t("hero.openingGallery")}
             </p>
           </div>
         </div>

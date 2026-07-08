@@ -1,0 +1,557 @@
+{
+  "metadata": {
+    "title": "Aestara — AI Image Generation",
+    "description": "Explore AI-generated images, remix prompts, and create your own prints with Aestara.",
+    "terms": {
+      "title": "Terms of Service — Aestara",
+      "description": "Terms of service for Aestara's AI image generation platform."
+    },
+    "privacy": {
+      "title": "Privacy Policy — Aestara",
+      "description": "Privacy policy for Aestara's AI image generation service."
+    },
+    "refund": {
+      "title": "Refund Policy — Aestara",
+      "description": "Refund policy for Aestara credit purchases."
+    }
+  },
+  "common": {
+    "brand": "Aestara",
+    "credits": "credits",
+    "credit": "credit",
+    "creditsCount": "{count} credits",
+    "creditCount": "{count} credit",
+    "creditsDisplay": "{count} credits",
+    "backToSite": "Back to site",
+    "backToAestara": "Back to Aestara",
+    "loading": "Loading…",
+    "processing": "Processing...",
+    "saving": "Saving…",
+    "deleting": "Deleting…",
+    "delete": "Delete",
+    "light": "Light",
+    "dark": "Dark",
+    "toggleTheme": "Toggle theme",
+    "user": "User",
+    "untitled": "Untitled",
+    "justNow": "Just now",
+    "recommended": "Recommended",
+    "lastUpdated": "Last updated: {date}",
+    "orderLabel": "Order {orderId}",
+    "perCredit": "/credit",
+    "cr": "cr",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "openMagazine": "Open magazine",
+    "status": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "queued": "Queued",
+      "processing": "Processing",
+      "pending": "Pending",
+      "refunded": "Refunded"
+    },
+    "categories": {
+      "all": "All",
+      "portrait": "Portrait",
+      "landscape": "Landscape",
+      "street": "Street",
+      "urban": "Urban",
+      "nature": "Nature",
+      "cinematic": "Cinematic",
+      "abstract": "Abstract",
+      "3d": "3D",
+      "product-photography": "Product Photography",
+      "conceptual-editorial-illustration": "Conceptual Editorial Illustration",
+      "poster": "Poster",
+      "sketchnote": "Sketchnote",
+      "character-design": "Character Design",
+      "knolling": "Knolling",
+      "screenshot": "Screenshot"
+    },
+    "timeFilters": {
+      "today": "Today",
+      "week": "This Week",
+      "month": "This Month"
+    },
+    "models": {
+      "Nano Banana Pro": "Nano Banana Pro",
+      "Nano Banana 2": "Nano Banana 2",
+      "GPT Image 1.5": "GPT Image 1.5",
+      "GPT Image 2": "GPT Image 2",
+      "Grok Imagine": "Grok Imagine",
+      "Seedream 4.5": "Seedream 4.5",
+      "Seedream 5.0 Lite": "Seedream 5.0 Lite",
+      "Z Image": "Z Image"
+    },
+    "modelPricing": {
+      "doubao-seedream-5-0-260128": {
+        "name": "Seedream-5.0-Lite",
+        "description": "Balanced quality with support for 2K and 3K renders."
+      },
+      "openai/gpt-image-2": {
+        "name": "GPT Image 2",
+        "description": "OpenAI image generation with medium and high quality tiers."
+      },
+      "tiers": {
+        "2K": "2K",
+        "3K": "3K",
+        "medium-square": "Medium · Square",
+        "medium-landscape": "Medium · Landscape",
+        "medium-portrait": "Medium · Portrait",
+        "high-square": "High · Square",
+        "high-landscape": "High · Landscape",
+        "high-portrait": "High · Portrait",
+        "tierCreditsLabel": "{label} · {credits} credits"
+      },
+      "orientations": {
+        "square": "Square",
+        "landscape": "Landscape",
+        "portrait": "Portrait"
+      },
+      "qualities": {
+        "medium": "Medium",
+        "high": "High"
+      },
+      "resolutions": {
+        "2K": "2K",
+        "3K": "3K"
+      },
+      "aspectRatios": {
+        "1:1": "1:1",
+        "3:4": "3:4",
+        "4:3": "4:3",
+        "16:9": "16:9",
+        "9:16": "9:16",
+        "3:2": "3:2",
+        "2:3": "2:3",
+        "21:9": "21:9"
+      }
+    }
+  },
+  "nav": {
+    "gallery": "Gallery",
+    "create": "Create",
+    "history": "History",
+    "credits": "Credits",
+    "settings": "Settings"
+  },
+  "language": {
+    "en": "English",
+    "zh": "中文",
+    "ja": "日本語",
+    "promptLanguage": "Prompt language",
+    "promptEn": "EN",
+    "promptZh": "中",
+    "promptJa": "日",
+    "switchTo": "Switch to {language}"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "continueWithGoogle": "Continue with Google",
+    "signedIn": "Signed in",
+    "favorites": "Favorites",
+    "loginPrompt": {
+      "favorites": {
+        "title": "Sign in to save favorites",
+        "description": "Create an account or sign in with Google to keep your favorites saved across sessions.",
+        "dismiss": "Maybe later"
+      },
+      "generate": {
+        "title": "Sign in to create",
+        "description": "Sign in with Google to access the studio and develop your prints.",
+        "dismiss": "Back to gallery"
+      }
+    }
+  },
+  "credits": {
+    "backToSite": "Back to site",
+    "label": "Credits",
+    "title": "Top up your balance and keep creating",
+    "subtitle": "Purchase credits to generate images. No subscriptions, no monthly reset — your balance stays until you use it.",
+    "yourBalance": "Your Balance",
+    "creditsAvailable": "credits available",
+    "purchaseCredits": "Purchase Credits",
+    "packages": {
+      "small": {
+        "label": "Starter",
+        "blurb": "For testing prompts and quick concept passes"
+      },
+      "medium": {
+        "label": "Creator",
+        "blurb": "Best for regular generation and remix sessions"
+      },
+      "large": {
+        "label": "Studio",
+        "blurb": "For larger batches and heavier creative output"
+      }
+    },
+    "approximateRenders": "About {count} standard-tier renders with {model}",
+    "howItWorks": "How it works",
+    "steps": {
+      "choose": {
+        "title": "Choose a bundle",
+        "desc": "Pick the credit package that fits your creative needs. All are one-time purchases."
+      },
+      "pay": {
+        "title": "Pay securely",
+        "desc": "Complete checkout via our payment provider. Your transaction is encrypted and safe."
+      },
+      "added": {
+        "title": "Credits added instantly",
+        "desc": "Once payment is confirmed, your balance updates automatically. Start generating right away."
+      }
+    },
+    "billingNotes": "Billing notes",
+    "billingItems": {
+      "standardModel": "{model} currently uses {credits} credits at its standard tier; higher tiers use more.",
+      "gptImage": "GPT Image 2 uses 12–66 credits depending on quality and orientation (medium square from 12 credits, high landscape/portrait up to 66).",
+      "differentModels": "Different models and output tiers consume different credits.",
+      "secureCheckout": "Payments are processed through a secure hosted checkout.",
+      "noExpiry": "Purchased credits do not expire.",
+      "refundContact": "Contact support for refunds within 7 days of purchase."
+    },
+    "messages": {
+      "purchaseSuccess": "Purchase successful. Credits have been added to your account.",
+      "paymentFailed": "Payment failed. Please try again.",
+      "purchaseSubmitted": "Purchase submitted. Credits will appear once the payment is confirmed.",
+      "purchaseReceived": "Purchase received. Credits will appear once the payment is confirmed.",
+      "checkoutCanceled": "Checkout was canceled.",
+      "failedToCreateOrder": "Failed to create order",
+      "genericError": "An error occurred. Please try again."
+    }
+  },
+  "checkout": {
+    "label": "Secure Checkout",
+    "title": "Complete your credit purchase",
+    "subtitle": "Paddle Checkout should open automatically on this page.",
+    "missingToken": "Missing NEXT_PUBLIC_PADDLE_CLIENT_TOKEN.",
+    "missingTransaction": "Missing Paddle transaction ID in the payment link.",
+    "paddleLoadFailed": "Paddle.js failed to load.",
+    "verifyConfig": "If the checkout does not appear, verify that your Paddle website approval and client-side token are configured.",
+    "defaultPaymentLink": "This page is also safe to use as your default Paddle payment link.",
+    "returnToCredits": "Return to credits"
+  },
+  "home": {
+    "tagline": "Aestara — AI Image Generation",
+    "loadingGallery": "Loading Gallery",
+    "developingPhotos": "Developing photos...",
+    "hero": {
+      "volume": "Vol. 01",
+      "open": "Open",
+      "openAriaLabel": "Open gallery",
+      "openingGallery": "Opening Gallery...",
+      "coverAlt": "Cover"
+    }
+  },
+  "generate": {
+    "studio": "Studio",
+    "remixStudio": "Remix studio",
+    "negatives": "01 — Negatives",
+    "load": "Load",
+    "loading": "Loading…",
+    "noNegatives": "No negatives loaded — develop from the prompt alone, or load one.",
+    "exposureNotes": "02 — Exposure notes",
+    "promptPlaceholder": "Describe the print you want to develop…",
+    "promptCounter": "{current}/10000",
+    "filmStock": "03 — Film stock",
+    "frame": "04 — Frame",
+    "orientation": "04 — Orientation",
+    "paperSize": "05 — Paper size",
+    "quality": "05 — Quality",
+    "developing": "Developing…",
+    "developVariation": "Develop variation · {credits} credits",
+    "developPrint": "Develop print · {credits} credits",
+    "creditsPerPrint": "{model} · {credits} credits per print",
+    "currentReference": "Current reference",
+    "referenceLabel": "Reference {index}",
+    "referenceCaption": "Click to use for the next render.",
+    "latestPrint": "Latest print",
+    "variation": "Variation {index}",
+    "print": "Print {index}",
+    "developingNextPrint": "Developing next print…",
+    "pendingCaption": "The tray is still working — your new print will appear here.",
+    "contactSheet": "Contact sheet",
+    "framesCount": "{count} frames",
+    "useAsReference": "Use as reference",
+    "downloadPrint": "Download print",
+    "recoveringPrints": "Recovering prints from the tray…",
+    "blankPaper": "The paper is still blank.",
+    "blankPaperHint": "Write your exposure notes on the left, then develop your first print.",
+    "removeReference": "Remove {label}",
+    "errors": {
+      "chooseImageFile": "Please choose an image file.",
+      "uploadFormats": "Please upload a PNG, JPEG, WEBP, or GIF image.",
+      "gptNoGif": "GPT Image 2 only supports PNG, JPEG, or WEBP reference images.",
+      "maxFileSize": "Reference images must be 15 MB or smaller.",
+      "signInToUpload": "Please sign in again before uploading a reference image.",
+      "failedToUpload": "Failed to upload reference image",
+      "uploadUnauthorized": "Your upload session is not authorized for storage. Please refresh and sign in again.",
+      "uploadRetry": "Failed to upload the reference image. Please try again.",
+      "gifRemoved": "GIF references were removed because GPT Image 2 does not support them.",
+      "failedToCreate": "Failed to create generation",
+      "genericError": "An error occurred. Please try again.",
+      "failedToDownload": "Failed to download the generated image. Please try again.",
+      "failedRemixContext": "Failed to load remix context"
+    }
+  },
+  "history": {
+    "title": "History",
+    "backToSite": "← Back to site",
+    "tabs": {
+      "generations": "Generations",
+      "orders": "Orders"
+    },
+    "noGenerations": "No generations yet",
+    "createFirst": "Create your first generation →",
+    "noOrders": "No orders yet",
+    "buyCredits": "Buy credits →",
+    "deleteConfirm": "Are you sure you want to delete this task from your history?",
+    "failedToDelete": "Failed to delete task",
+    "genericError": "An error occurred",
+    "orderCredits": "{amount} credits"
+  },
+  "settings": {
+    "title": "Settings",
+    "backToSite": "← Back to site",
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize how the application looks on your device.",
+      "theme": "Theme",
+      "themeDescription": "Switch between light and dark mode"
+    },
+    "account": {
+      "title": "Account",
+      "description": "Manage your account information.",
+      "signedIn": "Signed in"
+    }
+  },
+  "errors": {
+    "promptRequired": "Prompt is required",
+    "insufficientCredits": "Insufficient credits",
+    "unauthorized": "Unauthorized",
+    "invalidPackage": "Invalid package ID",
+    "taskNotFound": "Task not found",
+    "failedToCreateOrder": "Failed to create order",
+    "failedToCreateGeneration": "Failed to create generation",
+    "failedToDeleteTask": "Failed to delete task",
+    "cannotDeleteTask": "Cannot delete task in current status",
+    "invalidReferenceImage": "Reference image must use your uploaded or generated images",
+    "internalError": "An internal error occurred",
+    "unknown": "An unknown error occurred"
+  },
+  "imageModal": {
+    "archive": "Aestara Archive",
+    "generationNotes": "Generation Notes",
+    "loadingPrompt": "Loading prompt details...",
+    "noPrompt": "No prompt available.",
+    "copyText": "Copy Text",
+    "copied": "Copied",
+    "index": "Index",
+    "remix": "Remix",
+    "imageCounter": "{current} / {total}",
+    "imageCounterMore": "{current} / {total}+"
+  },
+  "search": {
+    "placeholder": "Search prompts, tags, authors...",
+    "searching": "Searching...",
+    "noResults": "No results found",
+    "typeToSearch": "Type to search images...",
+    "esc": "ESC",
+    "searchLabel": "Search",
+    "searchActive": "Search: \"{query}\""
+  },
+  "sidebar": {
+    "search": "Search",
+    "searchActive": "Search: \"{query}\"",
+    "all": "All",
+    "surpriseMe": "Surprise Me",
+    "favorites": "Favorites",
+    "time": "Time",
+    "models": "Models",
+    "categories": "Categories"
+  },
+  "footer": {
+    "credits": "Credits",
+    "refundPolicy": "Refund Policy",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "tagline": "Aestara — AI Image Generation",
+    "policies": "Aestara Policies",
+    "serviceDescription": "AI image generation service"
+  },
+  "legal": {
+    "terms": {
+      "title": "Terms of Service",
+      "description": "These terms govern your use of Aestara, including account access, credit purchases, acceptable use, and refunds.",
+      "updatedAt": "March 18, 2026",
+      "sections": [
+        {
+          "heading": "1. Service Overview",
+          "paragraphs": [
+            "Aestara provides an online AI image generation service. Users can create an account, purchase credits, submit prompts, and generate images through the platform. By accessing or using Aestara, you agree to these terms."
+          ]
+        },
+        {
+          "heading": "2. Accounts and Eligibility",
+          "items": [
+            "You must provide accurate account information and keep it up to date.",
+            "You are responsible for activity that occurs under your account.",
+            "We may suspend or terminate access where use of the service creates legal, security, payment, or abuse risk."
+          ]
+        },
+        {
+          "heading": "3. Credits, Pricing, and Billing",
+          "paragraphs": [
+            "Aestara sells one-time credit packages. Credits are consumed when you submit generation requests. Unless otherwise stated on the pricing page, one image generation consumes one credit.",
+            "Prices are shown before purchase. Payments are processed by our third-party checkout provider. Depending on the active integration, this may include checkout, payment processing, invoicing, and related billing operations.",
+            "Purchased credits do not expire under the current product model. We may change package sizes or prices prospectively at any time."
+          ]
+        },
+        {
+          "heading": "4. Refund Policy",
+          "paragraphs": [
+            "You may request a refund within 7 days of purchase by contacting chengshengdeng@gmail.com.",
+            "We generally approve refunds for accidental purchases, duplicate purchases, or materially unused credits. Refund decisions may be limited where credits have already been substantially consumed, fraud is suspected, or the request would violate payment processor rules."
+          ]
+        },
+        {
+          "heading": "5. Acceptable Use",
+          "items": [
+            "You may not use Aestara for unlawful, deceptive, abusive, infringing, or harmful activity.",
+            "You may not use the service to generate or distribute non-consensual intimate content, deepfakes, face swaps, or content that impersonates a real person without permission.",
+            "You may not submit prompts or create outputs that infringe another party's intellectual property or privacy rights.",
+            "We may block prompts, remove content, or suspend accounts to comply with law, payment provider requirements, or platform safety policies."
+          ]
+        },
+        {
+          "heading": "6. Generated Content",
+          "paragraphs": [
+            "AI systems can produce inaccurate, unexpected, or similar outputs. You are responsible for reviewing generated images before using, publishing, or selling them.",
+            "We do not guarantee that outputs will be unique, error-free, suitable for a specific purpose, or free from third-party claims."
+          ]
+        },
+        {
+          "heading": "7. Availability and Changes",
+          "paragraphs": [
+            "We may update, improve, suspend, or discontinue parts of the service at any time. We are not liable for downtime, model changes, or third-party outages that affect availability."
+          ]
+        },
+        {
+          "heading": "8. Contact",
+          "paragraphs": [
+            "Questions about these terms can be sent to chengshengdeng@gmail.com."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "This policy explains what information Aestara collects, how it is used, and which third parties help operate the service.",
+      "updatedAt": "March 18, 2026",
+      "sections": [
+        {
+          "heading": "Overview",
+          "paragraphs": [
+            "Aestara is an AI image generation service that lets users create accounts, purchase credits, submit prompts, and generate images. We are committed to protecting your privacy and being transparent about how we handle your data."
+          ]
+        },
+        {
+          "heading": "Information We Collect",
+          "paragraphs": [
+            "We collect minimal information to provide and improve our service:"
+          ],
+          "items": [
+            "Google Account Information — When you sign in with Google, we receive your name, email address, and profile picture from your Google account. This is used for authentication, account access, and personalizing your experience.",
+            "Prompts and Generated Images — We store prompts you submit, generation job data, and generated image results so that the service can deliver outputs, maintain job history, and support refunds or troubleshooting.",
+            "Orders and Credit Balances — We store purchase history, credit balances, and order metadata so we can fulfill purchases and maintain account balances.",
+            "Theme Preference — We store your light/dark mode preference locally in your browser."
+          ]
+        },
+        {
+          "heading": "How We Use Your Information",
+          "items": [
+            "Authenticate your account and provide personalized features",
+            "Save and sync your favorites across devices",
+            "Process credit purchases, support refunds, and maintain your account balance",
+            "Maintain and improve the service"
+          ]
+        },
+        {
+          "heading": "Third-Party Services",
+          "paragraphs": [
+            "We use the following third-party services:"
+          ],
+          "items": [
+            "Google — For user authentication via Google OAuth.",
+            "Supabase — For database, authentication, and data storage.",
+            "Checkout Provider — For payment processing, billing, and related transaction handling.",
+            "Vercel — For website hosting and content delivery.",
+            "Umami — For privacy-focused website analytics."
+          ]
+        },
+        {
+          "heading": "Data Storage & Security",
+          "paragraphs": [
+            "Your data is stored securely in Supabase with row-level security (RLS) policies helping ensure that personal account data is only accessible to the appropriate user and service roles. We do not sell your personal data."
+          ]
+        },
+        {
+          "heading": "Your Rights",
+          "items": [
+            "Access & Delete — You can view or delete your account and all associated data at any time by signing in and using the sign-out feature, then contacting us to permanently delete your data.",
+            "Data Portability — You own your data. Contact us if you need an export of your information."
+          ]
+        },
+        {
+          "heading": "Cookies",
+          "paragraphs": [
+            "We use cookies and local storage for essential functionality such as maintaining your authentication session and theme preference. We may also use privacy-focused analytics tools to understand site performance and product usage at an aggregate level."
+          ]
+        },
+        {
+          "heading": "Changes to This Policy",
+          "paragraphs": [
+            "We may update this privacy policy from time to time. Any changes will be reflected on this page with an updated revision date."
+          ]
+        },
+        {
+          "heading": "Contact",
+          "paragraphs": [
+            "If you have any questions about this privacy policy, feel free to reach out at chengshengdeng@gmail.com."
+          ]
+        }
+      ]
+    },
+    "refund": {
+      "title": "Refund Policy",
+      "description": "This page explains when Aestara credit purchases may be refunded and how to request support.",
+      "updatedAt": "March 18, 2026",
+      "sections": [
+        {
+          "heading": "Eligibility",
+          "paragraphs": [
+            "Refund requests may be submitted within 7 days of the original purchase date.",
+            "We generally support refunds for accidental purchases, duplicate charges, or credit packages that remain materially unused."
+          ]
+        },
+        {
+          "heading": "Limits",
+          "items": [
+            "Credits that have already been substantially consumed may not be refundable.",
+            "Refunds may be denied where fraud, abuse, or payment disputes are suspected.",
+            "Payment processor requirements, card network rules, and tax obligations may affect whether a refund can be issued."
+          ]
+        },
+        {
+          "heading": "How to Request a Refund",
+          "paragraphs": [
+            "Email chengshengdeng@gmail.com with your account email, purchase date, and the reason for the request. We will review the request and respond as quickly as practical."
+          ]
+        }
+      ]
+    }
+  }
+}

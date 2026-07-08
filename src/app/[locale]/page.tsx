@@ -1,7 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useRef } from "react";
+import { Link } from "@/i18n/navigation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import MasonryGrid from "@/components/MasonryGrid";
 import MinimalSidebar from "@/components/MinimalSidebar";
 import HomeHero from "@/components/HomeHero";
@@ -13,6 +15,9 @@ import { hydrateImageDimensions } from "@/lib/image-dimensions";
 import { MAGAZINE_COVER_IMAGE } from "@/lib/constants";
 
 export default function Home() {
+  const tNav = useTranslations("nav");
+  const tHome = useTranslations("home");
+  const tCommon = useTranslations("common");
   const [searchOpen, setSearchOpen] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [magazineOpened, setMagazineOpened] = useState(false);
@@ -139,7 +144,7 @@ export default function Home() {
               className="text-xl font-bold tracking-tight text-[#2a2520] dark:text-[#c4bdb4]"
               style={{ fontFamily: "'Caveat', cursive" }}
             >
-              Aestara
+              {tCommon("brand")}
             </h1>
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[11px] uppercase tracking-[0.15em] text-[#5c564e] dark:text-[#7a7269]">
@@ -147,22 +152,23 @@ export default function Home() {
               href="/"
               className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
             >
-              Gallery
+              {tNav("gallery")}
             </Link>
             <Link
               href="/generate"
               className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
             >
-              Create
+              {tNav("create")}
             </Link>
             <Link
               href="/history"
               className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
             >
-              History
+              {tNav("history")}
             </Link>
           </nav>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <UserMenu />
             <button
               onClick={toggleTheme}
@@ -232,7 +238,11 @@ export default function Home() {
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className="w-8 h-8 mt-1 ml-2 rounded-full text-[#8a837a] hover:text-[#2a2520] hover:bg-[#e8e4de] dark:text-[#5c564e] dark:hover:text-[#c4bdb4] dark:hover:bg-[#1a1814] transition-all duration-300 flex-shrink-0"
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={
+                sidebarCollapsed
+                  ? tCommon("expandSidebar")
+                  : tCommon("collapseSidebar")
+              }
             >
               <svg
                 className={`w-4 h-4 mx-auto transition-transform duration-300 ${
@@ -288,10 +298,10 @@ export default function Home() {
                 {/* Loading text */}
                 <div className="text-center space-y-2">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
-                    Loading Gallery
+                    {tHome("loadingGallery")}
                   </p>
                   <p className="text-[9px] uppercase tracking-[0.2em] text-[#a39b90] dark:text-[#4a443c]">
-                    Developing photos...
+                    {tHome("developingPhotos")}
                   </p>
                 </div>
               </div>
@@ -319,7 +329,7 @@ export default function Home() {
         {/* Minimal Footer */}
         <footer className="py-16 text-center">
           <p className="text-[10px] uppercase tracking-[0.3em] text-[#8a837a] dark:text-[#5c564e]">
-            Aestara — AI Image Generation
+            {tHome("tagline")}
           </p>
         </footer>
       </div>
