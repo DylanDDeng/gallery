@@ -1,39 +1,69 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store";
 import { createClient } from "@/lib/supabase-browser";
 
+const COPY = {
+  favorites: {
+    title: "Sign in to save favorites",
+    description:
+      "Create an account or sign in with Google to keep your favorites saved across sessions.",
+    dismiss: "Maybe later",
+  },
+  generate: {
+    title: "Sign in to create",
+    description:
+      "Sign in with Google to access the studio and develop your prints.",
+    dismiss: "Back to gallery",
+  },
+} as const;
+
 export default function LoginPrompt() {
+  const router = useRouter();
   const showLoginPrompt = useAppStore((s) => s.showLoginPrompt);
+  const loginPromptReason = useAppStore((s) => s.loginPromptReason);
   const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
 
   if (!showLoginPrompt) return null;
 
+  const reason = loginPromptReason ?? "favorites";
+  const copy = COPY[reason];
+
   const handleSignIn = async () => {
     const supabase = createClient();
+    const redirectTo = new URL("/auth/callback", window.location.origin);
+    redirectTo.searchParams.set("next", window.location.pathname);
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectTo.toString(),
       },
     });
+  };
+
+  const handleDismiss = () => {
+    setShowLoginPrompt(false);
+    if (reason === "generate") {
+      router.push("/");
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
         className="absolute inset-0 bg-[#0c0b09]/50 backdrop-blur-sm"
-        onClick={() => setShowLoginPrompt(false)}
+        onClick={handleDismiss}
       />
       <div className="relative w-full max-w-sm mx-4 rounded-2xl bg-[#f5f2ed] dark:bg-[#141210] p-6 shadow-2xl border border-[#d5cfc4] dark:border-[#2a2520]">
         <h3 className="text-lg font-semibold text-[#141210] dark:text-[#e0d9ce]">
-          Sign in to save favorites
+          {copy.title}
         </h3>
         <p className="mt-2 text-sm text-[#5c564e] dark:text-[#8a837a]">
-          Create an account or sign in with Google to keep your favorites saved across sessions.
+          {copy.description}
         </p>
         <button
-          onClick={handleSignIn}
+          onClick={() => void handleSignIn()}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#f5f2ed] dark:bg-[#1a1814] border border-[#d5cfc4] dark:border-[#4a443c] px-4 py-2.5 text-sm font-medium text-[#2a2520] dark:text-[#d5cfc4] hover:bg-[#ebe7e0] dark:hover:bg-[#2a2520] transition-colors shadow-sm"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
@@ -57,10 +87,10 @@ export default function LoginPrompt() {
           Continue with Google
         </button>
         <button
-          onClick={() => setShowLoginPrompt(false)}
+          onClick={handleDismiss}
           className="mt-2 w-full py-2 text-xs text-[#8a837a] hover:text-[#5c564e] dark:hover:text-[#a39b90] transition-colors"
         >
-          Maybe later
+          {copy.dismiss}
         </button>
       </div>
     </div>

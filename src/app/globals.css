@@ -157,6 +157,81 @@ body {
   }
 }
 
+/* Studio (generate page) */
+.film-strip {
+  position: relative;
+  background: #e0d9ce;
+  padding: 18px 16px 14px;
+}
+
+.dark .film-strip {
+  background: #1a1814;
+}
+
+.film-strip::before,
+.film-strip::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  height: 6px;
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(42, 37, 32, 0.18) 0 9px,
+    transparent 9px 22px
+  );
+  pointer-events: none;
+}
+
+.dark .film-strip::before,
+.dark .film-strip::after {
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(228, 220, 208, 0.14) 0 9px,
+    transparent 9px 22px
+  );
+}
+
+.film-strip::before {
+  top: 6px;
+}
+
+.film-strip::after {
+  bottom: 6px;
+}
+
+@keyframes studio-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.studio-pulse {
+  animation: studio-pulse 1.8s ease-in-out infinite;
+}
+
+.studio-backdrop {
+  background-color: #ebe7e0;
+  background-image: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(213, 207, 196, 0.45) 100%
+  );
+}
+
+.dark .studio-backdrop {
+  background-color: #141210;
+  background-image: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 50%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+}
+
 /* Scrollbar for warm paper theme */
 ::-webkit-scrollbar {
   width: 4px;

@@ -8,7 +8,6 @@ import HomeHero from "@/components/HomeHero";
 import ImageModal from "@/components/ImageModal";
 import SearchModal from "@/components/SearchModal";
 import UserMenu from "@/components/UserMenu";
-import LoginPrompt from "@/components/LoginPrompt";
 import { useAppStore } from "@/store";
 import { hydrateImageDimensions } from "@/lib/image-dimensions";
 import { MAGAZINE_COVER_IMAGE } from "@/lib/constants";
@@ -316,7 +315,6 @@ export default function Home() {
             (isLoading || debouncedSearchQuery !== searchQuery.trim())
           }
         />
-        <LoginPrompt />
 
         {/* Minimal Footer */}
         <footer className="py-16 text-center">

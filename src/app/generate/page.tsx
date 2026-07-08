@@ -191,6 +191,8 @@ export default function GeneratePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAppStore((s) => s.user);
+  const authInitialized = useAppStore((s) => s.authInitialized);
+  const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
   const credits = useAppStore((s) => s.credits);
   const setCredits = useAppStore((s) => s.setCredits);
   const fetchCredits = useAppStore((s) => s.fetchCredits);
@@ -256,11 +258,12 @@ export default function GeneratePage() {
   );
 
   useEffect(() => {
-    if (!user) {
-      router.push("/");
+    if (!authInitialized || user) {
       return;
     }
-  }, [router, user]);
+
+    setShowLoginPrompt(true, "generate");
+  }, [authInitialized, setShowLoginPrompt, user]);
 
   useEffect(() => {
     setHistoryTasks([]);
@@ -1021,6 +1024,7 @@ export default function GeneratePage() {
   const hasReferenceImage = Boolean(sourceImageUrl);
   const creditCount = credits ?? 0;
   const generateDisabled =
+    !user ||
     submitting ||
     !prompt.trim() ||
     (billingEnabled && (selectedCreditsCost <= 0 || creditCount < selectedCreditsCost));
@@ -1082,11 +1086,11 @@ export default function GeneratePage() {
           imageUrl: task.result_url,
           label: isRemixMode
             ? index === 0
-              ? "Latest render"
+              ? "Latest print"
               : `Variation ${index}`
             : index === 0
-              ? "Latest"
-              : `Render ${index}`,
+              ? "Latest print"
+              : `Print ${index}`,
           caption: `${formatCreatedAt(task.created_at)} · ${
             getModelPricing(task.model).name
           }`,
@@ -1132,8 +1136,8 @@ export default function GeneratePage() {
       submitting
         ? {
             id: "pending-render",
-            label: "Rendering next image",
-            caption: "The new output will appear here as soon as it completes.",
+            label: "Developing next print…",
+            caption: "The tray is still working — your new print will appear here.",
             kind: "result" as const,
             pending: true,
           }
@@ -1153,45 +1157,49 @@ export default function GeneratePage() {
   const thumbnailCards = pendingCard ? [...resultCards, pendingCard] : resultCards;
   const resultCount = resultCards.length + (pendingCard ? 1 : 0);
 
-  if (!user) {
-    return null;
-  }
-
   const generateLabel = submitting
-    ? "Rendering…"
+    ? "Developing…"
     : hasReferenceImage
-      ? `Generate variation · ${selectedCreditsCost} credits`
-      : `Generate image · ${selectedCreditsCost} credits`;
+      ? `Develop variation · ${selectedCreditsCost} credits`
+      : `Develop print · ${selectedCreditsCost} credits`;
 
   return (
-    <div className="min-h-screen bg-[#f5f2ed] text-[#141210] dark:bg-[#0c0b09] dark:text-[#e0d9ce]">
-      <header className="sticky top-0 z-40 border-b border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#f5f2ed]/80 dark:bg-[#0c0b09]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
-          <div className="flex min-w-0 items-center gap-3">
+    <div className="min-h-screen bg-[#f5f2ed] text-[#2a2520] dark:bg-[#0c0b09] dark:text-[#c4bdb4]">
+      <header className="sticky top-0 z-40 border-b border-[#d5cfc4] bg-[#f5f2ed]/80 backdrop-blur-md dark:border-[#2a2520] dark:bg-[#0c0b09]/80">
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between px-6 py-4">
+          <div className="flex min-w-0 items-center gap-4">
             <button
               type="button"
               onClick={() => router.push("/")}
               className="flex select-none items-center gap-3"
             >
-              <Image src="/logo.png" alt="" width={32} height={32} className="h-8 w-8" />
               <h1
-                className="text-2xl font-bold tracking-tight text-[#141210] dark:text-[#e0d9ce]"
+                className="text-2xl font-bold tracking-tight text-[#2a2520] dark:text-[#c4bdb4]"
                 style={{ fontFamily: "'Caveat', cursive" }}
               >
                 Aestara
               </h1>
             </button>
-            <span className="text-[#a39b90] dark:text-[#2a2520]">/</span>
-            <span className="truncate text-sm text-[#5c564e] dark:text-[#8a837a]">
-              Remix studio
+            <span className="hidden items-center gap-2 sm:flex">
+              <span className="text-[#a39b90] dark:text-[#5c564e]">·</span>
+              <span className="text-[11px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                {isRemixMode ? "Remix studio" : "Studio"}
+              </span>
             </span>
           </div>
-          <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="flex flex-shrink-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="hidden text-[11px] uppercase tracking-[0.15em] text-[#8a837a] transition-colors hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4] md:block"
+            >
+              Gallery
+            </button>
             {billingEnabled ? (
               <button
                 type="button"
                 onClick={() => router.push("/credits")}
-                className="hidden sm:inline-flex h-9 items-center rounded-lg px-3 text-xs font-medium text-[#5c564e] transition-colors hover:bg-[#e0d9ce] hover:text-[#2a2520] dark:text-[#8a837a] dark:hover:bg-[#1a1814] dark:hover:text-[#d5cfc4]"
+                className="hidden text-[11px] uppercase tracking-[0.15em] text-[#8a837a] transition-colors hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4] sm:block"
               >
                 {credits ?? "—"} credits
               </button>
@@ -1201,15 +1209,15 @@ export default function GeneratePage() {
               type="button"
               onClick={toggleTheme}
               aria-label="Toggle theme"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5c564e] transition-colors hover:bg-[#e0d9ce] hover:text-[#2a2520] dark:hover:bg-[#1a1814] dark:hover:text-[#a39b90]"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#8a837a] transition-colors hover:bg-[#e8e4de] hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:bg-[#1a1814] dark:hover:text-[#c4bdb4]"
             >
               {theme === "light" ? (
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               ) : (
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               )}
             </button>
@@ -1217,11 +1225,11 @@ export default function GeneratePage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1600px] px-6 py-6">
-        <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+      <main className="mx-auto max-w-[1500px] px-6 pb-16 pt-10">
+        <div className="grid gap-10 lg:grid-cols-[360px_1px_minmax(0,1fr)] lg:gap-12">
           <form
             onSubmit={(event) => void handleSubmit(event)}
-            className="lg:sticky lg:top-[77px] lg:self-start rounded-2xl border border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#ebe7e0]/50 dark:bg-[#141210]/50 p-4"
+            className="lg:sticky lg:top-[89px] lg:self-start"
           >
             <input
               ref={referenceInputRef}
@@ -1231,40 +1239,40 @@ export default function GeneratePage() {
               onChange={(event) => void handleReferenceFileChange(event)}
             />
 
-            <div className="mb-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
-                  References
+            <div className="border-b border-[#d5cfc4] pb-6 dark:border-[#2a2520]">
+              <div className="mb-3 flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                  01 — Negatives
                 </span>
                 <button
                   type="button"
                   onClick={handlePickReferenceImage}
                   disabled={isUploadingReference}
-                  className="text-xs text-[#5c564e] transition-colors hover:text-[#141210] disabled:opacity-50 dark:text-[#8a837a] dark:hover:text-[#e0d9ce]"
+                  className="text-[11px] uppercase tracking-[0.15em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] disabled:opacity-50 dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
                 >
-                  {isUploadingReference ? "Uploading…" : "+ Add"}
+                  {isUploadingReference ? "Loading…" : "Load"}
                 </button>
               </div>
               {referenceCards.length > 0 ? (
-                <div className="flex gap-2 overflow-x-auto pb-1">
+                <div className="flex gap-2.5 overflow-x-auto pb-1">
                   {referenceCards.map((asset) => (
-                    <div key={asset.id} className="relative h-20 w-20 flex-shrink-0">
+                    <div key={asset.id} className="group relative h-[72px] w-[72px] flex-shrink-0">
                       <button
                         type="button"
                         onClick={asset.onSelect}
                         title={asset.label}
-                        className={`h-full w-full overflow-hidden rounded-lg ring-1 transition-all ${
+                        className={`h-full w-full overflow-hidden transition-all ${
                           asset.selected
-                            ? "ring-2 ring-[#141210] dark:ring-white"
-                            : "ring-[#d5cfc4] hover:ring-[#a39b90] dark:ring-[#c4bdb4]/10 dark:hover:ring-white/20"
+                            ? "ring-1 ring-[#2a2520] ring-offset-2 ring-offset-[#f5f2ed] dark:ring-[#c4bdb4] dark:ring-offset-[#0c0b09]"
+                            : "opacity-70 ring-1 ring-[#d5cfc4] hover:opacity-100 dark:ring-[#3a352f]"
                         }`}
                       >
                         {asset.imageUrl ? (
                           <Image
                             src={asset.imageUrl}
                             alt={asset.label}
-                            width={160}
-                            height={160}
+                            width={144}
+                            height={144}
                             unoptimized
                             className="h-full w-full object-cover"
                           />
@@ -1276,20 +1284,10 @@ export default function GeneratePage() {
                           onClick={asset.onRemove}
                           aria-label={`Remove ${asset.label}`}
                           title={`Remove ${asset.label}`}
-                          className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/72 text-[#f5f2ed] shadow-sm backdrop-blur-sm transition-transform hover:scale-105 hover:bg-black/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                          className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[#f5f2ed] text-[#8a837a] opacity-0 ring-1 ring-[#d5cfc4] transition-all hover:text-[#2a2520] focus-visible:opacity-100 group-hover:opacity-100 dark:bg-[#0c0b09] dark:text-[#5c564e] dark:ring-[#3a352f] dark:hover:text-[#c4bdb4]"
                         >
-                          <svg
-                            className="h-4 w-4"
-                            viewBox="0 0 20 20"
-                            fill="none"
-                            stroke="currentColor"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M5 5l10 10M15 5L5 15"
-                              strokeWidth="2.4"
-                              strokeLinecap="round"
-                            />
+                          <svg className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path d="M5 5l10 10M15 5L5 15" strokeWidth="2.4" strokeLinecap="round" />
                           </svg>
                         </button>
                       ) : null}
@@ -1297,36 +1295,37 @@ export default function GeneratePage() {
                   ))}
                 </div>
               ) : (
-                <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-[#d5cfc4] text-xs text-[#8a837a] dark:border-[#f5f2ed]/10 dark:text-[#5c564e]">
-                  No references staged
-                </div>
+                <p className="text-[13px] italic text-[#8a837a] dark:text-[#5c564e]" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                  No negatives loaded — develop from the prompt alone, or load one.
+                </p>
               )}
             </div>
 
-            <div className="mb-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
-                  Prompt
+            <div className="border-b border-[#d5cfc4] py-6 dark:border-[#2a2520]">
+              <div className="mb-3 flex items-baseline justify-between">
+                <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                  02 — Exposure notes
                 </span>
-                <span className="text-xs text-[#8a837a] dark:text-[#4a443c]">
+                <span className="text-[10px] tabular-nums text-[#a39b90] dark:text-[#4a443c]">
                   {prompt.length}/10000
                 </span>
               </div>
               <textarea
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
-                placeholder="Describe the image you want to generate…"
+                placeholder="Describe the print you want to develop…"
                 rows={8}
-                className="w-full resize-none rounded-lg border border-[#d5cfc4] bg-[#f5f2ed] px-3 py-2.5 text-sm leading-6 text-[#141210] outline-none placeholder:text-[#8a837a] focus:border-[#8a837a] dark:border-[#f5f2ed]/10 dark:bg-[#141210] dark:text-[#e0d9ce] dark:placeholder:text-[#4a443c] dark:focus:border-[#f5f2ed]/25"
+                className="w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-7 text-[#2a2520] outline-none placeholder:italic placeholder:text-[#a39b90] dark:text-[#c4bdb4] dark:placeholder:text-[#4a443c]"
+                style={{ fontFamily: "'Instrument Serif', serif" }}
               />
             </div>
 
-            <div className="mb-4 space-y-3">
+            <div className="space-y-5 border-b border-[#d5cfc4] py-6 dark:border-[#2a2520]">
               <div>
-                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
-                  Model
+                <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                  03 — Film stock
                 </span>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-2">
                   {MODEL_OPTIONS.map((model) => {
                     const isActive = selectedModel === model.id;
                     return (
@@ -1334,10 +1333,10 @@ export default function GeneratePage() {
                         key={model.id}
                         type="button"
                         onClick={() => handleModelChange(model.id)}
-                        className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                        className={`text-[12px] tracking-wide transition-colors ${
                           isActive
-                            ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
-                            : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                            ? "text-[#2a2520] underline decoration-[#2a2520] underline-offset-[6px] dark:text-[#c4bdb4] dark:decoration-[#c4bdb4]"
+                            : "text-[#8a837a] hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4]"
                         }`}
                       >
                         {model.name}
@@ -1349,24 +1348,40 @@ export default function GeneratePage() {
 
               {usesAspectRatio ? (
                 <div>
-                  <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
-                    Aspect ratio
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                    04 — Frame
                   </span>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  <div className="mt-2.5 flex flex-wrap gap-2">
                     {ASPECT_RATIO_OPTIONS.map((ratio) => {
                       const isActive = selectedAspectRatio === ratio.id;
+                      const [w, h] = ratio.id.split(":").map(Number);
+                      const scale = 15 / Math.max(w, h);
                       return (
                         <button
                           key={ratio.id}
                           type="button"
                           onClick={() => setSelectedAspectRatio(ratio.id)}
-                          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                            isActive
-                              ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
-                              : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                          title={ratio.label}
+                          className={`flex h-[52px] w-[46px] flex-col items-center justify-between pb-1 pt-2.5 transition-colors ${
+                            isActive ? "bg-[#ebe7e0] dark:bg-[#1a1814]" : "hover:bg-[#ebe7e0]/60 dark:hover:bg-[#1a1814]/50"
                           }`}
                         >
-                          {ratio.label}
+                          <span
+                            className={`block border transition-colors ${
+                              isActive ? "border-[#2a2520] dark:border-[#c4bdb4]" : "border-[#a39b90] dark:border-[#5c564e]"
+                            }`}
+                            style={{
+                              width: `${Math.max(w * scale, 5)}px`,
+                              height: `${Math.max(h * scale, 5)}px`,
+                            }}
+                          />
+                          <span
+                            className={`text-[9px] tracking-wide ${
+                              isActive ? "text-[#2a2520] dark:text-[#c4bdb4]" : "text-[#8a837a] dark:text-[#5c564e]"
+                            }`}
+                          >
+                            {ratio.label}
+                          </span>
                         </button>
                       );
                     })}
@@ -1374,10 +1389,10 @@ export default function GeneratePage() {
                 </div>
               ) : (
                 <div>
-                  <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
-                    Orientation
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                    04 — Orientation
                   </span>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-2">
                     {getGptImageOrientationOptions().map((orientation) => {
                       const isActive = selectedGptOrientation === orientation.id;
                       return (
@@ -1385,10 +1400,10 @@ export default function GeneratePage() {
                           key={orientation.id}
                           type="button"
                           onClick={() => setSelectedGptOrientation(orientation.id)}
-                          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                          className={`text-[12px] tracking-wide transition-colors ${
                             isActive
-                              ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
-                              : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                              ? "text-[#2a2520] underline decoration-[#2a2520] underline-offset-[6px] dark:text-[#c4bdb4] dark:decoration-[#c4bdb4]"
+                              : "text-[#8a837a] hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4]"
                           }`}
                         >
                           {orientation.label}
@@ -1400,10 +1415,10 @@ export default function GeneratePage() {
               )}
 
               <div>
-                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
-                  {usesAspectRatio ? "Resolution" : "Quality"}
+                <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                  {usesAspectRatio ? "05 — Paper size" : "05 — Quality"}
                 </span>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-2">
                   {usesAspectRatio
                     ? OUTPUT_RESOLUTIONS.map((resolution) => {
                         const isActive = selectedResolution === resolution.id;
@@ -1412,10 +1427,10 @@ export default function GeneratePage() {
                             key={resolution.id}
                             type="button"
                             onClick={() => setSelectedResolution(resolution.id)}
-                            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                            className={`text-[12px] tracking-wide transition-colors ${
                               isActive
-                                ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
-                                : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                                ? "text-[#2a2520] underline decoration-[#2a2520] underline-offset-[6px] dark:text-[#c4bdb4] dark:decoration-[#c4bdb4]"
+                                : "text-[#8a837a] hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4]"
                             }`}
                           >
                             {getResolutionCreditsLabel(selectedModel, resolution.id)}
@@ -1433,10 +1448,10 @@ export default function GeneratePage() {
                             key={quality.id}
                             type="button"
                             onClick={() => setSelectedGptQuality(quality.id)}
-                            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                            className={`text-[12px] tracking-wide transition-colors ${
                               isActive
-                                ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
-                                : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                                ? "text-[#2a2520] underline decoration-[#2a2520] underline-offset-[6px] dark:text-[#c4bdb4] dark:decoration-[#c4bdb4]"
+                                : "text-[#8a837a] hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4]"
                             }`}
                           >
                             {getTierCreditsLabel(selectedModel, tierId)}
@@ -1447,62 +1462,70 @@ export default function GeneratePage() {
               </div>
             </div>
 
-            <div className="mb-3 rounded-lg border border-[#d5cfc4] bg-[#ebe7e0] px-3 py-2 text-xs text-[#4a443c] dark:border-[#f5f2ed]/10 dark:bg-[#f5f2ed]/5 dark:text-[#a39b90]">
-              {selectedModelPricing.name} uses{" "}
-              <span className="font-medium text-[#141210] dark:text-[#e0d9ce]">
-                {selectedCreditsCost} credits
-              </span>{" "}
-              for this selection. Higher quality and larger outputs consume more credits.
-            </div>
-
             {error ? (
-              <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
-                {error}
-              </div>
+              <p className="pt-5 text-[12px] leading-5 text-red-600 dark:text-red-300">{error}</p>
             ) : null}
 
-            <button
-              type="submit"
-              disabled={generateDisabled}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#141210] px-4 py-2.5 text-sm font-medium text-[#f5f2ed] transition-colors hover:bg-[#1a1814] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#f5f2ed] dark:text-[#141210] dark:hover:bg-[#e0d9ce]"
-            >
-              {submitting ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#f5f2ed]/30 border-t-white dark:border-[#141210]/30 dark:border-t-[#141210]" />
-              ) : null}
-              {generateLabel}
-            </button>
+            <div className="pt-6">
+              <button
+                type="submit"
+                disabled={generateDisabled}
+                className="flex w-full items-center justify-center gap-3 bg-[#2a2520] px-4 py-3.5 text-[11px] font-medium uppercase tracking-[0.25em] text-[#f5f2ed] transition-colors hover:bg-[#3a352f] disabled:cursor-not-allowed disabled:opacity-40 dark:bg-[#c4bdb4] dark:text-[#141210] dark:hover:bg-[#d5cfc4]"
+              >
+                {submitting ? (
+                  <span className="studio-pulse h-1.5 w-1.5 rounded-full bg-[#f5f2ed] dark:bg-[#141210]" />
+                ) : null}
+                {generateLabel}
+              </button>
+              <p className="mt-3 text-center text-[10px] tracking-wide text-[#a39b90] dark:text-[#4a443c]">
+                {selectedModelPricing.name} · {selectedCreditsCost} credits per print
+              </p>
+            </div>
           </form>
 
-          <section className="min-w-0 rounded-2xl border border-[#d5cfc4] dark:border-[#f5f2ed]/5 bg-[#ebe7e0]/50 dark:bg-[#141210]/50 p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-medium text-[#2a2520] dark:text-[#d5cfc4]">
-                Generated images
-              </h2>
-              <span className="text-xs text-[#8a837a] dark:text-[#5c564e]">
-                {resultCount} renders
-              </span>
-            </div>
-
+          <div className="hidden bg-[#d5cfc4] dark:bg-[#2a2520] lg:block" />
+          <section className="min-w-0">
             {featuredAsset ? (
-              <>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <div className="relative flex min-h-[320px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl bg-[#e0d9ce] p-3 dark:bg-[#1a1814]/50 sm:p-4">
-                    {featuredAsset.pending || !featuredAsset.imageUrl ? (
-                      <div className="flex aspect-[4/5] items-center justify-center">
-                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d5cfc4] border-t-[#a39b90] dark:border-[#2a2520] dark:border-t-[#5c564e]" />
-                      </div>
-                    ) : (
-                      <Image
-                        src={featuredAsset.imageUrl}
-                        alt={featuredAsset.label}
-                        width={1200}
-                        height={1500}
-                        unoptimized
-                        className="max-h-[calc(100vh-180px)] w-auto max-w-full object-contain"
-                      />
-                    )}
-                    {featuredAsset.kind === "result" && featuredAsset.onDownload ? (
-                      <div className="absolute bottom-3 right-3 flex items-center gap-2">
+              <div className="flex flex-col gap-8">
+                <div className="studio-backdrop flex min-h-[420px] items-center justify-center px-4 py-10 sm:px-10 lg:min-h-[calc(100vh-330px)]">
+                  <figure className="max-w-full">
+                    <div className="bg-[#faf8f5] p-2.5 pb-9 shadow-[0_20px_60px_rgba(42,37,32,0.12)] sm:p-3 sm:pb-11 dark:bg-[#f2ece2] dark:shadow-[0_24px_70px_rgba(0,0,0,0.45)]">
+                      {featuredAsset.pending || !featuredAsset.imageUrl ? (
+                        <div className="relative h-[420px] w-[336px] max-w-full overflow-hidden bg-[#e8e4de] dark:bg-[#1a1614]">
+                          <div
+                            className="absolute inset-0 bg-gradient-to-br from-[#d5cfc4] via-[#e8e4de] to-[#d5cfc4] dark:from-[#241f1b] dark:via-[#38302a] dark:to-[#241f1b]"
+                            style={{ animation: "photo-develop 3s ease-in-out infinite" }}
+                          />
+                          <div
+                            className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2a2520]/20 to-transparent dark:via-[#c4bdb4]/30"
+                            style={{ animation: "scan-line 2s ease-in-out infinite" }}
+                          />
+                        </div>
+                      ) : (
+                        <Image
+                          src={featuredAsset.imageUrl}
+                          alt={featuredAsset.label}
+                          width={1200}
+                          height={1500}
+                          unoptimized
+                          className="max-h-[calc(100vh-420px)] min-h-[280px] w-auto max-w-full object-contain"
+                        />
+                      )}
+                      <figcaption
+                        className="mt-3 flex items-baseline justify-between gap-4 px-1 text-[11px] italic text-[#8a837a] dark:text-[#5c564e]"
+                        style={{ fontFamily: "'Instrument Serif', serif" }}
+                      >
+                        <span className="truncate">
+                          {featuredAsset.pending ? "Developing…" : featuredAsset.label}
+                        </span>
+                        {!featuredAsset.pending ? (
+                          <span className="flex-shrink-0">{featuredAsset.caption}</span>
+                        ) : null}
+                      </figcaption>
+                    </div>
+                    {featuredAsset.kind === "result" &&
+                    (featuredAsset.onDownload || featuredAsset.onUseAsReference) ? (
+                      <div className="mt-5 flex flex-wrap items-center justify-center gap-5">
                         {!isRemixMode && featuredAsset.onUseAsReference ? (
                           <button
                             type="button"
@@ -1510,93 +1533,112 @@ export default function GeneratePage() {
                               event.stopPropagation();
                               featuredAsset.onUseAsReference?.();
                             }}
-                            className="rounded-md bg-[#0c0b09]/60 px-3 py-1.5 text-xs font-medium text-[#f5f2ed] backdrop-blur-sm transition-colors hover:bg-black/80"
+                            className="text-[11px] uppercase tracking-[0.2em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
                           >
                             Use as reference
                           </button>
                         ) : null}
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            featuredAsset.onDownload?.();
-                          }}
-                          className="rounded-md bg-[#0c0b09]/60 px-3 py-1.5 text-xs font-medium text-[#f5f2ed] backdrop-blur-sm transition-colors hover:bg-black/80"
-                        >
-                          {downloadingTaskId === featuredAsset.id ? "Saving…" : "Download"}
-                        </button>
+                        {featuredAsset.onDownload ? (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              featuredAsset.onDownload?.();
+                            }}
+                            className="text-[11px] uppercase tracking-[0.2em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
+                          >
+                            {downloadingTaskId === featuredAsset.id
+                              ? "Saving…"
+                              : "Download print"}
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
-                  </div>
+                  </figure>
+                </div>
 
-                  {thumbnailCards.length > 1 ? (
-                    <div className="flex max-h-[calc(100vh-180px)] flex-row gap-1.5 overflow-x-auto rounded-xl bg-[#ebe7e0] px-1.5 py-3 dark:bg-[#141210]/50 sm:w-[72px] sm:flex-col sm:items-center sm:overflow-x-visible sm:overflow-y-auto">
-                      {thumbnailCards.map((asset) => (
-                      <button
-                        key={asset.id}
-                        type="button"
-                        onClick={asset.onSelect}
-                        title={asset.label}
-                        disabled={asset.pending}
-                        className={`relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg transition-all duration-300 ${
-                          asset.id === featuredAsset.id
-                            ? "ring-2 ring-[#141210] scale-105 dark:ring-white/80"
-                            : "opacity-50 hover:opacity-80"
-                        } ${asset.pending ? "cursor-default" : ""}`}
-                      >
-                        {asset.pending || !asset.imageUrl ? (
-                          <div className="flex h-full w-full items-center justify-center bg-[#e0d9ce] dark:bg-[#1a1814]">
-                            {asset.pending ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#d5cfc4] border-t-[#a39b90] dark:border-[#2a2520] dark:border-t-[#5c564e]" />
-                            ) : (
-                              <span className="text-[10px] text-[#8a837a] dark:text-[#5c564e]">
-                                {asset.label}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <Image
-                            src={asset.imageUrl}
-                            alt={asset.label}
-                            width={320}
-                            height={320}
-                            unoptimized
-                            className={`h-full w-full object-cover ${
-                              asset.id === featuredAsset.id ? "" : "blur-[2px]"
-                            }`}
-                          />
-                        )}
-                      </button>
-                    ))}
+                {thumbnailCards.length > 1 ? (
+                  <div>
+                    <div className="mb-3 flex items-baseline justify-between">
+                      <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                        Contact sheet
+                      </span>
+                      <span className="text-[10px] tabular-nums tracking-wide text-[#a39b90] dark:text-[#4a443c]">
+                        {resultCount} frames
+                      </span>
                     </div>
+                    <div className="film-strip overflow-x-auto">
+                      <div className="flex gap-3">
+                        {thumbnailCards.map((asset, index) => {
+                          const frameNumber = asset.pending
+                            ? resultCards.length + 1
+                            : resultCards.length - index;
+                          return (
+                            <button
+                              key={asset.id}
+                              type="button"
+                              onClick={asset.onSelect}
+                              title={asset.label}
+                              disabled={asset.pending}
+                              className="group flex-shrink-0 text-left"
+                            >
+                              <div
+                                className={`relative h-[76px] w-[76px] overflow-hidden transition-all duration-300 ${
+                                  asset.id === featuredAsset.id
+                                    ? "ring-1 ring-[#2a2520] dark:ring-[#c4bdb4]"
+                                    : "opacity-55 group-hover:opacity-100"
+                                } ${asset.pending ? "cursor-default" : ""}`}
+                              >
+                                {asset.pending || !asset.imageUrl ? (
+                                  <div className="flex h-full w-full items-center justify-center bg-[#e8e4de] dark:bg-[#1a1614]">
+                                    <span className="studio-pulse h-1.5 w-1.5 rounded-full bg-[#8a837a] dark:bg-[#c4bdb4]" />
+                                  </div>
+                                ) : (
+                                  <Image
+                                    src={asset.imageUrl}
+                                    alt={asset.label}
+                                    width={320}
+                                    height={320}
+                                    unoptimized
+                                    className="h-full w-full object-cover"
+                                  />
+                                )}
+                              </div>
+                              <span
+                                className={`mt-1 block text-center text-[9px] tabular-nums tracking-[0.2em] ${
+                                  asset.id === featuredAsset.id
+                                    ? "text-[#2a2520] dark:text-[#c4bdb4]"
+                                    : "text-[#a39b90] dark:text-[#5c564e]"
+                                }`}
+                              >
+                                {String(frameNumber).padStart(2, "0")}A
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="studio-backdrop flex min-h-[480px] items-center justify-center px-6 py-16 lg:min-h-[calc(100vh-180px)]">
+                <div className="flex aspect-[4/5] w-64 flex-col items-center justify-center bg-[#faf8f5] px-8 text-center ring-1 ring-[#d5cfc4] dark:bg-[#141210]/50 dark:ring-[#2a2520]">
+                  <span className="studio-pulse mb-5 h-1.5 w-1.5 rounded-full bg-[#8a837a] dark:bg-[#5c564e]" />
+                  <p
+                    className="text-[15px] italic leading-6 text-[#8a837a] dark:text-[#5c564e]"
+                    style={{ fontFamily: "'Instrument Serif', serif" }}
+                  >
+                    {isRestoringSeries || isLoadingHistory
+                      ? "Recovering prints from the tray…"
+                      : "The paper is still blank."}
+                  </p>
+                  {!isRestoringSeries && !isLoadingHistory ? (
+                    <p className="mt-3 text-[11px] leading-5 tracking-wide text-[#a39b90] dark:text-[#4a443c]">
+                      Write your exposure notes on the left, then develop your first print.
+                    </p>
                   ) : null}
                 </div>
-              </>
-            ) : (
-              <div className="flex aspect-[4/5] max-h-[640px] flex-col items-center justify-center rounded-xl border border-dashed border-[#d5cfc4] px-6 text-center dark:border-[#f5f2ed]/10">
-                <svg
-                  className="mb-3 h-8 w-8 text-[#a39b90] dark:text-[#4a443c]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                <p className="text-sm text-[#4a443c] dark:text-[#a39b90]">
-                  {isRestoringSeries || isLoadingHistory
-                    ? "Loading your images…"
-                    : "No images yet"}
-                </p>
-                {!isRestoringSeries && !isLoadingHistory ? (
-                  <p className="mt-1 max-w-xs text-xs text-[#8a837a] dark:text-[#5c564e]">
-                    Describe what you want on the left, then click Generate.
-                  </p>
-                ) : null}
               </div>
             )}
           </section>

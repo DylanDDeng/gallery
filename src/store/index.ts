@@ -39,6 +39,7 @@ interface AppState {
   authInitialized: boolean;
   favoritesLoaded: boolean;
   showLoginPrompt: boolean;
+  loginPromptReason: "favorites" | "generate" | null;
   // Credits
   credits: number | null;
   creditsVersion: number;
@@ -66,7 +67,7 @@ interface AppState {
   setUser: (user: User | null) => void;
   setAuthInitialized: (initialized: boolean) => void;
   fetchFavorites: () => Promise<void>;
-  setShowLoginPrompt: (show: boolean) => void;
+  setShowLoginPrompt: (show: boolean, reason?: "favorites" | "generate") => void;
   // Credits actions
   setCredits: (credits: number | null) => void;
   fetchCredits: () => Promise<void>;
@@ -122,6 +123,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   authInitialized: false,
   favoritesLoaded: false,
   showLoginPrompt: false,
+  loginPromptReason: null,
   // Credits
   credits: null,
   creditsVersion: 0,
@@ -291,7 +293,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const wasFavorite = favorites.includes(imageId);
 
     if (!user) {
-      set({ showLoginPrompt: true });
+      set({ showLoginPrompt: true, loginPromptReason: "favorites" });
       return;
     }
 
@@ -350,7 +352,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  setShowLoginPrompt: (show) => set({ showLoginPrompt: show }),
+  setShowLoginPrompt: (show, reason) =>
+    set((state) => ({
+      showLoginPrompt: show,
+      loginPromptReason: show
+        ? reason ?? state.loginPromptReason ?? "favorites"
+        : null,
+    })),
 
   // Credits actions
   setCredits: (credits: number | null) =>

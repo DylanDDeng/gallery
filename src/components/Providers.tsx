@@ -1,6 +1,7 @@
 "use client";
 
 import AuthProvider from "./AuthProvider";
+import LoginPrompt from "./LoginPrompt";
 
 type InitialUser = {
   id: string;
@@ -25,6 +26,7 @@ export default function Providers({
   return (
     <AuthProvider initialUser={initialUser} initialCredits={initialCredits}>
       {children}
+      <LoginPrompt />
     </AuthProvider>
   );
 }
