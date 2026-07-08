@@ -68,6 +68,7 @@ interface AssetCard {
   onSelect?: () => void;
   onRemove?: () => void;
   onDownload?: () => void;
+  onUseAsReference?: () => void;
 }
 
 const REFERENCE_IMAGE_BUCKET = "generations";
@@ -105,6 +106,23 @@ function mergeRemixSeriesItems(
         new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
     )
     .slice(-20);
+}
+
+function normalizeSeriesItem(
+  task: Partial<RemixSeriesItem> & { id: string }
+): RemixSeriesItem | null {
+  if (!task.result_url || typeof task.result_url !== "string") {
+    return null;
+  }
+
+  return {
+    id: task.id,
+    result_url: task.result_url,
+    prompt: task.prompt ?? "",
+    model: task.model ?? DEFAULT_MODEL_ID,
+    created_at: task.created_at ?? new Date().toISOString(),
+    source_image_id: task.source_image_id,
+  };
 }
 
 function mergeReferenceImages(
@@ -187,6 +205,9 @@ export default function GeneratePage() {
   const [submitting, setSubmitting] = useState(false);
   const [currentTask, setCurrentTask] = useState<GenerationTask | null>(null);
   const [stagedTasks, setStagedTasks] = useState<RemixSeriesItem[]>([]);
+  const [historyTasks, setHistoryTasks] = useState<RemixSeriesItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [featuredTaskId, setFeaturedTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [remixDraft, setRemixDraft] = useState<RemixGenerationDraft | null>(null);
   const [referenceImages, setReferenceImages] = useState<Partial<ImagePrompt>[]>([]);
@@ -201,6 +222,7 @@ export default function GeneratePage() {
     useState<GptImageOrientation>("square");
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const remixHydrationRequestRef = useRef(0);
+  const historyRequestRef = useRef(0);
   const usesAspectRatio = modelUsesAspectRatio(selectedModel);
   const selectedOutputSize = usesAspectRatio
     ? getOutputSize(selectedResolution, selectedAspectRatio)
@@ -239,6 +261,65 @@ export default function GeneratePage() {
       return;
     }
   }, [router, user]);
+
+  useEffect(() => {
+    setHistoryTasks([]);
+    setFeaturedTaskId(null);
+    historyRequestRef.current += 1;
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!isRemixMode) {
+      setStagedTasks([]);
+      return;
+    }
+
+    setFeaturedTaskId(null);
+  }, [isRemixMode]);
+
+  useEffect(() => {
+    if (isRemixMode || !user?.id) {
+      return;
+    }
+
+    const requestId = ++historyRequestRef.current;
+
+    setHistoryTasks((previous) => {
+      if (previous.length === 0) {
+        setIsLoadingHistory(true);
+      }
+      return previous;
+    });
+
+    const loadHistory = async () => {
+      try {
+        const res = await fetch("/api/generations?status=completed&limit=20");
+        const json = await res.json();
+
+        if (historyRequestRef.current !== requestId) {
+          return;
+        }
+
+        if (!res.ok) {
+          return;
+        }
+
+        const tasks = (Array.isArray(json.data) ? json.data : [])
+          .map((task: Partial<RemixSeriesItem> & { id: string }) => normalizeSeriesItem(task))
+          .filter((task: RemixSeriesItem | null): task is RemixSeriesItem => task !== null);
+
+        setHistoryTasks((previous) => mergeRemixSeriesItems(previous, tasks));
+      } catch {
+        // Keep the page usable when history loading fails.
+      } finally {
+        if (historyRequestRef.current === requestId) {
+          setIsLoadingHistory(false);
+        }
+      }
+    };
+
+    void loadHistory();
+  }, [isRemixMode, user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -695,6 +776,37 @@ export default function GeneratePage() {
     [returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
   );
 
+  const handleUseAsReference = useCallback(
+    (task: RemixSeriesItem) => {
+      const nextSourceImage = {
+        url: task.result_url,
+        prompt: task.prompt,
+      };
+
+      setStagedTasks([]);
+      setFeaturedTaskId(null);
+
+      saveRemixGenerationDraft({
+        mode: "remix",
+        prompt: task.prompt,
+        promptLang: "en",
+        sourceImage: nextSourceImage,
+        referenceImages: [nextSourceImage],
+        returnTo: "gallery",
+        createdAt: Date.now(),
+      });
+
+      router.replace(
+        buildRemixGenerateUrl({
+          sourceImageUrl: task.result_url,
+          sourcePrompt: task.prompt,
+          returnTo: "gallery",
+        })
+      );
+    },
+    [router]
+  );
+
   const handleModelChange = useCallback((nextModel: typeof selectedModel) => {
     setSelectedModel(nextModel);
     const defaultTierId = getDefaultTierId(nextModel);
@@ -761,6 +873,10 @@ export default function GeneratePage() {
     setSubmitting(true);
     setError(null);
     setCurrentTask(null);
+
+    if (!isRemixMode) {
+      setFeaturedTaskId(null);
+    }
 
     const shouldOptimisticallyDeduct =
       billingEnabled && typeof credits === "number" && credits >= selectedCreditsCost;
@@ -849,6 +965,12 @@ export default function GeneratePage() {
       }
 
       if (!isRemixMode) {
+        const completedTask = normalizeSeriesItem(json.task);
+        if (completedTask) {
+          setHistoryTasks((previous) =>
+            mergeRemixSeriesItems(previous, [completedTask])
+          );
+        }
         setPrompt("");
       }
     } catch (submitError) {
@@ -880,7 +1002,7 @@ export default function GeneratePage() {
         const objectUrl = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = objectUrl;
-        link.download = `remix-${task.id}.png`;
+        link.download = `${isRemixMode ? "remix" : "render"}-${task.id}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -892,7 +1014,7 @@ export default function GeneratePage() {
         setDownloadingTaskId((current) => (current === task.id ? null : current));
       }
     },
-    [downloadingTaskId]
+    [downloadingTaskId, isRemixMode]
   );
 
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
@@ -904,11 +1026,19 @@ export default function GeneratePage() {
     (billingEnabled && (selectedCreditsCost <= 0 || creditCount < selectedCreditsCost));
 
   const resultTasks = useMemo(() => {
-    const rendered = stagedTasks.filter((task) => task.result_url);
+    if (!isRemixMode) {
+      return historyTasks;
+    }
+
+    const rendered = stagedTasks
+      .map((task) => normalizeSeriesItem(task))
+      .filter((task): task is RemixSeriesItem => task !== null);
     const latest =
-      currentTask?.status === "completed" && currentTask.result_url ? currentTask : null;
+      currentTask?.status === "completed" && currentTask.result_url
+        ? normalizeSeriesItem(currentTask)
+        : null;
     return rendered.length > 0 ? rendered : latest ? [latest] : [];
-  }, [stagedTasks, currentTask]);
+  }, [currentTask, historyTasks, isRemixMode, stagedTasks]);
 
   const resultTaskUrls = useMemo(
     () => new Set(resultTasks.map((task) => task.result_url)),
@@ -948,28 +1078,53 @@ export default function GeneratePage() {
           return rightTime - leftTime;
         })
         .map((task, index) => ({
-        id: task.id,
-        imageUrl: task.result_url!,
-        label: index === 0 ? "Latest render" : `Variation ${index}`,
-        caption: `${formatCreatedAt(task.created_at)} · ${
-          getModelPricing(task.model).name
-        }`,
-        kind: "result" as const,
-        selected: task.result_url === sourceImageUrl,
-        onDownload: () => {
-          void handleDownloadTask(task);
-        },
-        onSelect: () => {
-          handleSelectReferenceImage(
-            {
-              url: task.result_url!,
-              prompt: task.prompt,
-            },
-            { skipAddingToReferenceList: true }
-          );
-        },
-      })),
-    [handleDownloadTask, handleSelectReferenceImage, resultTasks, sourceImageUrl]
+          id: task.id,
+          imageUrl: task.result_url,
+          label: isRemixMode
+            ? index === 0
+              ? "Latest render"
+              : `Variation ${index}`
+            : index === 0
+              ? "Latest"
+              : `Render ${index}`,
+          caption: `${formatCreatedAt(task.created_at)} · ${
+            getModelPricing(task.model).name
+          }`,
+          kind: "result" as const,
+          selected: isRemixMode
+            ? task.result_url === sourceImageUrl
+            : task.id === featuredTaskId,
+          onDownload: () => {
+            void handleDownloadTask(task);
+          },
+          onSelect: isRemixMode
+            ? () => {
+                handleSelectReferenceImage(
+                  {
+                    url: task.result_url!,
+                    prompt: task.prompt,
+                  },
+                  { skipAddingToReferenceList: true }
+                );
+              }
+            : () => {
+                setFeaturedTaskId(task.id);
+              },
+          onUseAsReference: isRemixMode
+            ? undefined
+            : () => {
+                handleUseAsReference(task);
+              },
+        })),
+    [
+      featuredTaskId,
+      handleDownloadTask,
+      handleSelectReferenceImage,
+      handleUseAsReference,
+      isRemixMode,
+      resultTasks,
+      sourceImageUrl,
+    ]
   );
 
   const pendingCard = useMemo<AssetCard | null>(
@@ -986,8 +1141,15 @@ export default function GeneratePage() {
     [submitting]
   );
 
-  const featuredAsset =
-    resultCards.find((asset) => asset.selected) ?? resultCards[0] ?? pendingCard ?? null;
+  const featuredAsset = isRemixMode
+    ? (resultCards.find((asset) => asset.selected) ??
+      resultCards[0] ??
+      pendingCard ??
+      null)
+    : (pendingCard ??
+      resultCards.find((asset) => asset.id === featuredTaskId) ??
+      resultCards[0] ??
+      null);
   const thumbnailCards = pendingCard ? [...resultCards, pendingCard] : resultCards;
   const resultCount = resultCards.length + (pendingCard ? 1 : 0);
 
@@ -1340,16 +1502,30 @@ export default function GeneratePage() {
                       />
                     )}
                     {featuredAsset.kind === "result" && featuredAsset.onDownload ? (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          featuredAsset.onDownload?.();
-                        }}
-                        className="absolute bottom-3 right-3 rounded-md bg-[#0c0b09]/60 px-3 py-1.5 text-xs font-medium text-[#f5f2ed] backdrop-blur-sm transition-colors hover:bg-black/80"
-                      >
-                        {downloadingTaskId === featuredAsset.id ? "Saving…" : "Download"}
-                      </button>
+                      <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                        {!isRemixMode && featuredAsset.onUseAsReference ? (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              featuredAsset.onUseAsReference?.();
+                            }}
+                            className="rounded-md bg-[#0c0b09]/60 px-3 py-1.5 text-xs font-medium text-[#f5f2ed] backdrop-blur-sm transition-colors hover:bg-black/80"
+                          >
+                            Use as reference
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            featuredAsset.onDownload?.();
+                          }}
+                          className="rounded-md bg-[#0c0b09]/60 px-3 py-1.5 text-xs font-medium text-[#f5f2ed] backdrop-blur-sm transition-colors hover:bg-black/80"
+                        >
+                          {downloadingTaskId === featuredAsset.id ? "Saving…" : "Download"}
+                        </button>
+                      </div>
                     ) : null}
                   </div>
 
@@ -1412,9 +1588,11 @@ export default function GeneratePage() {
                   />
                 </svg>
                 <p className="text-sm text-[#4a443c] dark:text-[#a39b90]">
-                  {isRestoringSeries ? "Restoring saved variations…" : "No images yet"}
+                  {isRestoringSeries || isLoadingHistory
+                    ? "Loading your images…"
+                    : "No images yet"}
                 </p>
-                {!isRestoringSeries ? (
+                {!isRestoringSeries && !isLoadingHistory ? (
                   <p className="mt-1 max-w-xs text-xs text-[#8a837a] dark:text-[#5c564e]">
                     Describe what you want on the left, then click Generate.
                   </p>
