@@ -24,6 +24,7 @@ const PROMPT_LANG_LABEL_KEYS = {
 
 export default function ImageModal() {
   const t = useTranslations("imageModal");
+  const tCommon = useTranslations("common");
   const tLang = useTranslations("language");
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -393,7 +394,7 @@ export default function ImageModal() {
                   className="text-[36px] md:text-[48px] leading-[1.05] italic text-[#2a2520]/90"
                   style={{ fontFamily: "'Instrument Serif', serif" }}
                 >
-                  {activeImage.category || t("untitled")}
+                  {activeImage.category || tCommon("untitled")}
                 </p>
                 <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-[#8a837a]/70">
                   <span>{activeImage.author}</span>
