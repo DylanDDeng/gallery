@@ -166,9 +166,9 @@ export function isGptImageModel(modelId: string) {
 
 export function getGptImageOrientationOptions() {
   return [
-    { id: "square", label: "1:1", tierSuffix: "square" },
-    { id: "landscape", label: "16:9", tierSuffix: "landscape" },
-    { id: "portrait", label: "9:16", tierSuffix: "portrait" },
+    { id: "square", label: "Square", tierSuffix: "square" },
+    { id: "landscape", label: "Landscape", tierSuffix: "landscape" },
+    { id: "portrait", label: "Portrait", tierSuffix: "portrait" },
   ] as const;
 }
 

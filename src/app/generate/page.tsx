@@ -77,6 +77,15 @@ const ALLOWED_REFERENCE_MIME_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
+
+function isGifReferenceUrl(url?: string | null) {
+  if (!url) {
+    return false;
+  }
+
+  return /\.gif(?:$|[?#])/i.test(url);
+}
+
 function mergeRemixSeriesItems(
   ...taskGroups: Array<RemixSeriesItem[] | undefined>
 ) {
@@ -694,7 +703,48 @@ export default function GeneratePage() {
       setSelectedGptQuality(parsedTier.quality);
       setSelectedGptOrientation(parsedTier.orientation);
     }
-  }, []);
+
+    const hadGifReference =
+      referenceImages.some((image) => isGifReferenceUrl(image.url)) ||
+      isGifReferenceUrl(remixDraft?.sourceImage?.url) ||
+      (remixDraft?.referenceImages ?? []).some((image) =>
+        isGifReferenceUrl(image.url)
+      );
+
+    setReferenceImages((previous) =>
+      previous.filter((image) => !isGifReferenceUrl(image.url))
+    );
+    setRemixDraft((previous) => {
+      if (!previous) {
+        return previous;
+      }
+
+      const nextReferenceImages = (previous.referenceImages ?? []).filter(
+        (image) => !isGifReferenceUrl(image.url)
+      );
+      const nextSourceImage =
+        previous.sourceImage?.url && isGifReferenceUrl(previous.sourceImage.url)
+          ? undefined
+          : previous.sourceImage;
+
+      if (
+        nextReferenceImages.length === (previous.referenceImages ?? []).length &&
+        nextSourceImage === previous.sourceImage
+      ) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        sourceImage: nextSourceImage,
+        referenceImages: nextReferenceImages,
+      };
+    });
+
+    if (hadGifReference) {
+      setError("GIF references were removed because GPT Image 2 does not support them.");
+    }
+  }, [referenceImages, remixDraft]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

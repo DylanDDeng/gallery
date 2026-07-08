@@ -42,6 +42,8 @@ const EDITABLE_MIME_TYPES = new Set([
   "image/webp",
 ]);
 
+export const MAX_REFERENCE_IMAGE_BYTES = 15 * 1024 * 1024;
+
 export function mapZenMuxErrorMessage(message: string) {
   if (/moderation|safety|policy|blocked/i.test(message)) {
     return "Your prompt was rejected by content moderation. Please revise and try again.";
@@ -129,6 +131,16 @@ async function fetchReferenceImage(url: string) {
     throw new Error(`Failed to fetch reference image: ${response.status}`);
   }
 
+  const contentLength = response.headers.get("content-length");
+  if (contentLength && Number(contentLength) > MAX_REFERENCE_IMAGE_BYTES) {
+    throw new Error("Reference image is too large");
+  }
+
+  const buffer = await response.arrayBuffer();
+  if (buffer.byteLength > MAX_REFERENCE_IMAGE_BYTES) {
+    throw new Error("Reference image is too large");
+  }
+
   const contentType = response.headers.get("content-type")?.split(";")[0]?.trim();
   if (!contentType || !EDITABLE_MIME_TYPES.has(contentType)) {
     throw new Error(
@@ -136,7 +148,6 @@ async function fetchReferenceImage(url: string) {
     );
   }
 
-  const buffer = await response.arrayBuffer();
   const extension = extensionForMimeType(contentType);
 
   return {

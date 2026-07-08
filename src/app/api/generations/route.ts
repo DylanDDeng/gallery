@@ -16,6 +16,7 @@ import {
   isSupportedModelId,
   resolveModelTier,
 } from "@/lib/model-pricing";
+import { resolveTrustedReferenceImageUrl } from "@/lib/reference-image-security";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ZenMuxClient, type ZenMuxQuality } from "@/lib/zenmux";
 
@@ -229,27 +230,21 @@ export async function POST(request: Request) {
       typeof sourceImageId === "string" && sourceImageId.trim().length > 0
         ? sourceImageId.trim()
         : null;
-    let resolvedSourceImageUrl =
+    const requestedSourceImageUrl =
       typeof sourceImageUrl === "string" && sourceImageUrl.trim().length > 0
         ? sourceImageUrl.trim()
         : null;
 
-    if (normalizedSourceImageId && !resolvedSourceImageUrl) {
-      const { data: sourceImage, error: sourceImageError } = await supabaseAdmin
-        .from("images")
-        .select("url")
-        .eq("id", normalizedSourceImageId)
-        .single();
+    const trustedReference = await resolveTrustedReferenceImageUrl(user.id, {
+      sourceImageId: normalizedSourceImageId,
+      sourceImageUrl: requestedSourceImageUrl,
+    });
 
-      if (sourceImageError || !sourceImage?.url) {
-        return NextResponse.json(
-          { error: "Source image not found" },
-          { status: 400 }
-        );
-      }
-
-      resolvedSourceImageUrl = sourceImage.url;
+    if (trustedReference.error) {
+      return NextResponse.json({ error: trustedReference.error }, { status: 400 });
     }
+
+    const resolvedSourceImageUrl = trustedReference.url;
 
     const providerParams = resolvedTier.tier.providerParams;
 
