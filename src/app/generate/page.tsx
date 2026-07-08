@@ -25,8 +25,19 @@ import {
 import {
   DEFAULT_MODEL_ID,
   MODEL_OPTIONS,
+  buildGptImageTierId,
+  getDefaultTierId,
   getGenerationCreditsCost,
+  getGptImageOrientationOptions,
+  getGptImageQualityOptions,
+  getModelPricing,
   getResolutionCreditsLabel,
+  getTierCreditsLabel,
+  isGptImageModel,
+  modelUsesAspectRatio,
+  parseGptImageTierId,
+  type GptImageOrientation,
+  type GptImageQuality,
 } from "@/lib/model-pricing";
 import type { ImagePrompt } from "@/lib/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase-browser";
@@ -60,12 +71,22 @@ interface AssetCard {
 }
 
 const REFERENCE_IMAGE_BUCKET = "generations";
+const MAX_REFERENCE_UPLOAD_BYTES = 15 * 1024 * 1024;
 const ALLOWED_REFERENCE_MIME_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/webp",
   "image/gif",
 ]);
+
+function isGifReferenceUrl(url?: string | null) {
+  if (!url) {
+    return false;
+  }
+
+  return /\.gif(?:$|[?#])/i.test(url);
+}
+
 function mergeRemixSeriesItems(
   ...taskGroups: Array<RemixSeriesItem[] | undefined>
 ) {
@@ -175,10 +196,23 @@ export default function GeneratePage() {
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
   const [selectedResolution, setSelectedResolution] = useState<OutputResolution>("2K");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("1:1");
+  const [selectedGptQuality, setSelectedGptQuality] = useState<GptImageQuality>("medium");
+  const [selectedGptOrientation, setSelectedGptOrientation] =
+    useState<GptImageOrientation>("square");
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const remixHydrationRequestRef = useRef(0);
-  const selectedOutputSize = getOutputSize(selectedResolution, selectedAspectRatio);
-  const selectedCreditsCost = getGenerationCreditsCost(selectedModel, selectedResolution);
+  const usesAspectRatio = modelUsesAspectRatio(selectedModel);
+  const selectedOutputSize = usesAspectRatio
+    ? getOutputSize(selectedResolution, selectedAspectRatio)
+    : null;
+  const activeTierId = usesAspectRatio
+    ? selectedResolution
+    : buildGptImageTierId(selectedGptQuality, selectedGptOrientation);
+  const selectedCreditsCost = getGenerationCreditsCost(selectedModel, activeTierId) ?? 0;
+  const selectedModelPricing = getModelPricing(selectedModel);
+  const referenceAcceptTypes = isGptImageModel(selectedModel)
+    ? "image/png,image/jpeg,image/webp"
+    : "image/png,image/jpeg,image/webp,image/gif";
 
   const fetchRemixContext = useCallback(
     async (nextSourceImageId: string) => {
@@ -438,6 +472,16 @@ export default function GeneratePage() {
         return;
       }
 
+      if (isGptImageModel(selectedModel) && file.type === "image/gif") {
+        setError("GPT Image 2 only supports PNG, JPEG, or WEBP reference images.");
+        return;
+      }
+
+      if (file.size > MAX_REFERENCE_UPLOAD_BYTES) {
+        setError("Reference images must be 15 MB or smaller.");
+        return;
+      }
+
       remixHydrationRequestRef.current += 1;
       setIsUploadingReference(true);
       setError(null);
@@ -651,6 +695,63 @@ export default function GeneratePage() {
     [returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
   );
 
+  const handleModelChange = useCallback((nextModel: typeof selectedModel) => {
+    setSelectedModel(nextModel);
+    const defaultTierId = getDefaultTierId(nextModel);
+
+    if (modelUsesAspectRatio(nextModel)) {
+      setSelectedResolution(defaultTierId === "3K" ? "3K" : "2K");
+      return;
+    }
+
+    const parsedTier = parseGptImageTierId(defaultTierId);
+    if (parsedTier) {
+      setSelectedGptQuality(parsedTier.quality);
+      setSelectedGptOrientation(parsedTier.orientation);
+    }
+
+    const hadGifReference =
+      referenceImages.some((image) => isGifReferenceUrl(image.url)) ||
+      isGifReferenceUrl(remixDraft?.sourceImage?.url) ||
+      (remixDraft?.referenceImages ?? []).some((image) =>
+        isGifReferenceUrl(image.url)
+      );
+
+    setReferenceImages((previous) =>
+      previous.filter((image) => !isGifReferenceUrl(image.url))
+    );
+    setRemixDraft((previous) => {
+      if (!previous) {
+        return previous;
+      }
+
+      const nextReferenceImages = (previous.referenceImages ?? []).filter(
+        (image) => !isGifReferenceUrl(image.url)
+      );
+      const nextSourceImage =
+        previous.sourceImage?.url && isGifReferenceUrl(previous.sourceImage.url)
+          ? undefined
+          : previous.sourceImage;
+
+      if (
+        nextReferenceImages.length === (previous.referenceImages ?? []).length &&
+        nextSourceImage === previous.sourceImage
+      ) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        sourceImage: nextSourceImage,
+        referenceImages: nextReferenceImages,
+      };
+    });
+
+    if (hadGifReference) {
+      setError("GIF references were removed because GPT Image 2 does not support them.");
+    }
+  }, [referenceImages, remixDraft]);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!prompt.trim() || submitting) {
@@ -668,10 +769,10 @@ export default function GeneratePage() {
       mode: isRemixMode ? "remix" : "new",
       credits,
       shouldOptimisticallyDeduct,
-      selectedResolution,
+      activeTierId,
       selectedAspectRatio,
       selectedCreditsCost,
-      outputSize: selectedOutputSize.size,
+      outputSize: selectedOutputSize?.size ?? null,
       selectedModel,
     });
 
@@ -686,8 +787,9 @@ export default function GeneratePage() {
         body: JSON.stringify({
           prompt: prompt.trim(),
           model: selectedModel,
-          resolution: selectedResolution,
-          size: selectedOutputSize.size,
+          tierId: activeTierId,
+          resolution: usesAspectRatio ? selectedResolution : undefined,
+          aspectRatio: usesAspectRatio ? selectedAspectRatio : undefined,
           sourceImageId: remixDraft?.sourceImage?.url
             ? remixDraft?.sourceImageId ?? sourceImageId
             : null,
@@ -799,8 +901,7 @@ export default function GeneratePage() {
   const generateDisabled =
     submitting ||
     !prompt.trim() ||
-    false ||
-    (billingEnabled && creditCount < selectedCreditsCost);
+    (billingEnabled && (selectedCreditsCost <= 0 || creditCount < selectedCreditsCost));
 
   const resultTasks = useMemo(() => {
     const rendered = stagedTasks.filter((task) => task.result_url);
@@ -850,7 +951,9 @@ export default function GeneratePage() {
         id: task.id,
         imageUrl: task.result_url!,
         label: index === 0 ? "Latest render" : `Variation ${index}`,
-        caption: `${formatCreatedAt(task.created_at)} · ${task.model}`,
+        caption: `${formatCreatedAt(task.created_at)} · ${
+          getModelPricing(task.model).name
+        }`,
         kind: "result" as const,
         selected: task.result_url === sourceImageUrl,
         onDownload: () => {
@@ -961,7 +1064,7 @@ export default function GeneratePage() {
             <input
               ref={referenceInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
+              accept={referenceAcceptTypes}
               className="hidden"
               onChange={(event) => void handleReferenceFileChange(event)}
             />
@@ -1068,7 +1171,7 @@ export default function GeneratePage() {
                       <button
                         key={model.id}
                         type="button"
-                        onClick={() => setSelectedModel(model.id)}
+                        onClick={() => handleModelChange(model.id)}
                         className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                           isActive
                             ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
@@ -1082,63 +1185,112 @@ export default function GeneratePage() {
                 </div>
               </div>
 
-              <div>
-                <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
-                  Aspect ratio
-                </span>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {ASPECT_RATIO_OPTIONS.map((ratio) => {
-                    const isActive = selectedAspectRatio === ratio.id;
-                    return (
-                      <button
-                        key={ratio.id}
-                        type="button"
-                        onClick={() => setSelectedAspectRatio(ratio.id)}
-                        className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                          isActive
-                            ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
-                            : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
-                        }`}
-                      >
-                        {ratio.label}
-                      </button>
-                    );
-                  })}
+              {usesAspectRatio ? (
+                <div>
+                  <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
+                    Aspect ratio
+                  </span>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {ASPECT_RATIO_OPTIONS.map((ratio) => {
+                      const isActive = selectedAspectRatio === ratio.id;
+                      return (
+                        <button
+                          key={ratio.id}
+                          type="button"
+                          onClick={() => setSelectedAspectRatio(ratio.id)}
+                          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                            isActive
+                              ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
+                              : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                          }`}
+                        >
+                          {ratio.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
+                    Orientation
+                  </span>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {getGptImageOrientationOptions().map((orientation) => {
+                      const isActive = selectedGptOrientation === orientation.id;
+                      return (
+                        <button
+                          key={orientation.id}
+                          type="button"
+                          onClick={() => setSelectedGptOrientation(orientation.id)}
+                          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                            isActive
+                              ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
+                              : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                          }`}
+                        >
+                          {orientation.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <span className="text-xs font-medium text-[#5c564e] dark:text-[#8a837a]">
-                  Resolution
+                  {usesAspectRatio ? "Resolution" : "Quality"}
                 </span>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {OUTPUT_RESOLUTIONS.map((resolution) => {
-                    const isActive = selectedResolution === resolution.id;
-                    return (
-                      <button
-                        key={resolution.id}
-                        type="button"
-                        onClick={() => setSelectedResolution(resolution.id)}
-                        className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                          isActive
-                            ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
-                            : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
-                        }`}
-                      >
-                        {getResolutionCreditsLabel(selectedModel, resolution.id)}
-                      </button>
-                    );
-                  })}
+                  {usesAspectRatio
+                    ? OUTPUT_RESOLUTIONS.map((resolution) => {
+                        const isActive = selectedResolution === resolution.id;
+                        return (
+                          <button
+                            key={resolution.id}
+                            type="button"
+                            onClick={() => setSelectedResolution(resolution.id)}
+                            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                              isActive
+                                ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
+                                : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                            }`}
+                          >
+                            {getResolutionCreditsLabel(selectedModel, resolution.id)}
+                          </button>
+                        );
+                      })
+                    : getGptImageQualityOptions().map((quality) => {
+                        const isActive = selectedGptQuality === quality.id;
+                        const tierId = buildGptImageTierId(
+                          quality.id,
+                          selectedGptOrientation
+                        );
+                        return (
+                          <button
+                            key={quality.id}
+                            type="button"
+                            onClick={() => setSelectedGptQuality(quality.id)}
+                            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                              isActive
+                                ? "bg-[#141210] text-[#f5f2ed] dark:bg-[#f5f2ed] dark:text-[#141210]"
+                                : "bg-[#e0d9ce] text-[#4a443c] hover:bg-[#d5cfc4] dark:bg-[#f5f2ed]/5 dark:text-[#8a837a] dark:hover:bg-[#f5f2ed]/10"
+                            }`}
+                          >
+                            {getTierCreditsLabel(selectedModel, tierId)}
+                          </button>
+                        );
+                      })}
                 </div>
               </div>
             </div>
 
             <div className="mb-3 rounded-lg border border-[#d5cfc4] bg-[#ebe7e0] px-3 py-2 text-xs text-[#4a443c] dark:border-[#f5f2ed]/10 dark:bg-[#f5f2ed]/5 dark:text-[#a39b90]">
-              {MODEL_OPTIONS.find((model) => model.id === selectedModel)?.name} uses{" "}
+              {selectedModelPricing.name} uses{" "}
               <span className="font-medium text-[#141210] dark:text-[#e0d9ce]">
                 {selectedCreditsCost} credits
               </span>{" "}
-              at {selectedResolution}. Higher resolutions consume more credits.
+              for this selection. Higher quality and larger outputs consume more credits.
             </div>
 
             {error ? (

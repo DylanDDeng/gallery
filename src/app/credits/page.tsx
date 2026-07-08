@@ -9,7 +9,7 @@ import {
 } from "@/lib/billing";
 import {
   STANDARD_MODEL_ID,
-  STANDARD_RESOLUTION,
+  STANDARD_TIER_ID,
   getApproximateRenderCount,
   getGenerationCreditsCost,
   getModelPricing,
@@ -45,7 +45,7 @@ function CreditsContent() {
   const standardModel = getModelPricing(STANDARD_MODEL_ID);
   const standardCreditsCost = getGenerationCreditsCost(
     STANDARD_MODEL_ID,
-    STANDARD_RESOLUTION
+    STANDARD_TIER_ID
   );
 
   const [purchasing, setPurchasing] = useState<
@@ -503,7 +503,7 @@ function CreditsContent() {
                     )}
                   >
                     About {getApproximateRenderCount(pkg.credits).toLocaleString()}{" "}
-                    {STANDARD_RESOLUTION} renders with {standardModel.name}
+                    standard-tier renders with {standardModel.name}
                   </div>
                 </button>
               );
@@ -553,10 +553,14 @@ function CreditsContent() {
           </p>
           <ul className="mt-6 space-y-3">
             <li>
-              {standardModel.name} currently uses {standardCreditsCost} credits at{" "}
-              {STANDARD_RESOLUTION}; 3K renders use more.
+              {standardModel.name} currently uses {standardCreditsCost} credits at
+              its standard tier; higher tiers use more.
             </li>
-            <li>Different models and output resolutions consume different credits.</li>
+            <li>
+              GPT Image 2 uses 12–66 credits depending on quality and orientation
+              (medium square from 12 credits, high landscape/portrait up to 66).
+            </li>
+            <li>Different models and output tiers consume different credits.</li>
             <li>Payments are processed through a secure hosted checkout.</li>
             <li>Purchased credits do not expire.</li>
             <li>Contact support for refunds within 7 days of purchase.</li>
