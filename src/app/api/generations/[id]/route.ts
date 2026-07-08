@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
+import { ErrorCode } from "@/lib/error-codes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
@@ -23,7 +24,10 @@ export async function GET(
 
     if (error) {
       if (error.code === "PGRST116") {
-        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Task not found", errorCode: ErrorCode.TASK_NOT_FOUND },
+          { status: 404 }
+        );
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -60,7 +64,10 @@ export async function DELETE(
 
     if (error) {
       if (error.code === "PGRST116") {
-        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Task not found", errorCode: ErrorCode.TASK_NOT_FOUND },
+          { status: 404 }
+        );
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -68,7 +75,7 @@ export async function DELETE(
     // Can only delete completed or failed tasks
     if (task.status !== "completed" && task.status !== "failed") {
       return NextResponse.json(
-        { error: "Cannot delete task in current status" },
+        { error: "Cannot delete task in current status", errorCode: ErrorCode.CANNOT_DELETE_TASK },
         { status: 400 }
       );
     }

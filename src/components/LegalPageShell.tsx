@@ -1,5 +1,9 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SiteFooter from "@/components/SiteFooter";
 
 type LegalPageShellProps = {
@@ -15,6 +19,9 @@ export default function LegalPageShell({
   updatedAt,
   children,
 }: LegalPageShellProps) {
+  const tCommon = useTranslations("common");
+  const tFooter = useTranslations("footer");
+
   return (
     <div className="min-h-screen bg-[#f5f2ed] dark:bg-[#0c0b09]">
       <header className="sticky top-0 z-40 border-b border-[#d5cfc4] bg-[#f5f2ed]/80 backdrop-blur-xl dark:border-[#f5f2ed]/5 dark:bg-[#0c0b09]/80">
@@ -31,15 +38,18 @@ export default function LegalPageShell({
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            Back to Aestara
+            {tCommon("backToAestara")}
           </Link>
-          <div className="text-right">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#8a837a]">
-              Aestara Policies
-            </p>
-            <p className="text-[11px] text-[#8a837a] dark:text-[#5c564e]">
-              AI image generation service
-            </p>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <div className="text-right">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#8a837a]">
+                {tFooter("policies")}
+              </p>
+              <p className="text-[11px] text-[#8a837a] dark:text-[#5c564e]">
+                {tFooter("serviceDescription")}
+              </p>
+            </div>
           </div>
         </div>
       </header>
@@ -55,7 +65,9 @@ export default function LegalPageShell({
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#5c564e] dark:text-[#8a837a]">
             {description}
           </p>
-          <p className="mt-3 text-sm text-[#8a837a]">Last updated: {updatedAt}</p>
+          <p className="mt-3 text-sm text-[#8a837a]">
+            {tCommon("lastUpdated", { date: updatedAt })}
+          </p>
         </div>
 
         <div className="space-y-10">{children}</div>

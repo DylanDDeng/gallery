@@ -1,13 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { isBillingEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 import { createClient } from "@/lib/supabase-browser";
 
 export default function UserMenu() {
+  const t = useTranslations("auth");
   const user = useAppStore((s) => s.user);
   const credits = useAppStore((s) => s.credits);
   const favorites = useAppStore((s) => s.favorites);
@@ -79,7 +81,7 @@ export default function UserMenu() {
             fill="#EA4335"
           />
         </svg>
-        Sign in
+        {t("signIn")}
       </button>
     );
   }
@@ -131,9 +133,9 @@ export default function UserMenu() {
                     d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5-1.343 5-3-2.239-3-5-3zm0 0V6m0 8v2m-7-5v2c0 1.657 3.134 3 7 3s7-1.343 7-3v-2"
                   />
                 </svg>
-                <span>Credits</span>
+                <span>{t("credits")}</span>
                 <span className="ml-auto rounded bg-[#d5cfc4] px-1.5 py-0.5 text-[10px] dark:bg-[#2a2520]">
-                  {credits ?? "—"} credits
+                  {t("creditsCount", { count: credits ?? "—" })}
                 </span>
               </Link>
             </>
@@ -152,7 +154,7 @@ export default function UserMenu() {
             <svg className="h-4 w-4" fill={showFavoritesOnly ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            Favorites
+            {t("favorites")}
             {favorites.length > 0 && (
               <span className="ml-auto rounded bg-[#d5cfc4] dark:bg-[#2a2520] px-1.5 py-0.5 text-[10px]">
                 {favorites.length}
@@ -168,14 +170,14 @@ export default function UserMenu() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Settings
+            {t("settings")}
           </Link>
           <div className="border-t border-[#e0d9ce] dark:border-[#2a2520]" />
           <button
             onClick={handleSignOut}
             className="w-full text-left px-4 py-2.5 text-sm text-[#4a443c] dark:text-[#a39b90] hover:bg-[#ebe7e0] dark:hover:bg-[#2a2520]/50 transition-colors"
           >
-            Sign out
+            {t("signOut")}
           </button>
         </div>
       )}

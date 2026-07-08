@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/routing";
 import type { ImagePrompt } from "@/lib/types";
 
 export type GenerationMode = "new" | "remix";
@@ -335,6 +336,7 @@ export function buildRemixGenerateUrl(context: {
   sourceCategory?: string;
   returnTo?: GenerationReturnTarget;
   returnImageId?: string;
+  locale?: Locale;
 }) {
   const params = new URLSearchParams({
     mode: "remix",
@@ -372,5 +374,6 @@ export function buildRemixGenerateUrl(context: {
     params.set("returnImageId", context.returnImageId);
   }
 
-  return `/generate?${params.toString()}`;
+  const prefix = context.locale === "zh" ? "/zh" : "";
+  return `${prefix}/generate?${params.toString()}`;
 }

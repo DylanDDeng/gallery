@@ -1,8 +1,12 @@
+import createIntlMiddleware from "next-intl/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { routing } from "./i18n/routing";
+
+const handleI18nRouting = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  const response = handleI18nRouting(request);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,9 +20,8 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
+            response.cookies.set(name, value, options),
           );
         },
       },
@@ -27,19 +30,13 @@ export async function middleware(request: NextRequest) {
 
   await supabase.auth.getUser();
 
-  return supabaseResponse;
+  return response;
 }
 
 export const config = {
   matcher: [
-    "/admin/:path*",
-    "/credits/:path*",
-    "/history/:path*",
-    "/settings/:path*",
-    "/api/admin-debug/:path*",
-    "/api/credits/:path*",
-    "/api/generations/:path*",
-    "/api/orders/:path*",
-    "/api/reference-images/:path*",
+    "/",
+    "/(zh)/:path*",
+    "/((?!api|auth|_next|_vercel|.*\\..*).*)",
   ],
 };

@@ -1,0 +1,555 @@
+{
+  "metadata": {
+    "title": "Aestara — AI 图像生成",
+    "description": "探索 AI 生成图像、混音提示词，并用 Aestara 创作属于你的作品。",
+    "terms": {
+      "title": "服务条款 — Aestara",
+      "description": "Aestara AI 图像生成平台的服务条款。"
+    },
+    "privacy": {
+      "title": "隐私政策 — Aestara",
+      "description": "Aestara AI 图像生成服务的隐私政策。"
+    },
+    "refund": {
+      "title": "退款政策 — Aestara",
+      "description": "Aestara 积分购买的退款政策。"
+    }
+  },
+  "common": {
+    "brand": "Aestara",
+    "credits": "积分",
+    "credit": "积分",
+    "creditsCount": "{count} 积分",
+    "creditCount": "{count} 积分",
+    "creditsDisplay": "{count} 积分",
+    "backToSite": "返回网站",
+    "backToAestara": "返回 Aestara",
+    "loading": "加载中…",
+    "processing": "处理中...",
+    "saving": "保存中…",
+    "deleting": "删除中…",
+    "delete": "删除",
+    "light": "浅色",
+    "dark": "深色",
+    "toggleTheme": "切换主题",
+    "user": "用户",
+    "untitled": "未命名",
+    "justNow": "刚刚",
+    "recommended": "推荐",
+    "lastUpdated": "最后更新：{date}",
+    "orderLabel": "订单 {orderId}",
+    "perCredit": "/积分",
+    "cr": "积分",
+    "expandSidebar": "展开侧边栏",
+    "collapseSidebar": "收起侧边栏",
+    "openMagazine": "打开杂志",
+    "status": {
+      "completed": "已完成",
+      "failed": "失败",
+      "cancelled": "已取消",
+      "queued": "排队中",
+      "processing": "处理中",
+      "pending": "待处理",
+      "refunded": "已退款"
+    },
+    "categories": {
+      "all": "全部",
+      "portrait": "人像",
+      "landscape": "风景",
+      "street": "街头",
+      "urban": "城市",
+      "nature": "自然",
+      "cinematic": "电影感",
+      "abstract": "抽象",
+      "3d": "3D",
+      "product-photography": "产品摄影",
+      "conceptual-editorial-illustration": "概念编辑插画",
+      "poster": "海报",
+      "sketchnote": "手绘笔记",
+      "character-design": "角色设计",
+      "knolling": "平铺陈列",
+      "screenshot": "截图"
+    },
+    "timeFilters": {
+      "today": "今天",
+      "week": "本周",
+      "month": "本月"
+    },
+    "models": {
+      "Nano Banana Pro": "Nano Banana Pro",
+      "Nano Banana 2": "Nano Banana 2",
+      "GPT Image 1.5": "GPT Image 1.5",
+      "GPT Image 2": "GPT Image 2",
+      "Grok Imagine": "Grok Imagine",
+      "Seedream 4.5": "Seedream 4.5",
+      "Seedream 5.0 Lite": "Seedream 5.0 Lite",
+      "Z Image": "Z Image"
+    },
+    "modelPricing": {
+      "doubao-seedream-5-0-260128": {
+        "name": "Seedream-5.0-Lite",
+        "description": "画质均衡，支持 2K 与 3K 输出。"
+      },
+      "openai/gpt-image-2": {
+        "name": "GPT Image 2",
+        "description": "OpenAI 图像生成，提供中档与高档画质选项。"
+      },
+      "tiers": {
+        "2K": "2K",
+        "3K": "3K",
+        "medium-square": "中档 · 方形",
+        "medium-landscape": "中档 · 横向",
+        "medium-portrait": "中档 · 纵向",
+        "high-square": "高档 · 方形",
+        "high-landscape": "高档 · 横向",
+        "high-portrait": "高档 · 纵向",
+        "tierCreditsLabel": "{label} · {credits} 积分"
+      },
+      "orientations": {
+        "square": "方形",
+        "landscape": "横向",
+        "portrait": "纵向"
+      },
+      "qualities": {
+        "medium": "中档",
+        "high": "高档"
+      },
+      "resolutions": {
+        "2K": "2K",
+        "3K": "3K"
+      },
+      "aspectRatios": {
+        "1:1": "1:1",
+        "3:4": "3:4",
+        "4:3": "4:3",
+        "16:9": "16:9",
+        "9:16": "9:16",
+        "3:2": "3:2",
+        "2:3": "2:3",
+        "21:9": "21:9"
+      }
+    }
+  },
+  "nav": {
+    "gallery": "画廊",
+    "create": "创作",
+    "history": "历史",
+    "credits": "积分",
+    "settings": "设置"
+  },
+  "language": {
+    "en": "English",
+    "zh": "中文",
+    "ja": "日本語",
+    "promptEn": "EN",
+    "promptZh": "中",
+    "promptJa": "日",
+    "switchTo": "切换到{language}"
+  },
+  "auth": {
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "continueWithGoogle": "使用 Google 继续",
+    "signedIn": "已登录",
+    "favorites": "收藏",
+    "loginPrompt": {
+      "favorites": {
+        "title": "登录以保存收藏",
+        "description": "创建账户或使用 Google 登录，即可跨会话保存你的收藏。",
+        "dismiss": "稍后再说"
+      },
+      "generate": {
+        "title": "登录以开始创作",
+        "description": "使用 Google 登录，进入工作室并冲印你的作品。",
+        "dismiss": "返回画廊"
+      }
+    }
+  },
+  "credits": {
+    "backToSite": "返回网站",
+    "label": "积分",
+    "title": "充值余额，持续创作",
+    "subtitle": "购买积分以生成图像。无订阅、无月度重置——余额将保留至你使用完毕。",
+    "yourBalance": "你的余额",
+    "creditsAvailable": "可用积分",
+    "purchaseCredits": "购买积分",
+    "packages": {
+      "small": {
+        "label": "入门",
+        "blurb": "适合测试提示词与快速概念验证"
+      },
+      "medium": {
+        "label": "创作者",
+        "blurb": "适合日常生成与混音创作"
+      },
+      "large": {
+        "label": "工作室",
+        "blurb": "适合大批量与高强度创意输出"
+      }
+    },
+    "approximateRenders": "约可使用 {model} 标准档生成 {count} 张",
+    "howItWorks": "使用流程",
+    "steps": {
+      "choose": {
+        "title": "选择套餐",
+        "desc": "选择符合你创作需求的积分包，均为一次性购买。"
+      },
+      "pay": {
+        "title": "安全支付",
+        "desc": "通过我们的支付服务商完成结账，交易经过加密保护。"
+      },
+      "added": {
+        "title": "积分即时到账",
+        "desc": "支付确认后，余额将自动更新，可立即开始生成。"
+      }
+    },
+    "billingNotes": "计费说明",
+    "billingItems": {
+      "standardModel": "{model} 标准档目前消耗 {credits} 积分；更高档位消耗更多。",
+      "gptImage": "GPT Image 2 根据画质与方向消耗 12–66 积分（中档方形最低 12 积分，高档横/纵向最高 66 积分）。",
+      "differentModels": "不同模型与输出档位消耗的积分不同。",
+      "secureCheckout": "支付通过安全托管结账页面处理。",
+      "noExpiry": "已购积分不会过期。",
+      "refundContact": "购买后 7 天内可联系客服申请退款。"
+    },
+    "messages": {
+      "purchaseSuccess": "购买成功，积分已添加到你的账户。",
+      "paymentFailed": "支付失败，请重试。",
+      "purchaseSubmitted": "购买已提交，支付确认后积分将显示在账户中。",
+      "purchaseReceived": "已收到购买，支付确认后积分将显示在账户中。",
+      "checkoutCanceled": "结账已取消。",
+      "failedToCreateOrder": "创建订单失败",
+      "genericError": "发生错误，请重试。"
+    }
+  },
+  "checkout": {
+    "label": "安全结账",
+    "title": "完成积分购买",
+    "subtitle": "Paddle 结账页面应在本页自动打开。",
+    "missingToken": "缺少 NEXT_PUBLIC_PADDLE_CLIENT_TOKEN。",
+    "missingTransaction": "支付链接中缺少 Paddle 交易 ID。",
+    "paddleLoadFailed": "Paddle.js 加载失败。",
+    "verifyConfig": "若结账页面未出现，请确认 Paddle 网站审批与客户端令牌已正确配置。",
+    "defaultPaymentLink": "本页也可作为默认 Paddle 支付链接安全使用。",
+    "returnToCredits": "返回积分页"
+  },
+  "home": {
+    "tagline": "Aestara — AI 图像生成",
+    "loadingGallery": "加载画廊",
+    "developingPhotos": "照片显影中...",
+    "hero": {
+      "volume": "第 01 期",
+      "open": "打开",
+      "openingGallery": "正在打开画廊...",
+      "coverAlt": "封面"
+    }
+  },
+  "generate": {
+    "studio": "工作室",
+    "remixStudio": "混音工作室",
+    "negatives": "01 — 底片",
+    "load": "载入",
+    "loading": "加载中…",
+    "noNegatives": "尚未载入底片——可仅凭提示词冲印，或载入一张。",
+    "exposureNotes": "02 — 曝光说明",
+    "promptPlaceholder": "描述你想要冲印的画面…",
+    "promptCounter": "{current}/10000",
+    "filmStock": "03 — 胶片",
+    "frame": "04 — 画幅",
+    "orientation": "04 — 方向",
+    "paperSize": "05 — 纸张尺寸",
+    "quality": "05 — 画质",
+    "developing": "显影中…",
+    "developVariation": "冲印变体 · {credits} 积分",
+    "developPrint": "冲印作品 · {credits} 积分",
+    "creditsPerPrint": "{model} · 每张 {credits} 积分",
+    "currentReference": "当前参考图",
+    "referenceLabel": "参考图 {index}",
+    "referenceCaption": "点击用于下一次冲印。",
+    "latestPrint": "最新作品",
+    "variation": "变体 {index}",
+    "print": "作品 {index}",
+    "developingNextPrint": "正在冲印下一张…",
+    "pendingCaption": "显影盘仍在工作——新作品将显示在这里。",
+    "contactSheet": "样张条",
+    "framesCount": "{count} 格",
+    "useAsReference": "用作参考图",
+    "downloadPrint": "下载作品",
+    "recoveringPrints": "正在从显影盘恢复作品…",
+    "blankPaper": "相纸仍是空白的。",
+    "blankPaperHint": "在左侧填写曝光说明，然后冲印你的第一张作品。",
+    "removeReference": "移除{label}",
+    "errors": {
+      "chooseImageFile": "请选择图像文件。",
+      "uploadFormats": "请上传 PNG、JPEG、WEBP 或 GIF 图像。",
+      "gptNoGif": "GPT Image 2 仅支持 PNG、JPEG 或 WEBP 参考图。",
+      "maxFileSize": "参考图大小不得超过 15 MB。",
+      "signInToUpload": "上传参考图前请重新登录。",
+      "failedToUpload": "参考图上传失败",
+      "uploadUnauthorized": "你的上传会话未获存储授权，请刷新页面并重新登录。",
+      "uploadRetry": "参考图上传失败，请重试。",
+      "gifRemoved": "已移除 GIF 参考图，因为 GPT Image 2 不支持该格式。",
+      "failedToCreate": "创建生成任务失败",
+      "genericError": "发生错误，请重试。",
+      "failedToDownload": "下载生成图像失败，请重试。",
+      "failedRemixContext": "加载混音上下文失败"
+    }
+  },
+  "history": {
+    "title": "历史",
+    "backToSite": "← 返回网站",
+    "tabs": {
+      "generations": "生成记录",
+      "orders": "订单"
+    },
+    "noGenerations": "尚无生成记录",
+    "createFirst": "创建你的第一次生成 →",
+    "noOrders": "尚无订单",
+    "buyCredits": "购买积分 →",
+    "deleteConfirm": "确定要从历史中删除此任务吗？",
+    "failedToDelete": "删除任务失败",
+    "genericError": "发生错误",
+    "orderCredits": "{amount} 积分"
+  },
+  "settings": {
+    "title": "设置",
+    "backToSite": "← 返回网站",
+    "appearance": {
+      "title": "外观",
+      "description": "自定义应用在设备上的显示方式。",
+      "theme": "主题",
+      "themeDescription": "在浅色与深色模式之间切换"
+    },
+    "account": {
+      "title": "账户",
+      "description": "管理你的账户信息。",
+      "signedIn": "已登录"
+    }
+  },
+  "errors": {
+    "promptRequired": "请输入提示词",
+    "insufficientCredits": "积分不足",
+    "unauthorized": "未授权",
+    "invalidPackage": "无效的套餐 ID",
+    "taskNotFound": "未找到任务",
+    "failedToCreateOrder": "创建订单失败",
+    "failedToCreateGeneration": "创建生成任务失败",
+    "failedToDeleteTask": "删除任务失败",
+    "cannotDeleteTask": "当前状态无法删除任务",
+    "invalidReferenceImage": "参考图必须使用你上传或生成的图像",
+    "internalError": "发生内部错误",
+    "unknown": "发生未知错误"
+  },
+  "imageModal": {
+    "archive": "Aestara 档案",
+    "generationNotes": "生成说明",
+    "loadingPrompt": "正在加载提示词详情...",
+    "noPrompt": "暂无可用提示词。",
+    "copyText": "复制文本",
+    "copied": "已复制",
+    "index": "索引",
+    "remix": "混音",
+    "imageCounter": "{current} / {total}",
+    "imageCounterMore": "{current} / {total}+"
+  },
+  "search": {
+    "placeholder": "搜索提示词、标签、作者...",
+    "searching": "搜索中...",
+    "noResults": "未找到结果",
+    "typeToSearch": "输入以搜索图像...",
+    "esc": "ESC",
+    "searchLabel": "搜索",
+    "searchActive": "搜索：\"{query}\""
+  },
+  "sidebar": {
+    "search": "搜索",
+    "searchActive": "搜索：\"{query}\"",
+    "all": "全部",
+    "surpriseMe": "随机惊喜",
+    "favorites": "收藏",
+    "time": "时间",
+    "models": "模型",
+    "categories": "分类"
+  },
+  "footer": {
+    "credits": "积分",
+    "refundPolicy": "退款政策",
+    "terms": "服务条款",
+    "privacy": "隐私政策",
+    "tagline": "Aestara — AI 图像生成",
+    "policies": "Aestara 政策",
+    "serviceDescription": "AI 图像生成服务"
+  },
+  "legal": {
+    "terms": {
+      "title": "服务条款",
+      "description": "本条款规范你对 Aestara 的使用，包括账户访问、积分购买、可接受使用及退款。",
+      "updatedAt": "2026年3月18日",
+      "sections": [
+        {
+          "heading": "1. 服务概述",
+          "paragraphs": [
+            "Aestara 提供在线 AI 图像生成服务。用户可以创建账户、购买积分、提交提示词并通过平台生成图像。访问或使用 Aestara 即表示你同意本条款。"
+          ]
+        },
+        {
+          "heading": "2. 账户与资格",
+          "items": [
+            "你必须提供准确的账户信息并保持更新。",
+            "你对账户下发生的活动负责。",
+            "若服务使用带来法律、安全、支付或滥用风险，我们可暂停或终止访问。"
+          ]
+        },
+        {
+          "heading": "3. 积分、定价与计费",
+          "paragraphs": [
+            "Aestara 销售一次性积分包。提交生成请求时将消耗积分。除非定价页另有说明，一次图像生成消耗一个积分。",
+            "价格在购买前显示。支付由第三方结账服务商处理。根据当前集成，可能包括结账、支付处理、开票及相关计费操作。",
+            "在当前产品模式下，已购积分不会过期。我们可随时前瞻性调整套餐规模或价格。"
+          ]
+        },
+        {
+          "heading": "4. 退款政策",
+          "paragraphs": [
+            "你可在购买后 7 天内联系 chengshengdeng@gmail.com 申请退款。",
+            "我们通常会批准误购、重复购买或基本未使用的积分退款。若积分已大量消耗、怀疑欺诈或请求违反支付处理规则，退款可能受限。"
+          ]
+        },
+        {
+          "heading": "5. 可接受使用",
+          "items": [
+            "不得将 Aestara 用于违法、欺骗、滥用、侵权或有害活动。",
+            "不得使用本服务生成或传播非自愿亲密内容、深度伪造、换脸，或在未经同意的情况下冒充真实人物。",
+            "不得提交侵犯他人知识产权或隐私权的提示词或生成内容。",
+            "为遵守法律、支付服务商要求或平台安全政策，我们可屏蔽提示词、移除内容或暂停账户。"
+          ]
+        },
+        {
+          "heading": "6. 生成内容",
+          "paragraphs": [
+            "AI 系统可能产生不准确、意外或相似输出。你有责任在使用、发布或出售前审阅生成图像。",
+            "我们不保证输出唯一、无错误、适合特定用途或不受第三方权利主张。"
+          ]
+        },
+        {
+          "heading": "7. 可用性与变更",
+          "paragraphs": [
+            "我们可随时更新、改进、暂停或停止部分服务。对影响可用性的停机、模型变更或第三方中断不承担责任。"
+          ]
+        },
+        {
+          "heading": "8. 联系",
+          "paragraphs": [
+            "有关本条款的问题请发送至 chengshengdeng@gmail.com。"
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "title": "隐私政策",
+      "description": "本政策说明 Aestara 收集哪些信息、如何使用，以及哪些第三方协助运营服务。",
+      "updatedAt": "2026年3月18日",
+      "sections": [
+        {
+          "heading": "概述",
+          "paragraphs": [
+            "Aestara 是一项 AI 图像生成服务，用户可创建账户、购买积分、提交提示词并生成图像。我们致力于保护你的隐私，并透明说明数据处理方式。"
+          ]
+        },
+        {
+          "heading": "我们收集的信息",
+          "paragraphs": [
+            "我们收集最少必要的信息以提供并改进服务："
+          ],
+          "items": [
+            "Google 账户信息 — 使用 Google 登录时，我们会收到你的姓名、电子邮箱和 Google 账户头像，用于身份验证、账户访问和个性化体验。",
+            "提示词与生成图像 — 我们存储你提交的提示词、生成任务数据及生成结果，以便交付输出、维护任务历史并支持退款或故障排查。",
+            "订单与积分余额 — 我们存储购买历史、积分余额和订单元数据，以履行购买并维护账户余额。",
+            "主题偏好 — 我们在浏览器本地存储你的浅色/深色模式偏好。"
+          ]
+        },
+        {
+          "heading": "我们如何使用你的信息",
+          "items": [
+            "验证账户并提供个性化功能",
+            "保存并跨设备同步你的收藏",
+            "处理积分购买、支持退款并维护账户余额",
+            "维护并改进服务"
+          ]
+        },
+        {
+          "heading": "第三方服务",
+          "paragraphs": [
+            "我们使用以下第三方服务："
+          ],
+          "items": [
+            "Google — 通过 Google OAuth 进行用户身份验证。",
+            "Supabase — 用于数据库、身份验证和数据存储。",
+            "结账服务商 — 用于支付处理、计费及相关交易处理。",
+            "Vercel — 用于网站托管与内容分发。",
+            "Umami — 用于注重隐私的网站分析。"
+          ]
+        },
+        {
+          "heading": "数据存储与安全",
+          "paragraphs": [
+            "你的数据安全存储在 Supabase 中，行级安全（RLS）策略有助于确保个人账户数据仅对相应用户和服务角色可访问。我们不出售你的个人数据。"
+          ]
+        },
+        {
+          "heading": "你的权利",
+          "items": [
+            "访问与删除 — 你可随时登录并使用退出功能查看或删除账户及所有关联数据，也可联系我们永久删除数据。",
+            "数据可携带性 — 你拥有你的数据。如需导出信息请联系我们。"
+          ]
+        },
+        {
+          "heading": "Cookie",
+          "paragraphs": [
+            "我们使用 Cookie 和本地存储实现基本功能，例如维持登录会话和主题偏好。我们也可能使用注重隐私的分析工具，以汇总方式了解网站性能与产品使用情况。"
+          ]
+        },
+        {
+          "heading": "政策变更",
+          "paragraphs": [
+            "我们可能不时更新本隐私政策。任何变更将反映在本页并更新修订日期。"
+          ]
+        },
+        {
+          "heading": "联系",
+          "paragraphs": [
+            "如对本隐私政策有任何疑问，请联系 chengshengdeng@gmail.com。"
+          ]
+        }
+      ]
+    },
+    "refund": {
+      "title": "退款政策",
+      "description": "本页说明 Aestara 积分购买在何种情况下可退款，以及如何申请支持。",
+      "updatedAt": "2026年3月18日",
+      "sections": [
+        {
+          "heading": "适用条件",
+          "paragraphs": [
+            "退款申请可在原始购买日期起 7 天内提交。",
+            "我们通常支持误购、重复扣款或基本未使用的积分包退款。"
+          ]
+        },
+        {
+          "heading": "限制",
+          "items": [
+            "已大量消耗的积分可能无法退款。",
+            "若怀疑欺诈、滥用或支付争议，退款可能被拒绝。",
+            "支付处理商要求、卡组织规则及税务义务可能影响退款能否发放。"
+          ]
+        },
+        {
+          "heading": "如何申请退款",
+          "paragraphs": [
+            "请发送邮件至 chengshengdeng@gmail.com，注明账户邮箱、购买日期及申请原因。我们将尽快审核并回复。"
+          ]
+        }
+      ]
+    }
+  }
+}

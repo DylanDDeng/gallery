@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
+import { ErrorCode } from "@/lib/error-codes";
 import { getAppSecret } from "@/lib/app-secrets";
 import { isBillingEnabled } from "@/lib/billing-feature";
 import { DoubaoClient } from "@/lib/doubao";
@@ -172,7 +173,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error fetching generations:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", errorCode: ErrorCode.INTERNAL_ERROR },
       { status: 500 }
     );
   }
@@ -221,7 +222,7 @@ export async function POST(request: Request) {
 
     if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
       return NextResponse.json(
-        { error: "Prompt is required" },
+        { error: "Prompt is required", errorCode: ErrorCode.PROMPT_REQUIRED },
         { status: 400 }
       );
     }
@@ -306,7 +307,7 @@ export async function POST(request: Request) {
         await supabaseAdmin.from("generation_tasks").delete().eq("id", task.id);
 
         return NextResponse.json(
-          { error: "Insufficient credits" },
+          { error: "Insufficient credits", errorCode: ErrorCode.INSUFFICIENT_CREDITS },
           { status: 402 }
         );
       }
@@ -442,7 +443,7 @@ export async function POST(request: Request) {
     console.error(CREDITS_DEBUG_PREFIX, "api/generations:exception", error);
     console.error("Error creating generation:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", errorCode: ErrorCode.INTERNAL_ERROR },
       { status: 500 }
     );
   }

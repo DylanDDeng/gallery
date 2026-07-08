@@ -1,9 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import Script from "next/script";
+import { useLocale, useTranslations } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "@/i18n/navigation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import type { Locale } from "@/i18n/routing";
 
 type PaddleEvent = {
   name?: string;
@@ -31,6 +34,9 @@ type PaddleWindow = Window & {
 };
 
 export default function CheckoutPage() {
+  const t = useTranslations("checkout");
+  const tCommon = useTranslations("common");
+  const locale = useLocale() as Locale;
   const params = useParams<{ orderId: string }>();
   const searchParams = useSearchParams();
   const initializedRef = useRef(false);
@@ -43,11 +49,11 @@ export default function CheckoutPage() {
 
   const error = useMemo(() => {
     if (!paddleToken) {
-      return "Missing NEXT_PUBLIC_PADDLE_CLIENT_TOKEN.";
+      return t("missingToken");
     }
 
     if (!transactionId) {
-      return "Missing Paddle transaction ID in the payment link.";
+      return t("missingTransaction");
     }
 
     if (
@@ -55,11 +61,11 @@ export default function CheckoutPage() {
       typeof window !== "undefined" &&
       !(window as PaddleWindow).Paddle
     ) {
-      return "Paddle.js failed to load.";
+      return t("paddleLoadFailed");
     }
 
     return null;
-  }, [paddleToken, scriptLoaded, transactionId]);
+  }, [paddleToken, scriptLoaded, t, transactionId]);
 
   useEffect(() => {
     if (!scriptLoaded || initializedRef.current || error) {
@@ -75,7 +81,8 @@ export default function CheckoutPage() {
       paddle.Environment.set("sandbox");
     }
 
-    const successUrl = `${window.location.origin}/credits?success=true&order_id=${encodeURIComponent(orderId)}`;
+    const creditsPath = locale === "zh" ? "/zh/credits" : "/credits";
+    const successUrl = `${window.location.origin}${creditsPath}?success=true&order_id=${encodeURIComponent(orderId)}`;
 
     paddle.Initialize({
       token: paddleToken,
@@ -89,7 +96,7 @@ export default function CheckoutPage() {
     });
 
     initializedRef.current = true;
-  }, [error, orderId, paddleToken, scriptLoaded, transactionId]);
+  }, [error, locale, orderId, paddleToken, scriptLoaded, transactionId]);
 
   return (
     <main className="min-h-screen bg-[#f5f2ed] px-6 py-16 text-[#141210] dark:bg-[#0c0b09] dark:text-[#e0d9ce]">
@@ -99,13 +106,17 @@ export default function CheckoutPage() {
         onLoad={() => setScriptLoaded(true)}
       />
 
+      <div className="mx-auto mb-8 flex max-w-xl justify-end">
+        <LanguageSwitcher />
+      </div>
+
       <div className="mx-auto max-w-xl rounded-3xl border border-[#d5cfc4] bg-[#f5f2ed] p-8 shadow-sm dark:border-[#f5f2ed]/10 dark:bg-[#141210]">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#8a837a] dark:text-[#5c564e]">
-          Secure Checkout
+          {t("label")}
         </p>
-        <h1 className="mt-3 text-3xl font-semibold">Complete your credit purchase</h1>
+        <h1 className="mt-3 text-3xl font-semibold">{t("title")}</h1>
         <p className="mt-3 text-sm text-[#5c564e] dark:text-[#8a837a]">
-          Paddle Checkout should open automatically on this page.
+          {t("subtitle")}
         </p>
 
         {error ? (
@@ -114,9 +125,7 @@ export default function CheckoutPage() {
           </div>
         ) : (
           <div className="mt-6 rounded-2xl bg-[#ebe7e0] px-4 py-4 text-sm text-[#5c564e] dark:bg-[#1a1814] dark:text-[#8a837a]">
-            {transactionId
-              ? "If the checkout does not appear, verify that your Paddle website approval and client-side token are configured."
-              : "This page is also safe to use as your default Paddle payment link."}
+            {transactionId ? t("verifyConfig") : t("defaultPaymentLink")}
           </div>
         )}
 
@@ -125,9 +134,11 @@ export default function CheckoutPage() {
             href="/credits"
             className="font-medium text-[#4a443c] hover:text-[#141210] dark:text-[#8a837a] dark:hover:text-[#e0d9ce]"
           >
-            Return to credits
+            {t("returnToCredits")}
           </Link>
-          <span className="text-[#8a837a] dark:text-[#5c564e]">Order {orderId}</span>
+          <span className="text-[#8a837a] dark:text-[#5c564e]">
+            {tCommon("orderLabel", { orderId })}
+          </span>
         </div>
       </div>
     </main>

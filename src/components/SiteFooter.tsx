@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { isBillingEnabled } from "@/lib/billing-feature";
 
 type SiteFooterProps = {
@@ -6,15 +9,17 @@ type SiteFooterProps = {
 };
 
 export default function SiteFooter({ className = "" }: SiteFooterProps) {
+  const t = useTranslations("footer");
+
   const footerLinks = [
     ...(isBillingEnabled()
       ? ([
-          { href: "/credits", label: "Credits" },
-          { href: "/refund-policy", label: "Refund Policy" },
+          { href: "/credits" as const, labelKey: "credits" as const },
+          { href: "/refund-policy" as const, labelKey: "refundPolicy" as const },
         ] as const)
       : []),
-    { href: "/terms", label: "Terms of Service" },
-    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/terms" as const, labelKey: "terms" as const },
+    { href: "/privacy" as const, labelKey: "privacy" as const },
   ] as const;
 
   return (
@@ -28,7 +33,7 @@ export default function SiteFooter({ className = "" }: SiteFooterProps) {
             href={link.href}
             className="transition-colors hover:text-[#4a443c] dark:hover:text-[#a39b90]"
           >
-            {link.label}
+            {t(link.labelKey)}
           </Link>
         ))}
       </div>

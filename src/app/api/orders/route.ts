@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
+import { ErrorCode } from "@/lib/error-codes";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getCreditPackages, getPackageById } from "@/lib/billing";
 import { isBillingEnabled } from "@/lib/billing-feature";
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
     const pkg = getPackageById(packageId, paymentProvider);
     if (!pkg) {
       return NextResponse.json(
-        { error: "Invalid package ID" },
+        { error: "Invalid package ID", errorCode: ErrorCode.INVALID_PACKAGE },
         { status: 400 }
       );
     }
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
     if (orderError) {
       console.error("Error creating order:", orderError);
       return NextResponse.json(
-        { error: "Failed to create order" },
+        { error: "Failed to create order", errorCode: ErrorCode.FAILED_TO_CREATE_ORDER },
         { status: 500 }
       );
     }

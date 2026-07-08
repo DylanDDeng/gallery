@@ -1,7 +1,10 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { isBillingEnabled } from "@/lib/billing-feature";
 import {
   CREDIT_PACKAGE_CATALOG,
@@ -14,27 +17,17 @@ import {
   getGenerationCreditsCost,
   getModelPricing,
 } from "@/lib/model-pricing";
+import { translateError } from "@/lib/translate-error";
 import { useAppStore } from "@/store";
+
 function cn(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-const PACKAGE_COPY = {
-  small: {
-    label: "Starter",
-    blurb: "For testing prompts and quick concept passes",
-  },
-  medium: {
-    label: "Creator",
-    blurb: "Best for regular generation and remix sessions",
-  },
-  large: {
-    label: "Studio",
-    blurb: "For larger batches and heavier creative output",
-  },
-} as const;
-
 function CreditsContent() {
+  const t = useTranslations("credits");
+  const tCommon = useTranslations("common");
+  const tErrors = useTranslations("errors");
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAppStore((s) => s.user);
@@ -72,7 +65,7 @@ function CreditsContent() {
           if (status === "completed") {
             setMessage({
               type: "success",
-              text: "Purchase successful. Credits have been added to your account.",
+              text: t("messages.purchaseSuccess"),
             });
             await fetchCredits();
             return;
@@ -81,7 +74,7 @@ function CreditsContent() {
           if (status === "failed") {
             setMessage({
               type: "error",
-              text: "Payment failed. Please try again.",
+              text: t("messages.paymentFailed"),
             });
             return;
           }
@@ -94,11 +87,11 @@ function CreditsContent() {
 
       setMessage({
         type: "success",
-        text: "Purchase submitted. Credits will appear once the payment is confirmed.",
+        text: t("messages.purchaseSubmitted"),
       });
       await fetchCredits();
     },
-    [fetchCredits]
+    [fetchCredits, t]
   );
 
   useEffect(() => {
@@ -123,7 +116,7 @@ function CreditsContent() {
     ) {
       setMessage({
         type: "success",
-        text: "Purchase received. Credits will appear once the payment is confirmed.",
+        text: t("messages.purchaseReceived"),
       });
       if (orderId) {
         void waitForOrderCompletion(orderId);
@@ -135,7 +128,7 @@ function CreditsContent() {
       canceled === "true" ||
       ["canceled", "cancelled", "failed"].includes(status)
     ) {
-      setMessage({ type: "error", text: "Checkout was canceled." });
+      setMessage({ type: "error", text: t("messages.checkoutCanceled") });
       router.replace("/credits");
     }
   }, [
@@ -143,6 +136,7 @@ function CreditsContent() {
     fetchCredits,
     router,
     searchParams,
+    t,
     waitForOrderCompletion,
   ]);
 
@@ -183,7 +177,9 @@ function CreditsContent() {
       if (!res.ok) {
         setMessage({
           type: "error",
-          text: json.error || "Failed to create order",
+          text:
+            translateError(tErrors, json.errorCode, json.error) ||
+            t("messages.failedToCreateOrder"),
         });
         return;
       }
@@ -195,7 +191,7 @@ function CreditsContent() {
       console.error("Error purchasing credits:", error);
       setMessage({
         type: "error",
-        text: "An error occurred. Please try again.",
+        text: t("messages.genericError"),
       });
     } finally {
       setPurchasing(null);
@@ -206,16 +202,41 @@ function CreditsContent() {
     return null;
   }
 
+  const billingSteps = [
+    {
+      title: t("steps.choose.title"),
+      desc: t("steps.choose.desc"),
+    },
+    {
+      title: t("steps.pay.title"),
+      desc: t("steps.pay.desc"),
+    },
+    {
+      title: t("steps.added.title"),
+      desc: t("steps.added.desc"),
+    },
+  ];
+
+  const billingNotes = [
+    t("billingItems.standardModel", {
+      model: standardModel.name,
+      credits: standardCreditsCost ?? 0,
+    }),
+    t("billingItems.gptImage"),
+    t("billingItems.differentModels"),
+    t("billingItems.secureCheckout"),
+    t("billingItems.noExpiry"),
+    t("billingItems.refundContact"),
+  ];
+
   return (
     <div className="relative min-h-screen bg-[#f5f2ed] text-[#141210] dark:bg-[#0c0b09] dark:text-[#e0d9ce]">
-      {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-[20%] left-1/2 aspect-square w-[800px] -translate-x-1/2 rounded-full bg-indigo-400/10 blur-[120px] dark:bg-indigo-500/10" />
         <div className="absolute top-[40%] -left-[10%] aspect-square w-[500px] rounded-full bg-violet-400/8 blur-[100px] dark:bg-violet-500/8" />
         <div className="absolute top-[30%] -right-[10%] aspect-square w-[600px] rounded-full bg-fuchsia-400/8 blur-[100px] dark:bg-fuchsia-500/8" />
       </div>
 
-      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-[#d5cfc4] bg-[#f5f2ed]/80 backdrop-blur-xl dark:border-[#f5f2ed]/5 dark:bg-[#0c0b09]/80">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
           <button
@@ -235,10 +256,11 @@ function CreditsContent() {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            Back to site
+            {t("backToSite")}
           </button>
 
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             {user && (
               <div className="hidden items-center gap-2 rounded-full border border-[#d5cfc4] bg-[#ebe7e0] px-3 py-1.5 text-sm dark:border-[#f5f2ed]/10 dark:bg-[#141210]/80 sm:flex">
                 <svg
@@ -252,7 +274,7 @@ function CreditsContent() {
                   {credits?.toLocaleString() ?? "0"}
                 </span>
                 <span className="text-[#8a837a] dark:text-[#5c564e]">
-                  credits
+                  {tCommon("credits")}
                 </span>
               </div>
             )}
@@ -261,24 +283,21 @@ function CreditsContent() {
       </header>
 
       <main className="relative mx-auto max-w-6xl px-6 py-16">
-        {/* Page header */}
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#8a837a]">
-            Credits
+            {t("label")}
           </p>
           <h1
             className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl"
             style={{ fontFamily: "'Caveat', cursive" }}
           >
-            Top up your balance and keep creating
+            {t("title")}
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-[#5c564e] dark:text-[#8a837a]">
-            Purchase credits to generate images. No subscriptions, no monthly
-            reset — your balance stays until you use it.
+            {t("subtitle")}
           </p>
         </div>
 
-        {/* Balance card */}
         <div className="mx-auto mt-12 max-w-md">
           <div className="relative overflow-hidden rounded-[28px] border border-[#d5cfc4] bg-gradient-to-br from-[#ebe7e0] to-white p-8 text-center shadow-sm dark:border-[#f5f2ed]/10 dark:from-[#141210] dark:to-[#0c0b09]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.07),_transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.10),_transparent_60%)]" />
@@ -293,7 +312,7 @@ function CreditsContent() {
                 </svg>
               </div>
               <p className="mt-4 text-sm font-medium uppercase tracking-[0.18em] text-[#8a837a]">
-                Your Balance
+                {t("yourBalance")}
               </p>
               {credits === null ? (
                 <div className="mx-auto mt-3 h-12 w-32 animate-pulse rounded-xl bg-[#d5cfc4] dark:bg-[#1a1814]" />
@@ -303,13 +322,12 @@ function CreditsContent() {
                 </p>
               )}
               <p className="mt-1 text-sm text-[#8a837a] dark:text-[#5c564e]">
-                credits available
+                {t("creditsAvailable")}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Message */}
         {message && (
           <div
             className={cn(
@@ -354,15 +372,13 @@ function CreditsContent() {
           </div>
         )}
 
-        {/* Packages */}
         <div className="mx-auto mt-14 max-w-5xl">
           <p className="text-center text-xs font-medium uppercase tracking-[0.24em] text-[#8a837a]">
-            Purchase Credits
+            {t("purchaseCredits")}
           </p>
           <div className="mt-8 grid gap-5 lg:grid-cols-3">
             {CREDIT_PACKAGE_CATALOG.map((pkg) => {
               const isPopular = pkg.id === "medium";
-              const copy = PACKAGE_COPY[pkg.id];
               const disabled = purchasing !== null;
 
               return (
@@ -420,12 +436,11 @@ function CreditsContent() {
                             : "text-[#5c564e] dark:text-[#8a837a]"
                         )}
                       >
-                        Processing...
+                        {tCommon("processing")}
                       </span>
                     </div>
                   )}
 
-                  {/* Popular badge */}
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[#141210] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-[#f5f2ed] shadow-md dark:bg-[#f5f2ed] dark:text-[#141210]">
@@ -436,7 +451,7 @@ function CreditsContent() {
                         >
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                         </svg>
-                        Recommended
+                        {tCommon("recommended")}
                       </span>
                     </div>
                   )}
@@ -451,7 +466,7 @@ function CreditsContent() {
                             : "text-[#8a837a] dark:text-[#5c564e]"
                         )}
                       >
-                        {copy.label}
+                        {t(`packages.${pkg.id}.label`)}
                       </p>
                       <p
                         className={cn(
@@ -461,7 +476,7 @@ function CreditsContent() {
                             : "text-[#5c564e] dark:text-[#8a837a]"
                         )}
                       >
-                        {copy.blurb}
+                        {t(`packages.${pkg.id}.blurb`)}
                       </p>
                     </div>
                     <p
@@ -473,7 +488,7 @@ function CreditsContent() {
                       )}
                     >
                       {pkg.credits.toLocaleString()}
-                      <span className="ml-0.5 font-normal">cr</span>
+                      <span className="ml-0.5 font-normal">{tCommon("cr")}</span>
                     </p>
                   </div>
 
@@ -490,7 +505,7 @@ function CreditsContent() {
                       )}
                     >
                       ${(pkg.priceCents / 100 / pkg.credits).toFixed(3)}
-                      /credit
+                      {tCommon("perCredit")}
                     </p>
                   </div>
 
@@ -502,8 +517,10 @@ function CreditsContent() {
                         : "bg-[#f5f2ed] text-[#5c564e] shadow-sm dark:bg-[#1a1814] dark:text-[#8a837a]"
                     )}
                   >
-                    About {getApproximateRenderCount(pkg.credits).toLocaleString()}{" "}
-                    standard-tier renders with {standardModel.name}
+                    {t("approximateRenders", {
+                      count: getApproximateRenderCount(pkg.credits).toLocaleString(),
+                      model: standardModel.name,
+                    })}
                   </div>
                 </button>
               );
@@ -511,26 +528,12 @@ function CreditsContent() {
           </div>
         </div>
 
-        {/* How it works */}
         <div className="mx-auto mt-20 max-w-4xl">
           <p className="text-center text-xs font-medium uppercase tracking-[0.24em] text-[#8a837a]">
-            How it works
+            {t("howItWorks")}
           </p>
           <div className="mt-12 grid gap-12 sm:grid-cols-3">
-            {[
-              {
-                title: "Choose a bundle",
-                desc: "Pick the credit package that fits your creative needs. All are one-time purchases.",
-              },
-              {
-                title: "Pay securely",
-                desc: "Complete checkout via our payment provider. Your transaction is encrypted and safe.",
-              },
-              {
-                title: "Credits added instantly",
-                desc: "Once payment is confirmed, your balance updates automatically. Start generating right away.",
-              },
-            ].map((item, i) => (
+            {billingSteps.map((item, i) => (
               <div key={i} className="flex flex-col">
                 <span className="text-6xl font-semibold leading-none tabular-nums text-[#d5cfc4] dark:text-[#1a1814]">
                   {String(i + 1).padStart(2, "0")}
@@ -546,24 +549,14 @@ function CreditsContent() {
           </div>
         </div>
 
-        {/* Billing notes */}
         <div className="mx-auto mt-20 max-w-3xl border-t border-[#d5cfc4] pt-12 text-sm text-[#5c564e] dark:border-[#f5f2ed]/10 dark:text-[#8a837a]">
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#8a837a]">
-            Billing notes
+            {t("billingNotes")}
           </p>
           <ul className="mt-6 space-y-3">
-            <li>
-              {standardModel.name} currently uses {standardCreditsCost} credits at
-              its standard tier; higher tiers use more.
-            </li>
-            <li>
-              GPT Image 2 uses 12–66 credits depending on quality and orientation
-              (medium square from 12 credits, high landscape/portrait up to 66).
-            </li>
-            <li>Different models and output tiers consume different credits.</li>
-            <li>Payments are processed through a secure hosted checkout.</li>
-            <li>Purchased credits do not expire.</li>
-            <li>Contact support for refunds within 7 days of purchase.</li>
+            {billingNotes.map((note, index) => (
+              <li key={index}>{note}</li>
+            ))}
           </ul>
         </div>
       </main>
@@ -572,9 +565,12 @@ function CreditsContent() {
 }
 
 function LoadingFallback() {
+  const tCommon = useTranslations("common");
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f5f2ed] dark:bg-[#0c0b09]">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d5cfc4] dark:border-[#2a2520] border-t-[#8a837a]" />
+      <span className="sr-only">{tCommon("loading")}</span>
     </div>
   );
 }
