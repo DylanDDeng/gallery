@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# playwright / browser testing artifacts
+.playwright-mcp/
+
+# local dev artifacts
+/artifacts/
+
+# ui test screenshots (root only)
+/*.png
