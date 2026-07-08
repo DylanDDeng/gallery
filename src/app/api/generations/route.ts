@@ -2,17 +2,26 @@ import { NextResponse } from "next/server";
 import { ensureAuth } from "@/lib/auth";
 import { getAppSecret } from "@/lib/app-secrets";
 import { isBillingEnabled } from "@/lib/billing-feature";
-import type { OutputResolution } from "@/lib/generation-size-options";
+import { DoubaoClient } from "@/lib/doubao";
+import {
+  getOutputSize,
+  type AspectRatio,
+  type OutputResolution,
+} from "@/lib/generation-size-options";
 import {
   DEFAULT_MODEL_ID,
+  getDefaultTierId,
   getGenerationCreditsCost,
+  getSeedreamResolutionFromTier,
   isSupportedModelId,
+  resolveModelTier,
 } from "@/lib/model-pricing";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { DoubaoClient } from "@/lib/doubao";
-const CREDITS_DEBUG_PREFIX = "[credits-debug]";
+import { ZenMuxClient, type ZenMuxQuality } from "@/lib/zenmux";
 
-// Storage bucket name
+export const maxDuration = 300;
+
+const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 const STORAGE_BUCKET = "generations";
 
 async function markTaskFailed(taskId: string, errorMessage: string) {
@@ -40,6 +49,85 @@ async function refundFailedGeneration(
     console.error("Error refunding failed generation:", error);
     await markTaskFailed(taskId, errorMessage);
   }
+}
+
+async function uploadGeneratedImage(
+  userId: string,
+  taskId: string,
+  imageBuffer: ArrayBuffer
+) {
+  const fileName = `${userId}/${taskId}-${Date.now()}.png`;
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .upload(fileName, imageBuffer, {
+      contentType: "image/png",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    throw new Error(`Failed to upload generated image: ${uploadError.message}`);
+  }
+
+  const { data: urlData } = supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
+}
+
+async function completeGenerationTask(
+  taskId: string,
+  finalUrl: string,
+  generationCost: number
+) {
+  await supabaseAdmin
+    .from("generation_tasks")
+    .update({
+      status: "completed",
+      result_url: finalUrl,
+    })
+    .eq("id", taskId);
+
+  return finalUrl;
+}
+
+function normalizeAspectRatio(value: unknown): AspectRatio {
+  const allowed: AspectRatio[] = [
+    "1:1",
+    "3:4",
+    "4:3",
+    "16:9",
+    "9:16",
+    "3:2",
+    "2:3",
+    "21:9",
+  ];
+
+  if (typeof value === "string" && allowed.includes(value as AspectRatio)) {
+    return value as AspectRatio;
+  }
+
+  return "1:1";
+}
+
+function resolveTierFromRequest(
+  modelId: string,
+  tierId: unknown,
+  resolution: unknown
+) {
+  const normalizedTierId =
+    typeof tierId === "string" && tierId.trim().length > 0
+      ? tierId.trim()
+      : typeof resolution === "string" && resolution.trim().length > 0
+        ? resolution.trim()
+        : getDefaultTierId(modelId);
+
+  const tier = resolveModelTier(modelId, normalizedTierId);
+  if (!tier) {
+    return null;
+  }
+
+  return { tier, tierId: normalizedTierId };
 }
 
 export async function GET(request: Request) {
@@ -101,18 +189,34 @@ export async function POST(request: Request) {
     const {
       prompt,
       model = DEFAULT_MODEL_ID,
-      size = "2K",
+      tierId,
       resolution,
+      aspectRatio,
       sourceImageId,
       sourceImageUrl,
     } = body;
+
     const normalizedModel =
       typeof model === "string" && isSupportedModelId(model) ? model : DEFAULT_MODEL_ID;
-    const normalizedResolution: OutputResolution =
-      resolution === "3K" ? "3K" : "2K";
+    const resolvedTier = resolveTierFromRequest(normalizedModel, tierId, resolution);
+
+    if (!resolvedTier) {
+      return NextResponse.json(
+        { error: "Invalid generation tier for the selected model" },
+        { status: 400 }
+      );
+    }
+
     const generationCost = billingEnabled
-      ? getGenerationCreditsCost(normalizedModel, normalizedResolution)
+      ? getGenerationCreditsCost(normalizedModel, resolvedTier.tierId) ?? 0
       : 0;
+
+    if (billingEnabled && generationCost <= 0) {
+      return NextResponse.json(
+        { error: "Invalid generation tier for the selected model" },
+        { status: 400 }
+      );
+    }
 
     if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
       return NextResponse.json(
@@ -147,18 +251,20 @@ export async function POST(request: Request) {
       resolvedSourceImageUrl = sourceImage.url;
     }
 
-    const configuredApiKey = await getAppSecret("DOUBAO_API_KEY");
+    const providerParams = resolvedTier.tier.providerParams;
 
-    if (!configuredApiKey) {
+    const provider = normalizedModel === "openai/gpt-image-2" ? "zenmux" : "doubao";
+    const providerApiKey = await getAppSecret(
+      provider === "zenmux" ? "ZENMUX_API_KEY" : "DOUBAO_API_KEY"
+    );
+
+    if (!providerApiKey) {
       return NextResponse.json(
         { error: "Generation service is not configured" },
         { status: 500 }
       );
     }
 
-    const apiKey = configuredApiKey;
-
-    // Create generation task
     const { data: task, error: taskError } = await supabaseAdmin
       .from("generation_tasks")
       .insert({
@@ -233,21 +339,60 @@ export async function POST(request: Request) {
       });
     }
 
-    // Call Doubao API
-    const doubaoClient = new DoubaoClient();
-    let doubaoResponse;
+    let imageBuffer: ArrayBuffer;
+
     try {
-      doubaoResponse = await doubaoClient.generate({
-        apiKey,
-        prompt: prompt.trim(),
-        model: normalizedModel,
-        size,
-        image: resolvedSourceImageUrl || undefined,
-        outputFormat: "png",
-        watermark: false,
-      });
+      if (provider === "zenmux") {
+        const quality = providerParams.quality as ZenMuxQuality;
+        const size = providerParams.size;
+        const zenMuxClient = new ZenMuxClient();
+        const zenMuxResult = resolvedSourceImageUrl
+          ? await zenMuxClient.edit({
+              apiKey: providerApiKey,
+              prompt: prompt.trim(),
+              size,
+              quality,
+              imageUrls: [resolvedSourceImageUrl],
+            })
+          : await zenMuxClient.generate({
+              apiKey: providerApiKey,
+              prompt: prompt.trim(),
+              size,
+              quality,
+            });
+
+        imageBuffer = zenMuxResult.buffer;
+      } else {
+        const seedreamResolution = getSeedreamResolutionFromTier(
+          resolvedTier.tierId
+        ) as OutputResolution;
+        const normalizedAspectRatio = normalizeAspectRatio(aspectRatio);
+        const outputSize = getOutputSize(seedreamResolution, normalizedAspectRatio);
+        const doubaoClient = new DoubaoClient();
+        const doubaoResponse = await doubaoClient.generate({
+          apiKey: providerApiKey,
+          prompt: prompt.trim(),
+          model: normalizedModel,
+          size: outputSize.size,
+          image: resolvedSourceImageUrl || undefined,
+          outputFormat: "png",
+          watermark: false,
+        });
+
+        const imageUrl = doubaoResponse.data[0]?.url;
+        if (!imageUrl) {
+          throw new Error("No image URL in response");
+        }
+
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to download image: ${imageResponse.status}`);
+        }
+
+        imageBuffer = await imageResponse.arrayBuffer();
+      }
     } catch (apiError) {
-      console.error("Doubao API error:", apiError);
+      console.error("Generation API error:", apiError);
       const errorMessage =
         apiError instanceof Error ? apiError.message : "API call failed";
       if (billingEnabled) {
@@ -262,96 +407,28 @@ export async function POST(request: Request) {
       );
     }
 
-    // Download image from Doubao response
-    const imageUrl = doubaoResponse.data[0]?.url;
-    if (!imageUrl) {
-      if (billingEnabled) {
-        await refundFailedGeneration(user.id, task.id, "No image URL in response");
-      } else {
-        await markTaskFailed(task.id, "No image URL in response");
-      }
-
-      return NextResponse.json(
-        { error: "No image URL in Doubao response" },
-        { status: 500 }
-      );
-    }
-
-    // Download the image
-    let imageBuffer: ArrayBuffer;
+    let finalUrl: string;
     try {
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to download image: ${imageResponse.status}`);
-      }
-      imageBuffer = await imageResponse.arrayBuffer();
-    } catch (downloadError) {
-      console.error("Image download error:", downloadError);
+      finalUrl = await uploadGeneratedImage(user.id, task.id, imageBuffer);
+    } catch (uploadError) {
+      console.error("Storage upload error:", uploadError);
+      const errorMessage =
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Failed to upload generated image";
       if (billingEnabled) {
-        await refundFailedGeneration(
-          user.id,
-          task.id,
-          "Failed to download generated image"
-        );
+        await refundFailedGeneration(user.id, task.id, errorMessage);
       } else {
-        await markTaskFailed(task.id, "Failed to download generated image");
+        await markTaskFailed(task.id, errorMessage);
       }
 
       return NextResponse.json(
-        { error: "Failed to download generated image" },
+        { error: errorMessage },
         { status: 500 }
       );
     }
 
-    // Upload to Supabase Storage
-    const fileName = `${user.id}/${task.id}-${Date.now()}.png`;
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from(STORAGE_BUCKET)
-      .upload(fileName, imageBuffer, {
-        contentType: "image/png",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("Storage upload error:", uploadError);
-      // Fall back to using the original Doubao URL
-      await supabaseAdmin
-        .from("generation_tasks")
-        .update({
-          status: "completed",
-          result_url: imageUrl,
-        })
-        .eq("id", task.id);
-
-      return NextResponse.json(
-        {
-          task: {
-            ...task,
-            status: "completed",
-            result_url: imageUrl,
-            credits_cost: generationCost,
-          },
-          remainingCredits,
-        },
-        { status: 201 }
-      );
-    }
-
-    // Get public URL
-    const { data: urlData } = supabaseAdmin.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(fileName);
-
-    const finalUrl = urlData.publicUrl;
-
-    // Update task with result
-    await supabaseAdmin
-      .from("generation_tasks")
-      .update({
-        status: "completed",
-        result_url: finalUrl,
-      })
-      .eq("id", task.id);
+    await completeGenerationTask(task.id, finalUrl, generationCost);
 
     return NextResponse.json(
       {
