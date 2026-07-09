@@ -78,11 +78,11 @@
     "models": {
       "Nano Banana Pro": "Nano Banana Pro",
       "Nano Banana 2": "Nano Banana 2",
-      "GPT Image 1.5": "GPT Image 1.5",
+      "GPT Image 1_5": "GPT Image 1.5",
       "GPT Image 2": "GPT Image 2",
       "Grok Imagine": "Grok Imagine",
-      "Seedream 4.5": "Seedream 4.5",
-      "Seedream 5.0 Lite": "Seedream 5.0 Lite",
+      "Seedream 4_5": "Seedream 4.5",
+      "Seedream 5_0 Lite": "Seedream 5.0 Lite",
       "Z Image": "Z Image"
     },
     "modelPricing": {
