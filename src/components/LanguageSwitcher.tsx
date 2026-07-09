@@ -49,7 +49,7 @@ function LanguageSwitcherInner() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex h-8 items-center gap-1.5 rounded-lg border border-[#d5cfc4] bg-[#f5f2ed] px-2.5 text-xs font-medium text-[#4a443c] transition-colors hover:bg-[#ebe7e0] dark:border-[#2a2520] dark:bg-[#1a1814] dark:text-[#a39b90] dark:hover:bg-[#2a2520]/50"
+        className="flex items-center gap-1 text-[12px] tracking-wide text-[#5c564e] transition-colors hover:text-[#2a2520] dark:text-[#7a7269] dark:hover:text-[#c4bdb4]"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -72,7 +72,7 @@ function LanguageSwitcherInner() {
       {open && (
         <div
           role="listbox"
-          className="absolute right-0 top-full z-50 mt-1.5 min-w-[5.5rem] overflow-hidden rounded-lg border border-[#d5cfc4] bg-[#f5f2ed] shadow-lg dark:border-[#2a2520] dark:bg-[#1a1814]"
+          className="absolute right-0 top-full z-50 mt-1.5 min-w-[4.5rem] overflow-hidden rounded-md border border-[#e8e4de] bg-[#faf8f5] shadow-sm dark:border-[#2a2520] dark:bg-[#1a1814]"
         >
           {LOCALE_OPTIONS.map((option) => (
             <button
@@ -81,10 +81,10 @@ function LanguageSwitcherInner() {
               role="option"
               aria-selected={locale === option.value}
               onClick={() => switchLocale(option.value)}
-              className={`block w-full px-3 py-2 text-left text-xs transition-colors ${
+              className={`block w-full px-3 py-2 text-left text-[12px] tracking-wide transition-colors ${
                 locale === option.value
-                  ? "bg-[#ebe7e0] font-medium text-[#2a2520] dark:bg-[#2a2520]/50 dark:text-[#e0d9ce]"
-                  : "text-[#4a443c] hover:bg-[#ebe7e0] dark:text-[#a39b90] dark:hover:bg-[#2a2520]/50"
+                  ? "text-[#2a2520] underline underline-offset-4 decoration-[#2a2520] dark:text-[#c4bdb4] dark:decoration-[#c4bdb4]"
+                  : "text-[#5c564e] hover:text-[#2a2520] dark:text-[#7a7269] dark:hover:text-[#c4bdb4]"
               }`}
             >
               {option.label}
@@ -105,7 +105,7 @@ function LanguageSwitcherFallback() {
     <button
       type="button"
       disabled
-      className="flex h-8 items-center gap-1.5 rounded-lg border border-[#d5cfc4] bg-[#f5f2ed] px-2.5 text-xs font-medium text-[#4a443c] opacity-70 dark:border-[#2a2520] dark:bg-[#1a1814] dark:text-[#a39b90]"
+      className="flex items-center gap-1 text-[12px] tracking-wide text-[#5c564e] opacity-70 dark:text-[#7a7269]"
     >
       <span>{currentLabel}</span>
     </button>

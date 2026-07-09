@@ -29,6 +29,8 @@ interface AppState {
   favorites: string[];
   showFavoritesOnly: boolean;
   theme: "light" | "dark";
+  /** Whether the magazine cover has been opened (persists across client navigations). */
+  magazineOpened: boolean;
   // Feed pagination
   feedVersion: number;
   isLoading: boolean;
@@ -55,6 +57,9 @@ interface AppState {
   isFavorite: (imageId: string) => boolean;
   toggleShowFavoritesOnly: () => void;
   toggleTheme: () => void;
+  setMagazineOpened: (opened: boolean) => void;
+  /** Open the waterfall gallery (skip cover) — use before navigating home. */
+  openGallery: () => void;
   // Feed actions
   setIsLoading: (v: boolean) => void;
   setIsLoadingMore: (v: boolean) => void;
@@ -113,6 +118,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   favorites: [],
   showFavoritesOnly: false,
   theme: "light",
+  magazineOpened: false,
   // Feed pagination
   feedVersion: 0,
   isLoading: false,
@@ -149,6 +155,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       localStorage.setItem("theme", next);
       return { theme: next };
     }),
+
+  setMagazineOpened: (opened) => set({ magazineOpened: opened }),
+  openGallery: () => set({ magazineOpened: true }),
 
   setIsLoading: (v) => set({ isLoading: v }),
   setIsLoadingMore: (v) => set({ isLoadingMore: v }),

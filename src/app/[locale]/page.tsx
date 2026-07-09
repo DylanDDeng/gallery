@@ -20,9 +20,7 @@ export default function Home() {
   const tCommon = useTranslations("common");
   const [searchOpen, setSearchOpen] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [magazineOpened, setMagazineOpened] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const initialLoadRef = useRef(false);
   const lastLoadedParamsRef = useRef({
     searchQuery: "__initial__",
     activeCategory: "__initial__",
@@ -48,6 +46,9 @@ export default function Home() {
   const favorites = useAppStore((s) => s.favorites);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const magazineOpened = useAppStore((s) => s.magazineOpened);
+  const setMagazineOpened = useAppStore((s) => s.setMagazineOpened);
+  const openGallery = useAppStore((s) => s.openGallery);
 
   // Debounce search query for search modal
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function Home() {
     return () => window.clearTimeout(id);
   }, [searchQuery]);
 
-  // Filter change → reset and reload
+  // Filter change → reset and reload (skip when returning with cached feed)
   useEffect(() => {
     if (!favoritesLoaded && showFavoritesOnly) return;
 
@@ -70,6 +71,7 @@ export default function Home() {
     };
 
     const last = lastLoadedParamsRef.current;
+    const isFirstMount = last.searchQuery === "__initial__";
     const paramsChanged =
       last.searchQuery !== searchQuery ||
       last.activeCategory !== activeCategory ||
@@ -77,17 +79,23 @@ export default function Home() {
       last.activeModel !== activeModel ||
       last.showFavoritesOnly !== showFavoritesOnly;
 
-    // 只有参数真正变化时才重新加载
     if (!paramsChanged) return;
 
+    // Returning to home with cached images for the current filters — reuse them
+    if (isFirstMount && allImages.length > 0 && !isLoading) {
+      lastLoadedParamsRef.current = currentParams;
+      return;
+    }
+
+    // First mount with no cache, or filters actually changed
     if (showFavoritesOnly && favorites.length === 0) {
       resetFeed();
+      lastLoadedParamsRef.current = currentParams;
       return;
     }
 
     resetFeed();
     loadInitialPage();
-    initialLoadRef.current = true;
     lastLoadedParamsRef.current = currentParams;
   }, [
     searchQuery,
@@ -97,6 +105,8 @@ export default function Home() {
     showFavoritesOnly,
     favoritesLoaded,
     favorites.length,
+    allImages.length,
+    isLoading,
     resetFeed,
     loadInitialPage,
   ]);
@@ -148,12 +158,18 @@ export default function Home() {
             </h1>
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[11px] uppercase tracking-[0.15em] text-[#5c564e] dark:text-[#7a7269]">
-            <Link
-              href="/"
+            <button
+              type="button"
+              onClick={() => {
+                openGallery();
+                document
+                  .getElementById("gallery")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
               className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
             >
               {tNav("gallery")}
-            </Link>
+            </button>
             <Link
               href="/generate"
               className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
@@ -208,11 +224,13 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Magazine Cover — flips open on click */}
-      <HomeHero
-        coverImage={MAGAZINE_COVER_IMAGE}
-        onOpen={() => setMagazineOpened(true)}
-      />
+      {/* Magazine Cover — flips open on click (skipped once already opened) */}
+      {!magazineOpened && (
+        <HomeHero
+          coverImage={MAGAZINE_COVER_IMAGE}
+          onOpen={() => setMagazineOpened(true)}
+        />
+      )}
 
       {/* Gallery Content */}
       <div className={`transition-opacity duration-[1500ms] ${magazineOpened ? 'opacity-100' : 'opacity-0'}`}>

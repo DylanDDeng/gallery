@@ -182,6 +182,7 @@ export default function GeneratePage() {
   const fetchCredits = useAppStore((s) => s.fetchCredits);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const openGallery = useAppStore((s) => s.openGallery);
   const billingEnabled = isBillingEnabled();
   const isRemixMode = searchParams.get("mode") === "remix";
   const sourceImageId = searchParams.get("sourceImageId");
@@ -1165,7 +1166,10 @@ export default function GeneratePage() {
           <div className="flex min-w-0 items-center gap-4">
             <button
               type="button"
-              onClick={() => router.push("/")}
+              onClick={() => {
+                openGallery();
+                router.push("/");
+              }}
               className="flex select-none items-center gap-3"
             >
               <h1
@@ -1185,7 +1189,10 @@ export default function GeneratePage() {
           <div className="flex flex-shrink-0 items-center gap-3">
             <button
               type="button"
-              onClick={() => router.push("/")}
+              onClick={() => {
+                openGallery();
+                router.push("/");
+              }}
               className="hidden text-[11px] uppercase tracking-[0.15em] text-[#8a837a] transition-colors hover:text-[#2a2520] dark:text-[#5c564e] dark:hover:text-[#c4bdb4] md:block"
             >
               {tNav("gallery")}

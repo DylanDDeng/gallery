@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const user = useAppStore((s) => s.user);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const openGallery = useAppStore((s) => s.openGallery);
 
   useEffect(() => {
     if (!user) {
@@ -39,7 +40,10 @@ export default function SettingsPage() {
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push("/")}
+              onClick={() => {
+                openGallery();
+                router.push("/");
+              }}
               className="text-xs text-[#8a837a] dark:text-[#5c564e] hover:text-[#4a443c] dark:hover:text-[#a39b90]"
             >
               {t("backToSite")}

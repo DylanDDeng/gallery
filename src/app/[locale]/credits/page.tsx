@@ -34,6 +34,7 @@ function CreditsContent() {
   const authInitialized = useAppStore((s) => s.authInitialized);
   const credits = useAppStore((s) => s.credits);
   const fetchCredits = useAppStore((s) => s.fetchCredits);
+  const openGallery = useAppStore((s) => s.openGallery);
   const billingEnabled = isBillingEnabled();
   const standardModel = getModelPricing(STANDARD_MODEL_ID);
   const standardCreditsCost = getGenerationCreditsCost(
@@ -240,7 +241,10 @@ function CreditsContent() {
       <header className="sticky top-0 z-40 border-b border-[#d5cfc4] bg-[#f5f2ed]/80 backdrop-blur-xl dark:border-[#f5f2ed]/5 dark:bg-[#0c0b09]/80">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
           <button
-            onClick={() => router.push("/")}
+            onClick={() => {
+              openGallery();
+              router.push("/");
+            }}
             className="flex items-center gap-2 text-sm text-[#8a837a] transition-colors hover:text-[#4a443c] dark:text-[#5c564e] dark:hover:text-[#a39b90]"
           >
             <svg
