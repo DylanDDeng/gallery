@@ -627,6 +627,8 @@ export default function GeneratePage() {
         saveRemixGenerationDraft(nextDraft);
         setRemixDraft(nextDraft);
         setReferenceImages(nextReferenceImages);
+        setCurrentTask(null);
+        setFeaturedTaskId(null);
 
         if (user.id && nextSourceImageId) {
           saveRemixContextSnapshot(user.id, nextSourceImageId, {
@@ -783,6 +785,7 @@ export default function GeneratePage() {
 
       setStagedTasks([]);
       setFeaturedTaskId(null);
+      setCurrentTask(null);
 
       saveRemixGenerationDraft({
         mode: "remix",
@@ -1027,6 +1030,11 @@ export default function GeneratePage() {
     !prompt.trim() ||
     (billingEnabled && (selectedCreditsCost <= 0 || creditCount < selectedCreditsCost));
 
+  const stagedTaskIds = useMemo(
+    () => new Set(stagedTasks.map((task) => task.id)),
+    [stagedTasks]
+  );
+
   const resultTasks = useMemo(() => {
     if (!isRemixMode) {
       return historyTasks;
@@ -1036,7 +1044,9 @@ export default function GeneratePage() {
       .map((task) => normalizeSeriesItem(task))
       .filter((task): task is RemixSeriesItem => task !== null);
     const latest =
-      currentTask?.status === "completed" && currentTask.result_url
+      currentTask?.status === "completed" &&
+      currentTask.result_url &&
+      stagedTaskIds.has(currentTask.id)
         ? normalizeSeriesItem(currentTask)
         : null;
 
@@ -1045,12 +1055,7 @@ export default function GeneratePage() {
     }
 
     return rendered.length > 0 ? rendered : latest ? [latest] : [];
-  }, [currentTask, historyTasks, isRemixMode, sourceImageId, stagedTasks]);
-
-  const stagedTaskIds = useMemo(
-    () => new Set(stagedTasks.map((task) => task.id)),
-    [stagedTasks]
-  );
+  }, [currentTask, historyTasks, isRemixMode, sourceImageId, stagedTaskIds, stagedTasks]);
 
   const stagedTaskUrls = useMemo(
     () =>
@@ -1063,6 +1068,7 @@ export default function GeneratePage() {
   );
 
   const isLocalUploadRemix = isRemixMode && !sourceImageId;
+  const hasActiveRemixSeries = stagedTasks.length > 0;
 
   const referenceCards = useMemo<AssetCard[]>(
     () =>
@@ -1178,7 +1184,7 @@ export default function GeneratePage() {
   );
 
   const referenceFeaturedAsset = useMemo<AssetCard | null>(() => {
-    if (!isLocalUploadRemix || !sourceImageUrl || resultCards.length > 0) {
+    if (!isLocalUploadRemix || !sourceImageUrl || hasActiveRemixSeries) {
       return null;
     }
 
@@ -1192,9 +1198,9 @@ export default function GeneratePage() {
       kind: "reference" as const,
     };
   }, [
+    hasActiveRemixSeries,
     isLocalUploadRemix,
     remixDraft?.sourceImage?.prompt,
-    resultCards.length,
     sourceImageUrl,
     t,
   ]);
@@ -1202,7 +1208,7 @@ export default function GeneratePage() {
   const featuredAsset = isRemixMode
     ? (resultCards.find((asset) => asset.selected) ??
       pendingCard ??
-      resultCards[0] ??
+      (hasActiveRemixSeries ? resultCards[0] : null) ??
       referenceFeaturedAsset ??
       null)
     : (pendingCard ??
