@@ -1047,6 +1047,11 @@ export default function GeneratePage() {
     return rendered.length > 0 ? rendered : latest ? [latest] : [];
   }, [currentTask, historyTasks, isRemixMode, sourceImageId, stagedTasks]);
 
+  const stagedTaskIds = useMemo(
+    () => new Set(stagedTasks.map((task) => task.id)),
+    [stagedTasks]
+  );
+
   const stagedTaskUrls = useMemo(
     () =>
       new Set(
@@ -1056,6 +1061,8 @@ export default function GeneratePage() {
       ),
     [stagedTasks]
   );
+
+  const isLocalUploadRemix = isRemixMode && !sourceImageId;
 
   const referenceCards = useMemo<AssetCard[]>(
     () =>
@@ -1110,13 +1117,20 @@ export default function GeneratePage() {
           }`,
           kind: "result" as const,
           selected: isRemixMode
-            ? task.result_url === sourceImageUrl
+            ? sourceImageId || stagedTaskIds.has(task.id)
+              ? task.result_url === sourceImageUrl
+              : task.id === featuredTaskId
             : task.id === featuredTaskId,
           onDownload: () => {
             void handleDownloadTask(task);
           },
           onSelect: isRemixMode
             ? () => {
+                if (isLocalUploadRemix && !stagedTaskIds.has(task.id)) {
+                  setFeaturedTaskId(task.id);
+                  return;
+                }
+
                 handleSelectReferenceImage(
                   {
                     url: task.result_url!,
@@ -1139,10 +1153,12 @@ export default function GeneratePage() {
       handleDownloadTask,
       handleSelectReferenceImage,
       handleUseAsReference,
+      isLocalUploadRemix,
       isRemixMode,
       locale,
       resultTasks,
       sourceImageUrl,
+      stagedTaskIds,
       t,
     ]
   );
@@ -1162,11 +1178,7 @@ export default function GeneratePage() {
   );
 
   const referenceFeaturedAsset = useMemo<AssetCard | null>(() => {
-    if (!isRemixMode || sourceImageId || !sourceImageUrl) {
-      return null;
-    }
-
-    if (resultCards.some((asset) => asset.selected)) {
+    if (!isLocalUploadRemix || !sourceImageUrl || resultCards.length > 0) {
       return null;
     }
 
@@ -1180,19 +1192,18 @@ export default function GeneratePage() {
       kind: "reference" as const,
     };
   }, [
-    isRemixMode,
+    isLocalUploadRemix,
     remixDraft?.sourceImage?.prompt,
-    resultCards,
-    sourceImageId,
+    resultCards.length,
     sourceImageUrl,
     t,
   ]);
 
   const featuredAsset = isRemixMode
     ? (resultCards.find((asset) => asset.selected) ??
-      referenceFeaturedAsset ??
-      resultCards[0] ??
       pendingCard ??
+      resultCards[0] ??
+      referenceFeaturedAsset ??
       null)
     : (pendingCard ??
       resultCards.find((asset) => asset.id === featuredTaskId) ??
@@ -1200,6 +1211,9 @@ export default function GeneratePage() {
       null);
   const thumbnailCards = pendingCard ? [...resultCards, pendingCard] : resultCards;
   const resultCount = resultCards.length + (pendingCard ? 1 : 0);
+  const showContactSheet =
+    thumbnailCards.length > 1 ||
+    (isLocalUploadRemix && thumbnailCards.length > 0 && Boolean(sourceImageUrl));
 
   const generateLabel = submitting
     ? t("developing")
@@ -1611,7 +1625,7 @@ export default function GeneratePage() {
                   </figure>
                 </div>
 
-                {thumbnailCards.length > 1 ? (
+                {showContactSheet ? (
                   <div>
                     <div className="mb-3 flex items-baseline justify-between">
                       <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
