@@ -266,7 +266,7 @@ export default function GeneratePage() {
   }, [isRemixMode]);
 
   useEffect(() => {
-    if (isRemixMode || !user?.id) {
+    if (!user?.id) {
       return;
     }
 
@@ -307,7 +307,7 @@ export default function GeneratePage() {
     };
 
     void loadHistory();
-  }, [isRemixMode, user?.id]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -492,7 +492,7 @@ export default function GeneratePage() {
   }, [fetchRemixContext, isRemixMode, returnTo, searchParams, sourceImageId, user?.id]);
 
   useEffect(() => {
-    if (!isRemixMode || !remixDraft) {
+    if (!remixDraft) {
       return;
     }
 
@@ -502,7 +502,7 @@ export default function GeneratePage() {
       sourceImage: remixDraft.sourceImage,
       referenceImages: remixDraft.referenceImages,
     });
-  }, [isRemixMode, prompt, remixDraft]);
+  }, [prompt, remixDraft]);
 
   useEffect(() => {
     if (!isRemixMode) {
@@ -607,17 +607,25 @@ export default function GeneratePage() {
           nextSourceImage
         );
 
-        setRemixDraft((previous) => ({
+        const nextDraft: RemixGenerationDraft = {
           mode: "remix",
-          prompt: previous?.prompt ?? prompt,
-          promptLang: previous?.promptLang ?? "en",
+          prompt,
+          promptLang: remixDraft?.promptLang ?? "en",
           createdAt: Date.now(),
-          sourceImageId: previous?.sourceImageId ?? nextSourceImageId,
-          sourceImage: previous?.sourceImage?.url ? previous.sourceImage : nextSourceImage,
+          sourceImageId: remixDraft?.sourceImageId ?? nextSourceImageId,
+          sourceImage: remixDraft?.sourceImage?.url ? remixDraft.sourceImage : nextSourceImage,
           referenceImages: nextReferenceImages,
-          returnTo: previous?.returnTo ?? "gallery",
-          returnImageId: previous?.returnImageId,
-        }));
+          returnTo:
+            remixDraft?.returnTo ?? (returnTo === "original" ? "original" : "gallery"),
+          returnImageId:
+            remixDraft?.returnImageId ??
+            searchParams.get("returnImageId") ??
+            sourceImageId ??
+            undefined,
+        };
+
+        saveRemixGenerationDraft(nextDraft);
+        setRemixDraft(nextDraft);
         setReferenceImages(nextReferenceImages);
 
         if (user.id && nextSourceImageId) {
@@ -655,9 +663,11 @@ export default function GeneratePage() {
     [
       prompt,
       referenceImages,
+      remixDraft,
       returnTo,
       router,
       searchParams,
+      selectedModel,
       sourceImageId,
       stagedTasks,
       t,
@@ -1029,19 +1039,29 @@ export default function GeneratePage() {
       currentTask?.status === "completed" && currentTask.result_url
         ? normalizeSeriesItem(currentTask)
         : null;
-    return rendered.length > 0 ? rendered : latest ? [latest] : [];
-  }, [currentTask, historyTasks, isRemixMode, stagedTasks]);
 
-  const resultTaskUrls = useMemo(
-    () => new Set(resultTasks.map((task) => task.result_url)),
-    [resultTasks]
+    if (rendered.length === 0 && !latest && !sourceImageId) {
+      return historyTasks;
+    }
+
+    return rendered.length > 0 ? rendered : latest ? [latest] : [];
+  }, [currentTask, historyTasks, isRemixMode, sourceImageId, stagedTasks]);
+
+  const stagedTaskUrls = useMemo(
+    () =>
+      new Set(
+        stagedTasks
+          .map((task) => task.result_url)
+          .filter((url): url is string => typeof url === "string" && url.length > 0)
+      ),
+    [stagedTasks]
   );
 
   const referenceCards = useMemo<AssetCard[]>(
     () =>
       referenceImages
         .filter((image): image is Partial<ImagePrompt> & { url: string } => Boolean(image.url))
-        .filter((image) => !resultTaskUrls.has(image.url))
+        .filter((image) => !stagedTaskUrls.has(image.url))
         .map((image, index) => ({
           id: `reference-card:${image.url}`,
           imageUrl: image.url,
@@ -1061,7 +1081,7 @@ export default function GeneratePage() {
       handleRemoveReferenceImage,
       handleSelectReferenceImage,
       referenceImages,
-      resultTaskUrls,
+      stagedTaskUrls,
       sourceImageUrl,
       t,
     ]
@@ -1141,8 +1161,36 @@ export default function GeneratePage() {
     [submitting, t]
   );
 
+  const referenceFeaturedAsset = useMemo<AssetCard | null>(() => {
+    if (!isRemixMode || sourceImageId || !sourceImageUrl) {
+      return null;
+    }
+
+    if (resultCards.some((asset) => asset.selected)) {
+      return null;
+    }
+
+    return {
+      id: `reference-featured:${sourceImageUrl}`,
+      imageUrl: sourceImageUrl,
+      label: t("currentReference"),
+      caption: remixDraft?.sourceImage?.prompt
+        ? getPromptExcerpt(remixDraft.sourceImage.prompt, 70)
+        : t("referenceCaption"),
+      kind: "reference" as const,
+    };
+  }, [
+    isRemixMode,
+    remixDraft?.sourceImage?.prompt,
+    resultCards,
+    sourceImageId,
+    sourceImageUrl,
+    t,
+  ]);
+
   const featuredAsset = isRemixMode
     ? (resultCards.find((asset) => asset.selected) ??
+      referenceFeaturedAsset ??
       resultCards[0] ??
       pendingCard ??
       null)
