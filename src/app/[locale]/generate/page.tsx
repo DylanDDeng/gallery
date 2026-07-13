@@ -210,6 +210,12 @@ export default function GeneratePage() {
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const remixHydrationRequestRef = useRef(0);
   const historyRequestRef = useRef(0);
+  const promptRef = useRef(prompt);
+  const remixDraftRef = useRef(remixDraft);
+  const referenceImagesRef = useRef(referenceImages);
+  promptRef.current = prompt;
+  remixDraftRef.current = remixDraft;
+  referenceImagesRef.current = referenceImages;
   const usesAspectRatio = modelUsesAspectRatio(selectedModel);
   const selectedOutputSize = usesAspectRatio
     ? getOutputSize(selectedResolution, selectedAspectRatio)
@@ -266,7 +272,7 @@ export default function GeneratePage() {
   }, [isRemixMode]);
 
   useEffect(() => {
-    if (isRemixMode || !user?.id) {
+    if (!user?.id) {
       return;
     }
 
@@ -492,7 +498,7 @@ export default function GeneratePage() {
   }, [fetchRemixContext, isRemixMode, returnTo, searchParams, sourceImageId, user?.id]);
 
   useEffect(() => {
-    if (!isRemixMode || !remixDraft) {
+    if (!remixDraft) {
       return;
     }
 
@@ -502,7 +508,7 @@ export default function GeneratePage() {
       sourceImage: remixDraft.sourceImage,
       referenceImages: remixDraft.referenceImages,
     });
-  }, [isRemixMode, prompt, remixDraft]);
+  }, [prompt, remixDraft]);
 
   useEffect(() => {
     if (!isRemixMode) {
@@ -602,23 +608,38 @@ export default function GeneratePage() {
           url: publicUrl,
           prompt: file.name,
         };
+        const currentRemixDraft = remixDraftRef.current;
+        const currentPrompt = promptRef.current;
         const nextReferenceImages = mergeReferenceImages(
-          referenceImages,
+          referenceImagesRef.current,
           nextSourceImage
         );
 
-        setRemixDraft((previous) => ({
+        const nextDraft: RemixGenerationDraft = {
           mode: "remix",
-          prompt: previous?.prompt ?? prompt,
-          promptLang: previous?.promptLang ?? "en",
+          prompt: currentPrompt,
+          promptLang: currentRemixDraft?.promptLang ?? "en",
           createdAt: Date.now(),
-          sourceImageId: previous?.sourceImageId ?? nextSourceImageId,
-          sourceImage: previous?.sourceImage?.url ? previous.sourceImage : nextSourceImage,
+          sourceImageId: currentRemixDraft?.sourceImageId ?? nextSourceImageId,
+          sourceImage: currentRemixDraft?.sourceImage?.url
+            ? currentRemixDraft.sourceImage
+            : nextSourceImage,
           referenceImages: nextReferenceImages,
-          returnTo: previous?.returnTo ?? "gallery",
-          returnImageId: previous?.returnImageId,
-        }));
+          returnTo:
+            currentRemixDraft?.returnTo ??
+            (returnTo === "original" ? "original" : "gallery"),
+          returnImageId:
+            currentRemixDraft?.returnImageId ??
+            searchParams.get("returnImageId") ??
+            sourceImageId ??
+            undefined,
+        };
+
+        saveRemixGenerationDraft(nextDraft);
+        setRemixDraft(nextDraft);
         setReferenceImages(nextReferenceImages);
+        setCurrentTask(null);
+        setFeaturedTaskId(null);
 
         if (user.id && nextSourceImageId) {
           saveRemixContextSnapshot(user.id, nextSourceImageId, {
@@ -653,11 +674,10 @@ export default function GeneratePage() {
       }
     },
     [
-      prompt,
-      referenceImages,
       returnTo,
       router,
       searchParams,
+      selectedModel,
       sourceImageId,
       stagedTasks,
       t,
@@ -725,6 +745,10 @@ export default function GeneratePage() {
       image: Partial<ImagePrompt> & { url: string },
       options?: { skipAddingToReferenceList?: boolean }
     ) => {
+      if (!sourceImageId) {
+        setFeaturedTaskId(null);
+      }
+
       setRemixDraft((previous) => {
         if (!previous) {
           return previous;
@@ -773,6 +797,7 @@ export default function GeneratePage() {
 
       setStagedTasks([]);
       setFeaturedTaskId(null);
+      setCurrentTask(null);
 
       saveRemixGenerationDraft({
         mode: "remix",
@@ -1017,6 +1042,11 @@ export default function GeneratePage() {
     !prompt.trim() ||
     (billingEnabled && (selectedCreditsCost <= 0 || creditCount < selectedCreditsCost));
 
+  const stagedTaskIds = useMemo(
+    () => new Set(stagedTasks.map((task) => task.id)),
+    [stagedTasks]
+  );
+
   const resultTasks = useMemo(() => {
     if (!isRemixMode) {
       return historyTasks;
@@ -1026,22 +1056,37 @@ export default function GeneratePage() {
       .map((task) => normalizeSeriesItem(task))
       .filter((task): task is RemixSeriesItem => task !== null);
     const latest =
-      currentTask?.status === "completed" && currentTask.result_url
+      currentTask?.status === "completed" &&
+      currentTask.result_url &&
+      stagedTaskIds.has(currentTask.id)
         ? normalizeSeriesItem(currentTask)
         : null;
-    return rendered.length > 0 ? rendered : latest ? [latest] : [];
-  }, [currentTask, historyTasks, isRemixMode, stagedTasks]);
 
-  const resultTaskUrls = useMemo(
-    () => new Set(resultTasks.map((task) => task.result_url)),
-    [resultTasks]
+    if (rendered.length === 0 && !latest && !sourceImageId) {
+      return historyTasks;
+    }
+
+    return rendered.length > 0 ? rendered : latest ? [latest] : [];
+  }, [currentTask, historyTasks, isRemixMode, sourceImageId, stagedTaskIds, stagedTasks]);
+
+  const stagedTaskUrls = useMemo(
+    () =>
+      new Set(
+        stagedTasks
+          .map((task) => task.result_url)
+          .filter((url): url is string => typeof url === "string" && url.length > 0)
+      ),
+    [stagedTasks]
   );
+
+  const isLocalUploadRemix = isRemixMode && !sourceImageId;
+  const hasActiveRemixSeries = stagedTasks.length > 0;
 
   const referenceCards = useMemo<AssetCard[]>(
     () =>
       referenceImages
         .filter((image): image is Partial<ImagePrompt> & { url: string } => Boolean(image.url))
-        .filter((image) => !resultTaskUrls.has(image.url))
+        .filter((image) => !stagedTaskUrls.has(image.url))
         .map((image, index) => ({
           id: `reference-card:${image.url}`,
           imageUrl: image.url,
@@ -1061,7 +1106,7 @@ export default function GeneratePage() {
       handleRemoveReferenceImage,
       handleSelectReferenceImage,
       referenceImages,
-      resultTaskUrls,
+      stagedTaskUrls,
       sourceImageUrl,
       t,
     ]
@@ -1090,13 +1135,20 @@ export default function GeneratePage() {
           }`,
           kind: "result" as const,
           selected: isRemixMode
-            ? task.result_url === sourceImageUrl
+            ? sourceImageId || stagedTaskIds.has(task.id)
+              ? task.result_url === sourceImageUrl
+              : task.id === featuredTaskId
             : task.id === featuredTaskId,
           onDownload: () => {
             void handleDownloadTask(task);
           },
           onSelect: isRemixMode
             ? () => {
+                if (isLocalUploadRemix && !stagedTaskIds.has(task.id)) {
+                  setFeaturedTaskId(task.id);
+                  return;
+                }
+
                 handleSelectReferenceImage(
                   {
                     url: task.result_url!,
@@ -1119,10 +1171,12 @@ export default function GeneratePage() {
       handleDownloadTask,
       handleSelectReferenceImage,
       handleUseAsReference,
+      isLocalUploadRemix,
       isRemixMode,
       locale,
       resultTasks,
       sourceImageUrl,
+      stagedTaskIds,
       t,
     ]
   );
@@ -1141,10 +1195,33 @@ export default function GeneratePage() {
     [submitting, t]
   );
 
+  const referenceFeaturedAsset = useMemo<AssetCard | null>(() => {
+    if (!isLocalUploadRemix || !sourceImageUrl || hasActiveRemixSeries) {
+      return null;
+    }
+
+    return {
+      id: `reference-featured:${sourceImageUrl}`,
+      imageUrl: sourceImageUrl,
+      label: t("currentReference"),
+      caption: remixDraft?.sourceImage?.prompt
+        ? getPromptExcerpt(remixDraft.sourceImage.prompt, 70)
+        : t("referenceCaption"),
+      kind: "reference" as const,
+    };
+  }, [
+    hasActiveRemixSeries,
+    isLocalUploadRemix,
+    remixDraft?.sourceImage?.prompt,
+    sourceImageUrl,
+    t,
+  ]);
+
   const featuredAsset = isRemixMode
     ? (resultCards.find((asset) => asset.selected) ??
-      resultCards[0] ??
       pendingCard ??
+      (hasActiveRemixSeries ? resultCards[0] : null) ??
+      referenceFeaturedAsset ??
       null)
     : (pendingCard ??
       resultCards.find((asset) => asset.id === featuredTaskId) ??
@@ -1152,6 +1229,9 @@ export default function GeneratePage() {
       null);
   const thumbnailCards = pendingCard ? [...resultCards, pendingCard] : resultCards;
   const resultCount = resultCards.length + (pendingCard ? 1 : 0);
+  const showContactSheet =
+    thumbnailCards.length > 1 ||
+    (isLocalUploadRemix && thumbnailCards.length > 0 && Boolean(sourceImageUrl));
 
   const generateLabel = submitting
     ? t("developing")
@@ -1563,7 +1643,7 @@ export default function GeneratePage() {
                   </figure>
                 </div>
 
-                {thumbnailCards.length > 1 ? (
+                {showContactSheet ? (
                   <div>
                     <div className="mb-3 flex items-baseline justify-between">
                       <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
