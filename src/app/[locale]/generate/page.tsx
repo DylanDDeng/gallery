@@ -307,7 +307,7 @@ export default function GeneratePage() {
     };
 
     void loadHistory();
-  }, [user?.id]);
+  }, [isRemixMode, user?.id]);
 
   useEffect(() => {
     if (!user) return;
