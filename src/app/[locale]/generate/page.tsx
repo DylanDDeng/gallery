@@ -210,6 +210,12 @@ export default function GeneratePage() {
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const remixHydrationRequestRef = useRef(0);
   const historyRequestRef = useRef(0);
+  const promptRef = useRef(prompt);
+  const remixDraftRef = useRef(remixDraft);
+  const referenceImagesRef = useRef(referenceImages);
+  promptRef.current = prompt;
+  remixDraftRef.current = remixDraft;
+  referenceImagesRef.current = referenceImages;
   const usesAspectRatio = modelUsesAspectRatio(selectedModel);
   const selectedOutputSize = usesAspectRatio
     ? getOutputSize(selectedResolution, selectedAspectRatio)
@@ -602,23 +608,28 @@ export default function GeneratePage() {
           url: publicUrl,
           prompt: file.name,
         };
+        const currentRemixDraft = remixDraftRef.current;
+        const currentPrompt = promptRef.current;
         const nextReferenceImages = mergeReferenceImages(
-          referenceImages,
+          referenceImagesRef.current,
           nextSourceImage
         );
 
         const nextDraft: RemixGenerationDraft = {
           mode: "remix",
-          prompt,
-          promptLang: remixDraft?.promptLang ?? "en",
+          prompt: currentPrompt,
+          promptLang: currentRemixDraft?.promptLang ?? "en",
           createdAt: Date.now(),
-          sourceImageId: remixDraft?.sourceImageId ?? nextSourceImageId,
-          sourceImage: remixDraft?.sourceImage?.url ? remixDraft.sourceImage : nextSourceImage,
+          sourceImageId: currentRemixDraft?.sourceImageId ?? nextSourceImageId,
+          sourceImage: currentRemixDraft?.sourceImage?.url
+            ? currentRemixDraft.sourceImage
+            : nextSourceImage,
           referenceImages: nextReferenceImages,
           returnTo:
-            remixDraft?.returnTo ?? (returnTo === "original" ? "original" : "gallery"),
+            currentRemixDraft?.returnTo ??
+            (returnTo === "original" ? "original" : "gallery"),
           returnImageId:
-            remixDraft?.returnImageId ??
+            currentRemixDraft?.returnImageId ??
             searchParams.get("returnImageId") ??
             sourceImageId ??
             undefined,
@@ -663,9 +674,6 @@ export default function GeneratePage() {
       }
     },
     [
-      prompt,
-      referenceImages,
-      remixDraft,
       returnTo,
       router,
       searchParams,
@@ -737,6 +745,10 @@ export default function GeneratePage() {
       image: Partial<ImagePrompt> & { url: string },
       options?: { skipAddingToReferenceList?: boolean }
     ) => {
+      if (!sourceImageId) {
+        setFeaturedTaskId(null);
+      }
+
       setRemixDraft((previous) => {
         if (!previous) {
           return previous;
