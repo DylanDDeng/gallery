@@ -48,6 +48,7 @@ import {
 import type { ImagePrompt } from "@/lib/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase-browser";
 import UserMenu from "@/components/UserMenu";
+import { selectFeaturedResult } from "@/lib/generation-results";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 
@@ -511,18 +512,13 @@ export default function GeneratePage() {
   }, [prompt, remixDraft]);
 
   useEffect(() => {
-    if (!isRemixMode) {
-      setReferenceImages([]);
-      return;
-    }
-
     setReferenceImages(
       mergeReferenceImages(
         remixDraft?.referenceImages,
         remixDraft?.sourceImage?.url ? remixDraft.sourceImage : null
       )
     );
-  }, [isRemixMode, remixDraft?.referenceImages, remixDraft?.sourceImage]);
+  }, [remixDraft?.referenceImages, remixDraft?.sourceImage]);
 
   const handlePickReferenceImage = useCallback(() => {
     referenceInputRef.current?.click();
@@ -649,16 +645,6 @@ export default function GeneratePage() {
             savedAt: Date.now(),
           });
         }
-
-        router.replace(
-          buildRemixGenerateUrl({
-            sourceImageId: sourceImageId || undefined,
-            sourceImageUrl: publicUrl,
-            returnTo: returnTo === "original" ? "original" : "gallery",
-            returnImageId:
-              searchParams.get("returnImageId") || sourceImageId || undefined,
-          })
-        );
       } catch (uploadError) {
         console.error("Reference image upload failed:", uploadError);
         setError(
@@ -675,7 +661,6 @@ export default function GeneratePage() {
     },
     [
       returnTo,
-      router,
       searchParams,
       selectedModel,
       sourceImageId,
@@ -717,18 +702,21 @@ export default function GeneratePage() {
         };
       });
 
-      router.replace(
-        buildRemixGenerateUrl({
-          sourceImageId: sourceImageId || undefined,
-          sourceImageUrl: isRemovingActive ? undefined : activeSourceImageUrl ?? undefined,
-          returnTo: returnTo === "original" ? "original" : "gallery",
-          returnImageId:
-            searchParams.get("returnImageId") || sourceImageId || undefined,
-        })
-      );
+      if (isRemixMode) {
+        router.replace(
+          buildRemixGenerateUrl({
+            sourceImageId: sourceImageId || undefined,
+            sourceImageUrl: isRemovingActive ? undefined : activeSourceImageUrl ?? undefined,
+            returnTo: returnTo === "original" ? "original" : "gallery",
+            returnImageId:
+              searchParams.get("returnImageId") || sourceImageId || undefined,
+          })
+        );
+      }
     },
     [
       referenceImages,
+      isRemixMode,
       remixDraft?.sourceImage,
       remixDraft?.sourceImageId,
       returnTo,
@@ -775,17 +763,19 @@ export default function GeneratePage() {
         return nextDraft;
       });
 
-      router.replace(
-        buildRemixGenerateUrl({
-          sourceImageId: sourceImageId || undefined,
-          sourceImageUrl: image.url,
-          returnTo: returnTo === "original" ? "original" : "gallery",
-          returnImageId:
-            searchParams.get("returnImageId") || sourceImageId || undefined,
-        })
-      );
+      if (isRemixMode) {
+        router.replace(
+          buildRemixGenerateUrl({
+            sourceImageId: sourceImageId || undefined,
+            sourceImageUrl: image.url,
+            returnTo: returnTo === "original" ? "original" : "gallery",
+            returnImageId:
+              searchParams.get("returnImageId") || sourceImageId || undefined,
+          })
+        );
+      }
     },
-    [returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
+    [isRemixMode, returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
   );
 
   const handleUseAsReference = useCallback(
@@ -954,6 +944,7 @@ export default function GeneratePage() {
       }
 
       setCurrentTask(json.task);
+      setFeaturedTaskId(json.task.id);
 
       if (isRemixMode && json.task.result_url) {
         setStagedTasks((previous) => {
@@ -1175,6 +1166,7 @@ export default function GeneratePage() {
       isRemixMode,
       locale,
       resultTasks,
+      sourceImageId,
       sourceImageUrl,
       stagedTaskIds,
       t,
@@ -1217,16 +1209,14 @@ export default function GeneratePage() {
     t,
   ]);
 
+  const featuredResult = selectFeaturedResult(resultCards, featuredTaskId);
   const featuredAsset = isRemixMode
     ? (resultCards.find((asset) => asset.selected) ??
       pendingCard ??
       (hasActiveRemixSeries ? resultCards[0] : null) ??
       referenceFeaturedAsset ??
       null)
-    : (pendingCard ??
-      resultCards.find((asset) => asset.id === featuredTaskId) ??
-      resultCards[0] ??
-      null);
+    : (pendingCard ?? featuredResult);
   const thumbnailCards = pendingCard ? [...resultCards, pendingCard] : resultCards;
   const resultCount = resultCards.length + (pendingCard ? 1 : 0);
   const showContactSheet =
