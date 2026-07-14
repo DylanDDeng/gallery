@@ -150,18 +150,55 @@
   "auth": {
     "signIn": "Sign in",
     "signOut": "Sign out",
+    "close": "Close sign-in window",
+    "accessLabel": "Account access",
     "continueWithGoogle": "Continue with Google",
+    "continueWithPhone": "Continue with phone",
+    "or": "or",
     "signedIn": "Signed in",
     "favorites": "Favorites",
+    "phone": {
+      "loginTitle": "Sign in with phone",
+      "loginDescription": "Enter a mainland China phone number and we will send a 6-digit code.",
+      "phoneLabel": "Phone number",
+      "mainlandOnly": "Mainland China +86 numbers are currently supported. Codes expire in 5 minutes.",
+      "codeLabel": "SMS verification code",
+      "codeSent": "Code sent to {phone}",
+      "changePhone": "Change phone number",
+      "sendCode": "Send verification code",
+      "sending": "Sending…",
+      "signIn": "Verify and sign in",
+      "confirmBinding": "Verify and bind",
+      "verifying": "Verifying…",
+      "resend": "Send another code",
+      "resendCountdown": "Send again in {seconds}s",
+      "cancel": "Back to other sign-in methods",
+      "errors": {
+        "invalidPhone": "Enter a valid mainland China phone number.",
+        "invalidCode": "Enter the 6-digit SMS code.",
+        "completeCaptcha": "Complete the security check first.",
+        "captchaUnavailable": "Phone sign-in security is not configured yet. Please try again later.",
+        "sendFailed": "We could not send a code. Please try again shortly.",
+        "verifyFailed": "That code is invalid or expired. Request a new one.",
+        "phoneAlreadyUsed": "This phone is linked to another account. Accounts are not merged automatically.",
+        "sessionExpired": "Your session expired. Sign in again before binding a phone.",
+        "sessionChanged": "Your account state changed. Close this window and try again."
+      }
+    },
     "loginPrompt": {
+      "account": {
+        "title": "Sign in to Aestara",
+        "description": "Choose a method to enter your creative account.",
+        "dismiss": "Not now"
+      },
       "favorites": {
         "title": "Sign in to save favorites",
-        "description": "Create an account or sign in with Google to keep your favorites saved across sessions.",
+        "description": "Sign in to keep favorites and creative history available across devices.",
         "dismiss": "Maybe later"
       },
       "generate": {
         "title": "Sign in to create",
-        "description": "Sign in with Google to access the studio and develop your prints.",
+        "description": "Sign in to enter the studio and keep developing your prints.",
         "dismiss": "Back to gallery"
       }
     }
@@ -325,7 +362,13 @@
     "account": {
       "title": "Account",
       "description": "Manage your account information.",
-      "signedIn": "Signed in"
+      "signedIn": "Signed in",
+      "phone": {
+        "title": "Sign-in phone",
+        "notBound": "No phone number bound",
+        "bind": "Bind",
+        "change": "Change"
+      }
     }
   },
   "errors": {
@@ -450,7 +493,7 @@
     "privacy": {
       "title": "Privacy Policy",
       "description": "This policy explains what information Aestara collects, how it is used, and which third parties help operate the service.",
-      "updatedAt": "March 18, 2026",
+      "updatedAt": "July 14, 2026",
       "sections": [
         {
           "heading": "Overview",
@@ -464,7 +507,8 @@
             "We collect minimal information to provide and improve our service:"
           ],
           "items": [
-            "Google Account Information — When you sign in with Google, we receive your name, email address, and profile picture from your Google account. This is used for authentication, account access, and personalizing your experience.",
+            "Account and Phone Information — When you sign in with Google, we receive your name, email address, and profile picture. When you sign in or bind with SMS, we process your phone number. Supabase may temporarily hold an unconfirmed number before verification; after verification it is used for authentication and account access.",
+            "SMS Delivery Records — To prevent duplicate sends and troubleshoot failures, we retain a server-keyed HMAC phone digest, delivery status, provider request identifiers, and timestamps for no more than 30 days. We do not retain OTP codes, full phone numbers, or raw webhook bodies in these records.",
             "Prompts and Generated Images — We store prompts you submit, generation job data, and generated image results so that the service can deliver outputs, maintain job history, and support refunds or troubleshooting.",
             "Orders and Credit Balances — We store purchase history, credit balances, and order metadata so we can fulfill purchases and maintain account balances.",
             "Theme Preference — We store your light/dark mode preference locally in your browser."
@@ -486,7 +530,8 @@
           ],
           "items": [
             "Google — For user authentication via Google OAuth.",
-            "Supabase — For database, authentication, and data storage.",
+            "Supabase — For database, authentication, phone verification, and data storage.",
+            "Alibaba Cloud SMS — For delivering one-time sign-in codes to mainland China phone numbers.",
             "Checkout Provider — For payment processing, billing, and related transaction handling.",
             "Vercel — For website hosting and content delivery.",
             "Umami — For privacy-focused website analytics."
@@ -495,7 +540,7 @@
         {
           "heading": "Data Storage & Security",
           "paragraphs": [
-            "Your data is stored securely in Supabase with row-level security (RLS) policies helping ensure that personal account data is only accessible to the appropriate user and service roles. We do not sell your personal data."
+          "Your data is stored securely in Supabase with row-level security (RLS) policies helping ensure that personal account data is only accessible to the appropriate user and service roles. SMS delivery audit records are retained only as long as needed for security and troubleshooting. We do not sell your personal data."
           ]
         },
         {

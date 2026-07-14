@@ -10,6 +10,8 @@ const MAX_IMAGES = 1000;
 interface User {
   id: string;
   email?: string;
+  phone?: string;
+  phone_confirmed_at?: string;
   user_metadata?: {
     name?: string;
     avatar_url?: string;
@@ -41,7 +43,7 @@ interface AppState {
   authInitialized: boolean;
   favoritesLoaded: boolean;
   showLoginPrompt: boolean;
-  loginPromptReason: "favorites" | "generate" | null;
+  loginPromptReason: "account" | "favorites" | "generate" | null;
   // Credits
   credits: number | null;
   creditsVersion: number;
@@ -72,7 +74,7 @@ interface AppState {
   setUser: (user: User | null) => void;
   setAuthInitialized: (initialized: boolean) => void;
   fetchFavorites: () => Promise<void>;
-  setShowLoginPrompt: (show: boolean, reason?: "favorites" | "generate") => void;
+  setShowLoginPrompt: (show: boolean, reason?: "account" | "favorites" | "generate") => void;
   // Credits actions
   setCredits: (credits: number | null) => void;
   fetchCredits: () => Promise<void>;
