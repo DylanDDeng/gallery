@@ -126,6 +126,32 @@ test("rejects malformed, oversized, and non-mainland payloads", async () => {
   assert.equal(oversized.status, 413);
 });
 
+test("accepts the current Supabase payload with the destination in sms.phone", () => {
+  assert.deepEqual(
+    parseSendSmsPayload({
+      user: {},
+      sms: { phone: "8613800138000", otp: "123456" },
+    }),
+    {
+      user: { phone: "+8613800138000" },
+      sms: { otp: "123456" },
+    },
+  );
+});
+
+test("prefers sms.phone for phone changes and normalizes the destination", () => {
+  assert.deepEqual(
+    parseSendSmsPayload({
+      user: { phone: "+8613900139000" },
+      sms: { phone: "8613800138000", otp: "123456" },
+    }),
+    {
+      user: { phone: "+8613800138000" },
+      sms: { otp: "123456" },
+    },
+  );
+});
+
 test("reserves the webhook before one provider call and records success", async () => {
   const { calls, repository } = createRepository();
   let providerCalls = 0;
