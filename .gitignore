@@ -42,6 +42,8 @@ next-env.d.ts
 
 # playwright / browser testing artifacts
 .playwright-mcp/
+.playwright-cli/
+/output/playwright/
 
 # local dev artifacts
 /artifacts/
