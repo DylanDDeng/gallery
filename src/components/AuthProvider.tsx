@@ -10,6 +10,8 @@ const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 type InitialUser = {
   id: string;
   email?: string;
+  phone?: string;
+  phone_confirmed_at?: string;
   user_metadata?: {
     name?: string;
     avatar_url?: string;

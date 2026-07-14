@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import PhoneBindingPanel from "@/components/PhoneBindingPanel";
+import { maskPhone } from "@/lib/phone";
 import { useAppStore } from "@/store";
 import type { Locale } from "@/i18n/routing";
 
@@ -156,16 +158,24 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-[#d5cfc4] dark:bg-[#1a1814] flex items-center justify-center">
                 <span className="text-sm font-medium text-[#4a443c] dark:text-[#8a837a]">
-                  {user.email?.charAt(0).toUpperCase() || tCommon("user").charAt(0)}
+                  {user.email?.charAt(0).toUpperCase() ||
+                    (user.phone_confirmed_at ? user.phone?.slice(-1) : null) ||
+                    tCommon("user").charAt(0)}
                 </span>
               </div>
-              <div>
-                <p className="font-medium text-[#141210] dark:text-[#e0d9ce]">{user.email}</p>
+              <div className="min-w-0">
+                <p className="truncate font-medium text-[#141210] dark:text-[#e0d9ce]">
+                  {user.email ||
+                    (user.phone && user.phone_confirmed_at
+                      ? maskPhone(user.phone)
+                      : tCommon("user"))}
+                </p>
                 <p className="text-xs text-[#5c564e] dark:text-[#8a837a]">
                   {t("account.signedIn")}
                 </p>
               </div>
             </div>
+            <PhoneBindingPanel />
           </div>
         </div>
       </div>

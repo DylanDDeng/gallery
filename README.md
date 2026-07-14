@@ -50,6 +50,14 @@ Use the environment variables in `.env.example` to configure billing:
 3. The selected payment provider confirms the payment through a webhook.
 4. The order is marked complete and credits are added to the user account.
 
+## Phone Authentication
+
+The site supports optional mainland China (`+86`) SMS OTP login through Supabase Auth, Cloudflare Turnstile, and an Alibaba Cloud Send SMS Hook. Google login remains available, and signed-in users can bind a verified phone without creating a second account.
+
+- Architecture and security decisions: [`docs/phone-sms-auth-plan.md`](docs/phone-sms-auth-plan.md)
+- Deployment and dashboard checklist: [`docs/phone-sms-auth-setup.md`](docs/phone-sms-auth-setup.md)
+- Required environment variables: [`.env.example`](.env.example)
+
 ## Local Notes
 
 - Keep the credit bundle definitions in sync with the configured price IDs for the active provider.
