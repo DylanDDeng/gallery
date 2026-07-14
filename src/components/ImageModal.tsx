@@ -47,7 +47,11 @@ export default function ImageModal() {
   const [detailErrorsById, setDetailErrorsById] = useState<
     Record<string, string>
   >({});
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const isLoadingDetails = Boolean(
+    selectedImage &&
+      !imageDetailsById[selectedImage.id] &&
+      !detailErrorsById[selectedImage.id],
+  );
 
   const activeImage = selectedImage
     ? (imageDetailsById[selectedImage.id] ?? selectedImage)
@@ -100,7 +104,6 @@ export default function ImageModal() {
     )
       return;
 
-    setIsLoadingDetails(true);
     fetch(`/api/images/${selectedImage.id}`)
       .then(async (res) => {
         const json = await res.json();
@@ -112,8 +115,7 @@ export default function ImageModal() {
       })
       .catch((err) => {
         setDetailErrorsById((c) => ({ ...c, [selectedImage.id]: err.message }));
-      })
-      .finally(() => setIsLoadingDetails(false));
+      });
   }, [selectedImage, imageDetailsById, detailErrorsById]);
 
   if (!selectedImage || !activeImage) return null;
