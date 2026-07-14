@@ -48,6 +48,7 @@ import {
 import type { ImagePrompt } from "@/lib/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase-browser";
 import UserMenu from "@/components/UserMenu";
+import { selectFeaturedResult } from "@/lib/generation-results";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 
@@ -505,18 +506,13 @@ export default function GeneratePage() {
   }, [isRemixMode, prompt, remixDraft]);
 
   useEffect(() => {
-    if (!isRemixMode) {
-      setReferenceImages([]);
-      return;
-    }
-
     setReferenceImages(
       mergeReferenceImages(
         remixDraft?.referenceImages,
         remixDraft?.sourceImage?.url ? remixDraft.sourceImage : null
       )
     );
-  }, [isRemixMode, remixDraft?.referenceImages, remixDraft?.sourceImage]);
+  }, [remixDraft?.referenceImages, remixDraft?.sourceImage]);
 
   const handlePickReferenceImage = useCallback(() => {
     referenceInputRef.current?.click();
@@ -613,7 +609,7 @@ export default function GeneratePage() {
           promptLang: previous?.promptLang ?? "en",
           createdAt: Date.now(),
           sourceImageId: previous?.sourceImageId ?? nextSourceImageId,
-          sourceImage: previous?.sourceImage?.url ? previous.sourceImage : nextSourceImage,
+          sourceImage: nextSourceImage,
           referenceImages: nextReferenceImages,
           returnTo: previous?.returnTo ?? "gallery",
           returnImageId: previous?.returnImageId,
@@ -628,16 +624,6 @@ export default function GeneratePage() {
             savedAt: Date.now(),
           });
         }
-
-        router.replace(
-          buildRemixGenerateUrl({
-            sourceImageId: sourceImageId || undefined,
-            sourceImageUrl: publicUrl,
-            returnTo: returnTo === "original" ? "original" : "gallery",
-            returnImageId:
-              searchParams.get("returnImageId") || sourceImageId || undefined,
-          })
-        );
       } catch (uploadError) {
         console.error("Reference image upload failed:", uploadError);
         setError(
@@ -655,9 +641,7 @@ export default function GeneratePage() {
     [
       prompt,
       referenceImages,
-      returnTo,
-      router,
-      searchParams,
+      selectedModel,
       sourceImageId,
       stagedTasks,
       t,
@@ -697,18 +681,21 @@ export default function GeneratePage() {
         };
       });
 
-      router.replace(
-        buildRemixGenerateUrl({
-          sourceImageId: sourceImageId || undefined,
-          sourceImageUrl: isRemovingActive ? undefined : activeSourceImageUrl ?? undefined,
-          returnTo: returnTo === "original" ? "original" : "gallery",
-          returnImageId:
-            searchParams.get("returnImageId") || sourceImageId || undefined,
-        })
-      );
+      if (isRemixMode) {
+        router.replace(
+          buildRemixGenerateUrl({
+            sourceImageId: sourceImageId || undefined,
+            sourceImageUrl: isRemovingActive ? undefined : activeSourceImageUrl ?? undefined,
+            returnTo: returnTo === "original" ? "original" : "gallery",
+            returnImageId:
+              searchParams.get("returnImageId") || sourceImageId || undefined,
+          })
+        );
+      }
     },
     [
       referenceImages,
+      isRemixMode,
       remixDraft?.sourceImage,
       remixDraft?.sourceImageId,
       returnTo,
@@ -751,17 +738,19 @@ export default function GeneratePage() {
         return nextDraft;
       });
 
-      router.replace(
-        buildRemixGenerateUrl({
-          sourceImageId: sourceImageId || undefined,
-          sourceImageUrl: image.url,
-          returnTo: returnTo === "original" ? "original" : "gallery",
-          returnImageId:
-            searchParams.get("returnImageId") || sourceImageId || undefined,
-        })
-      );
+      if (isRemixMode) {
+        router.replace(
+          buildRemixGenerateUrl({
+            sourceImageId: sourceImageId || undefined,
+            sourceImageUrl: image.url,
+            returnTo: returnTo === "original" ? "original" : "gallery",
+            returnImageId:
+              searchParams.get("returnImageId") || sourceImageId || undefined,
+          })
+        );
+      }
     },
-    [returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
+    [isRemixMode, returnTo, router, searchParams, sourceImageId, stagedTasks, user?.id]
   );
 
   const handleUseAsReference = useCallback(
@@ -929,6 +918,7 @@ export default function GeneratePage() {
       }
 
       setCurrentTask(json.task);
+      setFeaturedTaskId(json.task.id);
 
       if (isRemixMode && json.task.result_url) {
         setStagedTasks((previous) => {
@@ -1089,14 +1079,13 @@ export default function GeneratePage() {
             getModelPricing(task.model).name
           }`,
           kind: "result" as const,
-          selected: isRemixMode
-            ? task.result_url === sourceImageUrl
-            : task.id === featuredTaskId,
+          selected: task.id === featuredTaskId,
           onDownload: () => {
             void handleDownloadTask(task);
           },
           onSelect: isRemixMode
             ? () => {
+                setFeaturedTaskId(task.id);
                 handleSelectReferenceImage(
                   {
                     url: task.result_url!,
@@ -1122,7 +1111,6 @@ export default function GeneratePage() {
       isRemixMode,
       locale,
       resultTasks,
-      sourceImageUrl,
       t,
     ]
   );
@@ -1141,15 +1129,10 @@ export default function GeneratePage() {
     [submitting, t]
   );
 
+  const featuredResult = selectFeaturedResult(resultCards, featuredTaskId);
   const featuredAsset = isRemixMode
-    ? (resultCards.find((asset) => asset.selected) ??
-      resultCards[0] ??
-      pendingCard ??
-      null)
-    : (pendingCard ??
-      resultCards.find((asset) => asset.id === featuredTaskId) ??
-      resultCards[0] ??
-      null);
+    ? (featuredResult ?? pendingCard)
+    : (pendingCard ?? featuredResult);
   const thumbnailCards = pendingCard ? [...resultCards, pendingCard] : resultCards;
   const resultCount = resultCards.length + (pendingCard ? 1 : 0);
 
