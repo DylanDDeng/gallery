@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { Webhook } from "standardwebhooks";
 import type { AliyunSmsResult } from "./aliyun-sms.ts";
-import { isMainlandPhone } from "./phone.ts";
+import { normalizeMainlandPhone } from "./phone.ts";
 
 export const MAX_SEND_SMS_HOOK_BYTES = 20 * 1024;
 
@@ -67,9 +67,14 @@ export function parseSendSmsPayload(value: unknown): SendSmsPayload | null {
   if (!body.user || typeof body.user !== "object") return null;
   if (!body.sms || typeof body.sms !== "object") return null;
 
-  const phone = (body.user as { phone?: unknown }).phone;
-  const otp = (body.sms as { otp?: unknown }).otp;
-  if (typeof phone !== "string" || !isMainlandPhone(phone)) return null;
+  const userPhone = (body.user as { phone?: unknown }).phone;
+  const sms = body.sms as { otp?: unknown; phone?: unknown };
+  const destinationPhone = typeof sms.phone === "string" ? sms.phone : userPhone;
+  const phone = typeof destinationPhone === "string"
+    ? normalizeMainlandPhone(destinationPhone)
+    : null;
+  const otp = sms.otp;
+  if (!phone) return null;
   if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) return null;
   return { user: { phone }, sms: { otp } };
 }
