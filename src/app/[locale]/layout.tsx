@@ -82,6 +82,8 @@ export default async function LocaleLayout({ children, params }: Props) {
     ? {
         id: user.id,
         email: user.email,
+        phone: user.phone,
+        phone_confirmed_at: user.phone_confirmed_at,
         user_metadata: {
           name: user.user_metadata?.name,
           avatar_url: user.user_metadata?.avatar_url,

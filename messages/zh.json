@@ -150,18 +150,55 @@
   "auth": {
     "signIn": "登录",
     "signOut": "退出登录",
+    "close": "关闭登录窗口",
+    "accessLabel": "账户访问",
     "continueWithGoogle": "使用 Google 继续",
+    "continueWithPhone": "使用手机号继续",
+    "or": "或",
     "signedIn": "已登录",
     "favorites": "收藏",
+    "phone": {
+      "loginTitle": "手机号登录",
+      "loginDescription": "输入中国大陆手机号，我们会发送一条 6 位验证码。",
+      "phoneLabel": "手机号",
+      "mainlandOnly": "目前仅支持中国大陆 +86 手机号。验证码 5 分钟内有效。",
+      "codeLabel": "短信验证码",
+      "codeSent": "验证码已发送至 {phone}",
+      "changePhone": "更换手机号",
+      "sendCode": "发送验证码",
+      "sending": "正在发送…",
+      "signIn": "验证并登录",
+      "confirmBinding": "验证并绑定",
+      "verifying": "正在验证…",
+      "resend": "重新发送验证码",
+      "resendCountdown": "{seconds} 秒后可重新发送",
+      "cancel": "返回其他登录方式",
+      "errors": {
+        "invalidPhone": "请输入有效的中国大陆手机号。",
+        "invalidCode": "请输入 6 位短信验证码。",
+        "completeCaptcha": "请先完成人机验证。",
+        "captchaUnavailable": "手机登录尚未完成安全配置，请稍后再试。",
+        "sendFailed": "验证码发送失败，请稍后重试。",
+        "verifyFailed": "验证码无效或已过期，请重新获取。",
+        "phoneAlreadyUsed": "该手机号已关联其他账户，无法自动合并。",
+        "sessionExpired": "登录状态已失效，请重新登录后再绑定。",
+        "sessionChanged": "账户状态已变化，请关闭窗口后重试。"
+      }
+    },
     "loginPrompt": {
+      "account": {
+        "title": "登录 Aestara",
+        "description": "选择一种方式进入你的创作账户。",
+        "dismiss": "暂不登录"
+      },
       "favorites": {
         "title": "登录以保存收藏",
-        "description": "创建账户或使用 Google 登录，即可跨会话保存你的收藏。",
+        "description": "登录后即可跨设备保存收藏，并继续你的创作记录。",
         "dismiss": "稍后再说"
       },
       "generate": {
         "title": "登录以开始创作",
-        "description": "使用 Google 登录，进入工作室并冲印你的作品。",
+        "description": "登录后进入工作室，继续冲印你的作品。",
         "dismiss": "返回画廊"
       }
     }
@@ -325,7 +362,13 @@
     "account": {
       "title": "账户",
       "description": "管理你的账户信息。",
-      "signedIn": "已登录"
+      "signedIn": "已登录",
+      "phone": {
+        "title": "登录手机号",
+        "notBound": "尚未绑定手机号",
+        "bind": "绑定",
+        "change": "更换"
+      }
     }
   },
   "errors": {
@@ -450,7 +493,7 @@
     "privacy": {
       "title": "隐私政策",
       "description": "本政策说明 Aestara 收集哪些信息、如何使用，以及哪些第三方协助运营服务。",
-      "updatedAt": "2026年3月18日",
+      "updatedAt": "2026年7月14日",
       "sections": [
         {
           "heading": "概述",
@@ -464,7 +507,8 @@
             "我们收集最少必要的信息以提供并改进服务："
           ],
           "items": [
-            "Google 账户信息 — 使用 Google 登录时，我们会收到你的姓名、电子邮箱和 Google 账户头像，用于身份验证、账户访问和个性化体验。",
+            "账户与手机号信息 — 使用 Google 登录时，我们会收到你的姓名、电子邮箱和账户头像；使用短信登录或绑定时，我们会处理手机号。Supabase 可能在验证完成前暂存未确认的号码，验证成功后该号码将用于身份验证和账户访问。",
+            "短信发送记录 — 为防止重复发送和排查故障，我们会保留不超过 30 天的、经过服务器密钥 HMAC 处理的手机号摘要、发送状态、服务商请求标识与时间戳；不会保存验证码、完整手机号或原始 Webhook 内容。",
             "提示词与生成图像 — 我们存储你提交的提示词、生成任务数据及生成结果，以便交付输出、维护任务历史并支持退款或故障排查。",
             "订单与积分余额 — 我们存储购买历史、积分余额和订单元数据，以履行购买并维护账户余额。",
             "主题偏好 — 我们在浏览器本地存储你的浅色/深色模式偏好。"
@@ -486,7 +530,8 @@
           ],
           "items": [
             "Google — 通过 Google OAuth 进行用户身份验证。",
-            "Supabase — 用于数据库、身份验证和数据存储。",
+            "Supabase — 用于数据库、身份验证、手机号验证和数据存储。",
+            "阿里云短信 — 用于向中国大陆手机号发送一次性登录验证码。",
             "结账服务商 — 用于支付处理、计费及相关交易处理。",
             "Vercel — 用于网站托管与内容分发。",
             "Umami — 用于注重隐私的网站分析。"
@@ -495,7 +540,7 @@
         {
           "heading": "数据存储与安全",
           "paragraphs": [
-            "你的数据安全存储在 Supabase 中，行级安全（RLS）策略有助于确保个人账户数据仅对相应用户和服务角色可访问。我们不出售你的个人数据。"
+          "你的数据安全存储在 Supabase 中，行级安全（RLS）策略有助于确保个人账户数据仅对相应用户和服务角色可访问。短信投递审计记录仅在安全和故障排查所需期限内保留。我们不出售你的个人数据。"
           ]
         },
         {

@@ -7,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { isBillingEnabled } from "@/lib/billing-feature";
 import { useAppStore } from "@/store";
 import { createClient } from "@/lib/supabase-browser";
+import { maskPhone } from "@/lib/phone";
 
 export default function UserMenu() {
   const t = useTranslations("auth");
@@ -17,6 +18,7 @@ export default function UserMenu() {
   const favorites = useAppStore((s) => s.favorites);
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const toggleShowFavoritesOnly = useAppStore((s) => s.toggleShowFavoritesOnly);
+  const setShowLoginPrompt = useAppStore((s) => s.setShowLoginPrompt);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const billingEnabled = isBillingEnabled();
@@ -24,10 +26,12 @@ export default function UserMenu() {
   const avatarUrl =
     user?.user_metadata?.avatar_url ||
     user?.user_metadata?.picture;
+  const verifiedPhone = user?.phone_confirmed_at ? user.phone : undefined;
   const displayName =
     user?.user_metadata?.name ||
     user?.user_metadata?.full_name ||
     user?.email?.split("@")[0] ||
+    (verifiedPhone ? maskPhone(verifiedPhone) : null) ||
     "User";
 
   useEffect(() => {
@@ -40,18 +44,6 @@ export default function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const handleSignIn = async () => {
-    const supabase = createClient();
-    const redirectTo = new URL("/auth/callback", window.location.origin);
-    redirectTo.searchParams.set("next", window.location.pathname);
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: redirectTo.toString(),
-      },
-    });
-  };
-
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -62,26 +54,11 @@ export default function UserMenu() {
   if (!user) {
     return (
       <button
-        onClick={handleSignIn}
+        onClick={() => setShowLoginPrompt(true, "account")}
         className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium text-[#4a443c] dark:text-[#a39b90] transition-colors hover:bg-[#e0d9ce] dark:hover:bg-[#1a1814]"
       >
-        <svg className="h-4 w-4" viewBox="0 0 24 24">
-          <path
-            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-            fill="#4285F4"
-          />
-          <path
-            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            fill="#34A853"
-          />
-          <path
-            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            fill="#FBBC05"
-          />
-          <path
-            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            fill="#EA4335"
-          />
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 8a3 3 0 10-6 0 3 3 0 006 0zm4 11a7 7 0 00-14 0" />
         </svg>
         {t("signIn")}
       </button>
@@ -112,6 +89,11 @@ export default function UserMenu() {
             {user.email && (
               <p className="text-xs text-[#5c564e] dark:text-[#8a837a] truncate mt-0.5">
                 {user.email}
+              </p>
+            )}
+            {!user.email && verifiedPhone && (
+              <p className="mt-0.5 truncate text-xs text-[#5c564e] dark:text-[#8a837a]">
+                {maskPhone(verifiedPhone)}
               </p>
             )}
           </div>
