@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test tests/**/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/**/*.test.ts",
+    "backfill:image-dimensions": "node --experimental-strip-types scripts/backfill-image-dimensions.mts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

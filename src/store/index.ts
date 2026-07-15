@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { MOCK_IMAGES } from "@/lib/constants";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 24;
 const MAX_IMAGES = 1000;
 
 interface User {
@@ -24,6 +24,7 @@ interface AppState {
   selectedImage: ImagePrompt | null;
   allImages: ImagePrompt[];
   defaultFeedHasMore: boolean;
+  searchInput: string;
   searchQuery: string;
   activeCategory: string;
   activeTimeFilter: "all" | "today" | "week" | "month";
@@ -38,6 +39,7 @@ interface AppState {
   isLoading: boolean;
   isLoadingMore: boolean;
   hasMore: boolean;
+  nextOffset: number;
   // Auth
   user: User | null;
   authInitialized: boolean;
@@ -51,6 +53,7 @@ interface AppState {
   setSelectedImage: (image: ImagePrompt | null) => void;
   setAllImages: (images: ImagePrompt[]) => void;
   setDefaultFeedHasMore: (hasMore: boolean) => void;
+  setSearchInput: (query: string) => void;
   setSearchQuery: (query: string) => void;
   setActiveCategory: (category: string) => void;
   setActiveTimeFilter: (filter: "all" | "today" | "week" | "month") => void;
@@ -93,7 +96,7 @@ function buildQueryString(
   >
 ) {
   const params = new URLSearchParams({
-    limit: String(PAGE_SIZE + 1),
+    limit: String(PAGE_SIZE),
     offset: String(offset),
   });
   const sq = state.searchQuery.trim();
@@ -107,12 +110,25 @@ function buildQueryString(
   return params.toString();
 }
 
-let loadMoreInFlight = false;
+let initialPageController: AbortController | null = null;
+let nextPageController: AbortController | null = null;
+
+function abortFeedRequests() {
+  initialPageController?.abort();
+  nextPageController?.abort();
+  initialPageController = null;
+  nextPageController = null;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
 
 export const useAppStore = create<AppState>((set, get) => ({
   selectedImage: null,
   allImages: [],
   defaultFeedHasMore: false,
+  searchInput: "",
   searchQuery: "",
   activeCategory: "all",
   activeTimeFilter: "all",
@@ -126,6 +142,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoading: false,
   isLoadingMore: false,
   hasMore: false,
+  nextOffset: 0,
   // Auth
   user: null,
   authInitialized: false,
@@ -139,6 +156,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSelectedImage: (image) => set({ selectedImage: image }),
   setAllImages: (images) => set({ allImages: images }),
   setDefaultFeedHasMore: (hasMore) => set({ defaultFeedHasMore: hasMore }),
+  setSearchInput: (query) => set({ searchInput: query }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setActiveCategory: (category) => set({ activeCategory: category }),
   setActiveTimeFilter: (filter) => set({ activeTimeFilter: filter }),
@@ -165,14 +183,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   setIsLoadingMore: (v) => set({ isLoadingMore: v }),
   setHasMore: (v) => set({ hasMore: v }),
 
-  resetFeed: () =>
+  resetFeed: () => {
+    abortFeedRequests();
     set((state) => ({
       feedVersion: state.feedVersion + 1,
       allImages: [],
       hasMore: false,
+      nextOffset: 0,
       isLoading: false,
       isLoadingMore: false,
-    })),
+    }));
+  },
 
   loadInitialPage: async () => {
     const state = get();
@@ -180,32 +201,46 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (state.showFavoritesOnly && state.favorites.length === 0) return;
     if (!state.favoritesLoaded && state.showFavoritesOnly) return;
 
+    abortFeedRequests();
+    const controller = new AbortController();
+    initialPageController = controller;
     const version = state.feedVersion + 1;
     set({
       feedVersion: version,
       isLoading: true,
       isLoadingMore: false,
       hasMore: false,
+      nextOffset: 0,
       allImages: [],
     });
 
     try {
       const qs = buildQueryString(0, state);
-      const res = await fetch(`/api/images?${qs}`);
+      const res = await fetch(`/api/images?${qs}`, {
+        signal: controller.signal,
+      });
       const json = (await res.json()) as {
         data?: ImagePrompt[];
         hasMore?: boolean;
+        nextOffset?: number;
         error?: string;
       };
 
       if (!res.ok) throw new Error(json.error || "Failed");
 
       const current = get();
-      if (current.feedVersion !== version) return;
+      if (
+        current.feedVersion !== version ||
+        initialPageController !== controller
+      )
+        return;
 
-      const rawData = json.data ?? [];
-      const hasMore = rawData.length > PAGE_SIZE;
-      const data = hasMore ? rawData.slice(0, PAGE_SIZE) : rawData;
+      const data = json.data ?? [];
+      const hasMore = Boolean(json.hasMore);
+      const nextOffset =
+        Number.isSafeInteger(json.nextOffset) && json.nextOffset! >= data.length
+          ? json.nextOffset!
+          : data.length;
 
       const isDefaultFeed =
         !state.searchQuery.trim() &&
@@ -218,20 +253,30 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({
           allImages: MOCK_IMAGES,
           hasMore: false,
-          isLoading: false,
+          nextOffset: 0,
           defaultFeedHasMore: false,
         });
       } else {
         set({
           allImages: data,
           hasMore,
-          isLoading: false,
+          nextOffset,
           defaultFeedHasMore: hasMore,
         });
       }
-    } catch {
+    } catch (error) {
       const current = get();
-      if (current.feedVersion === version) {
+      if (
+        current.feedVersion === version &&
+        initialPageController === controller &&
+        !isAbortError(error)
+      ) {
+        set({ isLoading: false });
+      }
+    } finally {
+      const isLatest = initialPageController === controller;
+      if (isLatest) initialPageController = null;
+      if (isLatest && get().feedVersion === version) {
         set({ isLoading: false });
       }
     }
@@ -239,45 +284,71 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadNextPage: async () => {
     const state = get();
-    if (loadMoreInFlight || !state.hasMore || state.isLoading || state.isLoadingMore) return;
+    if (!state.hasMore || state.isLoading || state.isLoadingMore) return;
     if (state.showFavoritesOnly && state.favorites.length === 0) return;
     if (!state.favoritesLoaded && state.showFavoritesOnly) return;
 
     const version = state.feedVersion;
-    loadMoreInFlight = true;
+    nextPageController?.abort();
+    const controller = new AbortController();
+    nextPageController = controller;
     set({ isLoadingMore: true });
 
     try {
-      const offset = state.allImages.length;
+      const offset = state.nextOffset;
       const qs = buildQueryString(offset, state);
-      const res = await fetch(`/api/images?${qs}`);
+      const res = await fetch(`/api/images?${qs}`, {
+        signal: controller.signal,
+      });
       const json = (await res.json()) as {
         data?: ImagePrompt[];
         hasMore?: boolean;
+        nextOffset?: number;
         error?: string;
       };
 
       if (!res.ok) throw new Error(json.error || "Failed");
 
       const current = get();
-      if (current.feedVersion !== version) return;
+      if (
+        current.feedVersion !== version ||
+        nextPageController !== controller
+      )
+        return;
 
-      const rawData = json.data ?? [];
-      const hasMore = rawData.length > PAGE_SIZE;
-      const data = hasMore ? rawData.slice(0, PAGE_SIZE) : rawData;
+      const data = json.data ?? [];
+      const hasMore = Boolean(json.hasMore);
+      const nextOffset =
+        Number.isSafeInteger(json.nextOffset) && json.nextOffset! >= offset
+          ? json.nextOffset!
+          : offset + data.length;
 
-      const accumulated = [...current.allImages, ...data];
+      const existingIds = new Set(current.allImages.map((image) => image.id));
+      const accumulated = [
+        ...current.allImages,
+        ...data.filter((image) => !existingIds.has(image.id)),
+      ];
       set({
         allImages: accumulated,
         hasMore,
-        isLoadingMore: false,
-        isLoading: false,
+        nextOffset,
         defaultFeedHasMore: hasMore,
       });
-    } catch {
-      set({ isLoadingMore: false });
+    } catch (error) {
+      const current = get();
+      if (
+        current.feedVersion === version &&
+        nextPageController === controller &&
+        !isAbortError(error)
+      ) {
+        set({ isLoadingMore: false });
+      }
     } finally {
-      loadMoreInFlight = false;
+      const isLatest = nextPageController === controller;
+      if (isLatest) nextPageController = null;
+      if (isLatest && get().feedVersion === version) {
+        set({ isLoadingMore: false });
+      }
     }
   },
 

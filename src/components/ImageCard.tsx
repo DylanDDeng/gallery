@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import Image from "next/image";
+import GalleryImage from "./GalleryImage";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
 
@@ -43,10 +43,10 @@ function ImageCard({ image }: ImageCardProps) {
       {/* Image frame — like a gallery print with subtle border */}
       <div
         className="relative cursor-pointer overflow-hidden bg-[#e8e4de] dark:bg-[#141210] shadow-[0_1px_8px_rgba(42,37,32,0.05)] dark:shadow-[0_1px_8px_rgba(0,0,0,0.35)] transition-all duration-1000 ease-out group-hover:shadow-[0_24px_72px_rgba(42,37,32,0.13)] dark:group-hover:shadow-[0_24px_72px_rgba(0,0,0,0.6)] group-hover:-translate-y-1.5"
-        style={style}
+        style={{ ...style, contentVisibility: "auto" }}
         onClick={() => setSelectedImage(image)}
       >
-        <Image
+        <GalleryImage
           src={image.url}
           alt={summary}
           width={image.width || 768}

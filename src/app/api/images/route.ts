@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/admin";
+import {
+  CosImageMetadataError,
+  resolveCosImageDimensions,
+} from "@/lib/cos-image-metadata";
+import {
+  createImageRecord,
+  ImageWriteValidationError,
+  type ImageWriteBody,
+} from "@/lib/image-write-service";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createClient as createServerClient } from "@/lib/supabase-server";
@@ -30,7 +39,7 @@ export async function GET(request: Request) {
   const model = searchParams.get("model");
   const time = searchParams.get("time");
   const idsParam = searchParams.get("ids");
-  const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20"), 1), 100);
+  const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "24"), 1), 100);
   const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
   const ids = idsParam
     ?.split(",")
@@ -40,8 +49,9 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from("images")
-    .select("id,url,prompt,prompt_zh,prompt_ja,author,model,category,tags,width,height,created_at,tweet_url")
+    .select("id,url,author,model,category,width,height,created_at,tweet_url")
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(offset, offset + limit);
 
   if (ids && ids.length > 0) {
@@ -101,14 +111,13 @@ export async function GET(request: Request) {
   }
 
   const mapStartedAt = performance.now();
-  const hasMore = data && data.length > limit;
+  const hasMore = Boolean(data && data.length > limit);
   const images = (hasMore ? data.slice(0, limit) : (data || [])).map((image) => ({
     ...image,
-    has_prompt_zh: Boolean(image.prompt_zh),
-    has_prompt_ja: Boolean(image.prompt_ja),
-    prompt_zh: null,
-    prompt_ja: null,
+    // Preserve the shared client shape without shipping full tag content.
+    tags: [],
   }));
+  const nextOffset = offset + images.length;
   const mapFinishedAt = performance.now();
 
   console.info("/api/images", {
@@ -128,36 +137,39 @@ export async function GET(request: Request) {
     durationMs: Math.round(performance.now() - startedAt),
   });
 
-  return NextResponse.json({ data: images, hasMore });
+  return NextResponse.json({ data: images, hasMore, nextOffset });
 }
 
 export async function POST(request: Request) {
   const authError = await ensureAdmin();
   if (authError) return authError;
 
-  const body = await request.json();
+  const body = (await request.json()) as ImageWriteBody;
 
-  const { data, error } = await supabaseAdmin
-    .from("images")
-    .insert({
-      url: body.url,
-      prompt: body.prompt,
-      author: body.author,
-      model: body.model,
-      category: body.category,
-      tags: body.tags,
-      width: body.width || null,
-      height: body.height || null,
-      tweet_url: body.tweet_url || null,
-      prompt_zh: body.prompt_zh || null,
-      prompt_ja: body.prompt_ja || null,
-    })
-    .select()
-    .single();
+  try {
+    const data = await createImageRecord(body, {
+      resolveDimensions: resolveCosImageDimensions,
+      insert: async (mutation) => {
+        const { data, error } = await supabaseAdmin
+          .from("images")
+          .insert(mutation)
+          .select()
+          .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+        if (error || !data) throw new Error("Image insert failed");
+        return data;
+      },
+    });
+
+    return NextResponse.json(data, { status: 201 });
+  } catch (error) {
+    if (error instanceof ImageWriteValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (error instanceof CosImageMetadataError) {
+      const status = error.code === "INVALID_URL" ? 400 : 422;
+      return NextResponse.json({ error: error.message }, { status });
+    }
+    return NextResponse.json({ error: "Unable to add image" }, { status: 500 });
   }
-
-  return NextResponse.json(data, { status: 201 });
 }

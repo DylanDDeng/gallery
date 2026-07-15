@@ -11,7 +11,6 @@ import ImageModal from "@/components/ImageModal";
 import SearchModal from "@/components/SearchModal";
 import UserMenu from "@/components/UserMenu";
 import { useAppStore } from "@/store";
-import { hydrateImageDimensions } from "@/lib/image-dimensions";
 import { MAGAZINE_COVER_IMAGE } from "@/lib/constants";
 
 export default function Home() {
@@ -19,7 +18,6 @@ export default function Home() {
   const tHome = useTranslations("home");
   const tCommon = useTranslations("common");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const lastLoadedParamsRef = useRef({
     searchQuery: "__initial__",
@@ -33,10 +31,10 @@ export default function Home() {
   const isLoading = useAppStore((s) => s.isLoading);
   const isLoadingMore = useAppStore((s) => s.isLoadingMore);
   const hasMore = useAppStore((s) => s.hasMore);
-  const feedVersion = useAppStore((s) => s.feedVersion);
   const resetFeed = useAppStore((s) => s.resetFeed);
   const loadInitialPage = useAppStore((s) => s.loadInitialPage);
-  const setAllImages = useAppStore((s) => s.setAllImages);
+  const searchInput = useAppStore((s) => s.searchInput);
+  const setSearchQuery = useAppStore((s) => s.setSearchQuery);
   const searchQuery = useAppStore((s) => s.searchQuery);
   const activeCategory = useAppStore((s) => s.activeCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
@@ -50,13 +48,13 @@ export default function Home() {
   const setMagazineOpened = useAppStore((s) => s.setMagazineOpened);
   const openGallery = useAppStore((s) => s.openGallery);
 
-  // Debounce search query for search modal
+  // Keep keystrokes local; only the settled query reaches the feed and API.
   useEffect(() => {
     const id = window.setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
-    }, 250);
+      setSearchQuery(searchInput.trim());
+    }, 275);
     return () => window.clearTimeout(id);
-  }, [searchQuery]);
+  }, [searchInput, setSearchQuery]);
 
   // Filter change → reset and reload (skip when returning with cached feed)
   useEffect(() => {
@@ -110,22 +108,6 @@ export default function Home() {
     resetFeed,
     loadInitialPage,
   ]);
-
-  // Hydrate dimensions for newly loaded images
-  useEffect(() => {
-    if (allImages.length === 0) return;
-    const v = feedVersion;
-    hydrateImageDimensions(allImages).then((hydrated) => {
-      const current = useAppStore.getState();
-      if (current.feedVersion !== v) return;
-      const changed = hydrated.some(
-        (img, i) =>
-          img.width !== allImages[i]?.width ||
-          img.height !== allImages[i]?.height
-      );
-      if (changed) setAllImages(hydrated);
-    });
-  }, [allImages, feedVersion, setAllImages]);
 
   const handleCloseSearch = () => setSearchOpen(false);
 
@@ -227,7 +209,7 @@ export default function Home() {
       )}
 
       {/* Gallery Content */}
-      <div className={`transition-opacity duration-[1500ms] ${magazineOpened ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`transition-opacity duration-500 ${magazineOpened ? 'opacity-100' : 'opacity-0'}`}>
         {/* Main Gallery */}
         <div
           id="gallery"
@@ -333,8 +315,8 @@ export default function Home() {
           open={searchOpen}
           onClose={handleCloseSearch}
           isLoadingResults={
-            Boolean(searchQuery) &&
-            (isLoading || debouncedSearchQuery !== searchQuery.trim())
+            Boolean(searchInput.trim()) &&
+            (isLoading || searchInput.trim() !== searchQuery)
           }
         />
 

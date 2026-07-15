@@ -48,5 +48,9 @@ next-env.d.ts
 # local dev artifacts
 /artifacts/
 
+# local image-dimension backfill manifests and write journals
+/.backfill/
+/supabase/.temp/
+
 # ui test screenshots (root only)
 /*.png

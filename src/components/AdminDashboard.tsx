@@ -34,8 +34,6 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
   const [formModel, setFormModel] = useState("");
   const [formCategory, setFormCategory] = useState("portrait");
   const [formTags, setFormTags] = useState("");
-  const [formWidth, setFormWidth] = useState("");
-  const [formHeight, setFormHeight] = useState("");
   const [formTweetUrl, setFormTweetUrl] = useState("");
   const [formPromptZh, setFormPromptZh] = useState("");
   const [formPromptJa, setFormPromptJa] = useState("");
@@ -133,8 +131,6 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
     setFormModel("");
     setFormCategory("portrait");
     setFormTags("");
-    setFormWidth("");
-    setFormHeight("");
     setFormTweetUrl("");
     setFormPromptZh("");
     setFormPromptJa("");
@@ -148,20 +144,34 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
     setShowForm(true);
   };
 
-  const openEditForm = (image: ImagePrompt) => {
+  const openEditForm = async (image: ImagePrompt) => {
+    setMessage("");
+    let detail: ImagePrompt;
+    try {
+      const response = await fetch(`/api/images/${image.id}`, {
+        cache: "no-store",
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json.error || "Failed to load image details");
+      }
+      detail = json as ImagePrompt;
+    } catch {
+      setMessage("Error: Unable to load the complete image record for editing");
+      return;
+    }
+
     setPreviewError(false);
-    setEditingImage(image);
-    setFormUrl(normalizeImageUrlInput(image.url));
-    setFormPrompt(image.prompt || "");
-    setFormAuthor(image.author);
-    setFormModel(image.model);
-    setFormCategory(image.category);
-    setFormTags((image.tags || []).join(", "));
-    setFormWidth(String(image.width || ""));
-    setFormHeight(String(image.height || ""));
-    setFormTweetUrl(image.tweet_url || "");
-    setFormPromptZh(image.prompt_zh || "");
-    setFormPromptJa(image.prompt_ja || "");
+    setEditingImage(detail);
+    setFormUrl(normalizeImageUrlInput(detail.url));
+    setFormPrompt(detail.prompt || "");
+    setFormAuthor(detail.author);
+    setFormModel(detail.model);
+    setFormCategory(detail.category);
+    setFormTags((detail.tags || []).join(", "));
+    setFormTweetUrl(detail.tweet_url || "");
+    setFormPromptZh(detail.prompt_zh || "");
+    setFormPromptJa(detail.prompt_ja || "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -182,8 +192,6 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
-      width: formWidth ? parseInt(formWidth, 10) : null,
-      height: formHeight ? parseInt(formHeight, 10) : null,
       tweet_url: formTweetUrl || null,
       prompt_zh: formPromptZh || null,
       prompt_ja: formPromptJa || null,
@@ -431,31 +439,20 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
-                    Width (optional)
-                  </label>
-                  <input
-                    type="number"
-                    value={formWidth}
-                    onChange={(e) => setFormWidth(e.target.value)}
-                    placeholder="768"
-                    className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
-                    Height (optional)
-                  </label>
-                  <input
-                    type="number"
-                    value={formHeight}
-                    onChange={(e) => setFormHeight(e.target.value)}
-                    placeholder="1024"
-                    className="w-full rounded-lg border border-[#d5cfc4] dark:border-[#2a2520] bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2 text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#4a443c] outline-none focus:border-[#8a837a] dark:focus:border-[#5c564e]"
-                  />
-                </div>
+              <div className="rounded-lg bg-[#ebe7e0] dark:bg-[#1a1814] px-3 py-2.5 ring-1 ring-[#d5cfc4] dark:ring-[#2a2520]">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-[#8a837a] dark:text-[#5c564e]">
+                  Image dimensions
+                </p>
+                <p className="mt-1 text-xs text-[#5c564e] dark:text-[#8a837a]">
+                  {editingImage?.width && editingImage?.height
+                    ? `${editingImage.width} × ${editingImage.height} px (detected automatically)`
+                    : "Detected automatically from COS when the image is saved"}
+                </p>
+                {editingImage && formUrl !== editingImage.url && (
+                  <p className="mt-1 text-[10px] text-[#8a837a] dark:text-[#5c564e]">
+                    The changed image URL will be measured again on save.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -580,7 +577,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
 
                   <div className="flex flex-shrink-0 items-center gap-1">
                     <button
-                      onClick={() => openEditForm(image)}
+                      onClick={() => void openEditForm(image)}
                       className="rounded-lg p-2 text-[#8a837a] dark:text-[#5c564e] transition-colors hover:bg-[#e0d9ce] dark:hover:bg-[#2a2520] hover:text-[#4a443c] dark:hover:text-[#d5cfc4]"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

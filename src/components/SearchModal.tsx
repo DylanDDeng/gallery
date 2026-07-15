@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useMemo } from "react";
-import Image from "next/image";
+import GalleryImage from "./GalleryImage";
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
@@ -14,7 +14,8 @@ interface SearchModalProps {
 
 export default function SearchModal({ open, onClose, isLoadingResults }: SearchModalProps) {
   const t = useTranslations("search");
-  const searchQuery = useAppStore((s) => s.searchQuery);
+  const searchInput = useAppStore((s) => s.searchInput);
+  const setSearchInput = useAppStore((s) => s.setSearchInput);
   const setSearchQuery = useAppStore((s) => s.setSearchQuery);
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const allImages = useAppStore((s) => s.allImages);
@@ -36,12 +37,13 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
   }, [open, onClose]);
 
   const results = useMemo(() => {
-    if (!searchQuery) return [];
+    if (!searchInput.trim()) return [];
     return allImages.slice(0, 12);
-  }, [allImages, searchQuery]);
+  }, [allImages, searchInput]);
 
   const handleSelectImage = (image: ImagePrompt) => {
     onClose();
+    setSearchInput("");
     setSearchQuery("");
     setTimeout(() => setSelectedImage(image), 100);
   };
@@ -74,13 +76,13 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
             ref={inputRef}
             type="text"
             placeholder={t("placeholder")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="flex-1 bg-transparent text-sm text-[#141210] dark:text-[#e0d9ce] placeholder-[#8a837a] dark:placeholder-[#5c564e] outline-none"
           />
-          {searchQuery && (
+          {searchInput && (
             <button
-              onClick={() => setSearchQuery("")}
+              onClick={() => setSearchInput("")}
               className="text-[#8a837a] hover:text-[#4a443c] dark:hover:text-[#a39b90]"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,14 +97,14 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
 
         {/* Results */}
         <div className="overflow-y-auto rounded-b-2xl border border-[#d5cfc4] dark:border-[#2a2520] bg-[#f5f2ed] dark:bg-[#141210] shadow-2xl">
-          {searchQuery && isLoadingResults && (
+          {searchInput && isLoadingResults && (
             <div className="flex flex-col items-center justify-center py-12 text-[#8a837a]">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#d5cfc4] dark:border-[#2a2520] border-t-[#8a837a]" />
               <p className="mt-3 text-sm">{t("searching")}</p>
             </div>
           )}
 
-          {searchQuery && !isLoadingResults && results.length > 0 && (
+          {searchInput && !isLoadingResults && results.length > 0 && (
             <div className="grid grid-cols-3 gap-2 p-4">
               {results.map((image) => (
                 <div
@@ -115,14 +117,13 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
                       : "3 / 4",
                   }}
                 >
-                  <Image
+                  <GalleryImage
                     src={image.url}
                     alt=""
                     width={image.width || 300}
                     height={image.height || 400}
                     className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
                     sizes="200px"
-                    unoptimized
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                 </div>
@@ -130,7 +131,7 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
             </div>
           )}
 
-          {searchQuery && !isLoadingResults && results.length === 0 && (
+          {searchInput && !isLoadingResults && results.length === 0 && (
             <div className="flex flex-col items-center py-12 text-[#8a837a]">
               <svg className="mb-3 h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -139,7 +140,7 @@ export default function SearchModal({ open, onClose, isLoadingResults }: SearchM
             </div>
           )}
 
-          {!searchQuery && (
+          {!searchInput && (
             <p className="py-8 text-center text-sm text-[#8a837a]">
               {t("typeToSearch")}
             </p>

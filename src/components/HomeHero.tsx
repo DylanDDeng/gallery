@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import GalleryImage from "./GalleryImage";
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import type { ImagePrompt } from "@/lib/types";
@@ -20,15 +20,14 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
     if (phase !== "idle") return;
     setPhase("flipping");
 
-    // Phase 1: 翻页动画 1.8s
+    // Keep the cover interaction expressive without blocking the gallery.
     setTimeout(() => {
       setPhase("exiting");
-      // Phase 2: 滑走 + 通知父组件 1.2s
       setTimeout(() => {
         setPhase("gone");
         onOpen();
-      }, 1200);
-    }, 1800);
+      }, 350);
+    }, 700);
   }, [phase, onOpen]);
 
   if (phase === "gone") return null;
@@ -38,7 +37,7 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-all duration-800 ease-[cubic-bezier(0.4,0,0.2,1)]
+      className={`fixed inset-0 z-50 transition-all duration-[350ms] ease-[cubic-bezier(0.4,0,0.2,1)]
         ${isExiting ? "opacity-0 pointer-events-none" : "opacity-100"}
       `}
       style={{
@@ -51,7 +50,7 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
         className="relative w-full h-full"
         style={{
           transformStyle: "preserve-3d",
-          transition: "transform 1800ms cubic-bezier(0.4, 0, 0.2, 1)",
+          transition: "transform 700ms cubic-bezier(0.4, 0, 0.2, 1)",
           transform: isFlipping || isExiting
             ? "rotateY(-140deg)"
             : "rotateY(0deg)",
@@ -64,7 +63,8 @@ export default function HomeHero({ coverImage, onOpen }: HomeHeroProps) {
           style={{ backfaceVisibility: "hidden" }}
         >
           {/* 背景图 */}
-          <Image
+          <GalleryImage
+            sizes="100vw"
             src={coverImage.url}
             alt={coverImage.category || tCommon("untitled")}
             fill

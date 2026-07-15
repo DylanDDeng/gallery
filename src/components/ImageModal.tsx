@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import GalleryImage from "./GalleryImage";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import {
@@ -350,7 +350,7 @@ export default function ImageModal() {
           </button>
 
           <div className="relative w-full h-full max-w-[900px]">
-            <Image
+            <GalleryImage
               src={activeImage.url}
               alt=""
               fill
