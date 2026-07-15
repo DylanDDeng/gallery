@@ -395,6 +395,8 @@
     "discoverFirst": "Explore the gallery",
     "removeFavorite": "Remove from favorites",
     "previewLabel": "Image preview",
+    "promptLabel": "Prompt",
+    "timelineThisWeek": "This week",
     "closePreview": "Close preview",
     "loadError": "We could not load your space. Please try again.",
     "edit": {

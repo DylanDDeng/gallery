@@ -37,6 +37,12 @@ interface ProfileRecord {
   updated_at?: string;
 }
 
+interface WorkPeriod {
+  key: string;
+  label: string;
+  works: GenerationTask[];
+}
+
 const PREVIEW_WORKS: GenerationTask[] = MOCK_IMAGES.slice(0, 8).map(
   (image, index) => ({
     id: `preview-work-${image.id}`,
@@ -50,6 +56,53 @@ const PREVIEW_WORKS: GenerationTask[] = MOCK_IMAGES.slice(0, 8).map(
 
 function profileImageAlt(label: string, detail: string) {
   return detail ? `${label}: ${detail}` : label;
+}
+
+function groupWorksByPeriod(
+  works: GenerationTask[],
+  locale: Locale,
+  thisWeekLabel: string,
+): WorkPeriod[] {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const recentCutoff = new Date(now);
+  recentCutoff.setDate(now.getDate() - 7);
+  const monthFormatter = new Intl.DateTimeFormat(
+    locale === "zh" ? "zh-CN" : "en-US",
+    { month: locale === "zh" ? "numeric" : "long" },
+  );
+  const groups = new Map<string, WorkPeriod>();
+
+  [...works]
+    .sort(
+      (left, right) =>
+        new Date(right.created_at).getTime() -
+        new Date(left.created_at).getTime(),
+    )
+    .forEach((work) => {
+      const createdAt = new Date(work.created_at);
+      if (Number.isNaN(createdAt.getTime())) return;
+
+      const isRecent = createdAt >= recentCutoff && createdAt <= now;
+      const year = createdAt.getFullYear();
+      const month = monthFormatter.format(createdAt);
+      const key = isRecent
+        ? "recent"
+        : year === currentYear
+          ? `${year}-${createdAt.getMonth()}`
+          : String(year);
+      const label = isRecent
+        ? `${month} · ${thisWeekLabel}`
+        : year === currentYear
+          ? month
+          : String(year);
+
+      const existing = groups.get(key);
+      if (existing) existing.works.push(work);
+      else groups.set(key, { key, label, works: [work] });
+    });
+
+  return Array.from(groups.values());
 }
 
 export default function ProfilePage() {
@@ -83,6 +136,18 @@ export default function ProfilePage() {
   const [draftName, setDraftName] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [workColumnCount, setWorkColumnCount] = useState(2);
+
+  useEffect(() => {
+    const desktopColumns = window.matchMedia("(min-width: 1024px)");
+    const updateColumnCount = () =>
+      setWorkColumnCount(desktopColumns.matches ? 4 : 2);
+
+    updateColumnCount();
+    desktopColumns.addEventListener("change", updateColumnCount);
+    return () =>
+      desktopColumns.removeEventListener("change", updateColumnCount);
+  }, []);
 
   useEffect(() => {
     if (!selectedUrl && !editOpen) return;
@@ -226,6 +291,10 @@ export default function ProfilePage() {
     () => works.find((work) => work.result_url === selectedUrl),
     [selectedUrl, works],
   );
+  const workPeriods = useMemo(
+    () => groupWorksByPeriod(works, locale, t("timelineThisWeek")),
+    [locale, t, works],
+  );
 
   const switchTab = (tab: ProfileTab) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -317,7 +386,7 @@ export default function ProfilePage() {
       </header>
 
       <div className="mx-auto grid max-w-[1600px] md:min-h-[calc(100vh-76px)] md:grid-cols-[278px_minmax(0,1fr)]">
-        <aside className="border-b border-[#d5cfc4]/80 px-6 py-8 md:border-r md:border-b-0 md:px-8 md:py-20 dark:border-[#f5f2ed]/10">
+        <aside className="border-b border-[#d5cfc4]/80 px-6 py-8 md:border-b-0 md:px-8 md:py-20 dark:border-[#f5f2ed]/10">
           <div className="flex items-center gap-5 md:block">
             <div className="relative h-24 w-24 flex-none overflow-hidden rounded-full bg-[#d5cfc4] md:h-28 md:w-28 dark:bg-[#2a2520]">
               {avatarUrl ? (
@@ -364,17 +433,51 @@ export default function ProfilePage() {
             works.length === 0 ? (
               <EmptyCollection title={t("emptyWorks")} action={t("createFirst")} href="/generate" />
             ) : (
-              <div className="grid grid-cols-1 gap-x-5 gap-y-6 sm:grid-cols-2 xl:grid-cols-4">
-                {works.map((work, index) => (
-                  <button key={work.id} type="button" onClick={() => setSelectedUrl(work.result_url || null)} className="group text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5c564e]">
-                    <div className="relative aspect-[3/4] overflow-hidden bg-[#e0d9ce] dark:bg-[#141210]">
-                      <Image src={work.result_url || ""} alt={profileImageAlt(t("works"), work.prompt)} fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw" className="object-cover transition duration-700 group-hover:scale-[1.015]" loading={isPreview || index < 4 ? "eager" : "lazy"} unoptimized />
-                      <div className="absolute inset-x-0 bottom-0 bg-[#141210]/72 px-4 py-4 text-[#f5f2ed] backdrop-blur-[2px]">
-                        <p className="line-clamp-2 text-sm leading-5">{work.prompt}</p>
-                        <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-[#d5cfc4]">{getModelDisplayName(work.model)}</p>
-                      </div>
+              <div className="border-t border-[#d5cfc4]/70 dark:border-[#f5f2ed]/10">
+                {workPeriods.map((period, periodIndex) => (
+                  <section key={period.key} className="relative grid grid-cols-[72px_minmax(0,1fr)] border-b border-[#d5cfc4]/70 py-7 sm:grid-cols-[92px_minmax(0,1fr)] lg:grid-cols-[108px_minmax(0,1fr)] lg:py-8 dark:border-[#f5f2ed]/10">
+                    <div className="relative pr-4 sm:pr-6">
+                      <span className="absolute bottom-[-29px] left-[5px] top-4 w-px bg-[#d5cfc4] lg:bottom-[-33px] dark:bg-[#2a2520]" aria-hidden />
+                      <span className="absolute left-[2px] top-[7px] h-[7px] w-[7px] rounded-full bg-[#b6aea3] dark:bg-[#5c564e]" aria-hidden />
+                      <h3 className="pl-4 text-[13px] font-medium leading-5 text-[#4a443c] sm:text-sm dark:text-[#a39b90]">
+                        {period.label}
+                      </h3>
                     </div>
-                  </button>
+                    <div className="grid min-w-0 grid-cols-2 items-start gap-2.5 sm:gap-3 lg:grid-cols-4">
+                      {Array.from({ length: workColumnCount }, (_, columnIndex) => (
+                        <div key={columnIndex} className="min-w-0 space-y-2.5 sm:space-y-3">
+                          {period.works
+                            .filter((_, index) => index % workColumnCount === columnIndex)
+                            .map((work, columnItemIndex) => {
+                              const originalIndex =
+                                columnIndex + columnItemIndex * workColumnCount;
+
+                              return (
+                                <button
+                                  key={work.id}
+                                  type="button"
+                                  onClick={() => setSelectedUrl(work.result_url || null)}
+                                  className="group block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5c564e]"
+                                >
+                                  <div className="overflow-hidden bg-[#e0d9ce] dark:bg-[#141210]">
+                                    <Image
+                                      src={work.result_url || ""}
+                                      alt={profileImageAlt(t("works"), work.prompt)}
+                                      width={1600}
+                                      height={1600}
+                                      sizes="(max-width: 1024px) 50vw, 25vw"
+                                      className="block h-auto w-full transition duration-700 group-hover:scale-[1.015]"
+                                      loading={isPreview || (periodIndex === 0 && originalIndex < 4) ? "eager" : "lazy"}
+                                      unoptimized
+                                    />
+                                  </div>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 ))}
               </div>
             )
@@ -409,19 +512,39 @@ export default function ProfilePage() {
 
       {selectedUrl && (
         <div role="dialog" aria-modal="true" aria-label={t("previewLabel")} className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c0b09]/88 p-4 backdrop-blur-sm" onClick={() => setSelectedUrl(null)}>
-          <div className="relative grid max-h-[92vh] w-full max-w-5xl overflow-hidden bg-[#f5f2ed] md:grid-cols-[minmax(0,1fr)_280px] dark:bg-[#141210]" onClick={(event) => event.stopPropagation()}>
-            <div className="relative min-h-[55vh] bg-[#0c0b09]">
-              <Image src={selectedUrl} alt={t("previewLabel")} fill sizes="75vw" className="object-contain" priority unoptimized />
+          <div className="relative grid h-[min(92dvh,900px)] w-full max-w-6xl grid-rows-[minmax(0,52dvh)_minmax(0,1fr)] overflow-hidden bg-[#f5f2ed] md:grid-cols-[minmax(0,1fr)_360px] md:grid-rows-1 dark:bg-[#141210]" onClick={(event) => event.stopPropagation()}>
+            <div className="relative min-h-0 bg-[#0c0b09]">
+              <Image src={selectedUrl} alt={t("previewLabel")} fill sizes="(max-width: 768px) 100vw, calc(100vw - 360px)" className="object-contain object-center" priority unoptimized />
             </div>
-            <div className="flex flex-col justify-between p-6 md:p-8">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90]">{activeTab === "favorites" ? t("favorites") : t("works")}</p>
-                <h3 className="mt-4 text-xl font-semibold text-[#141210] dark:text-[#e0d9ce]">{selectedFavorite?.category ? getCategoryLabel(selectedFavorite.category) : selectedWork?.prompt || tCommon("untitled")}</h3>
-                <p className="mt-3 text-sm leading-6 text-[#5c564e] dark:text-[#8a837a]">{selectedFavorite ? `${selectedFavorite.author} · ${selectedFavorite.model}` : selectedWork ? `${getModelDisplayName(selectedWork.model)} · ${formatDate(selectedWork.created_at, locale)}` : ""}</p>
+            <aside className="min-h-0 overflow-y-auto overscroll-contain border-t border-[#d5cfc4] p-6 md:border-l md:border-t-0 md:p-8 dark:border-[#2a2520]">
+              <div className="flex min-h-full flex-col">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90]">{activeTab === "favorites" ? t("favorites") : t("works")}</p>
+                  {activeTab === "favorites" && selectedFavorite ? (
+                    <>
+                      <h3 className="mt-4 text-2xl font-semibold tracking-tight text-[#141210] dark:text-[#e0d9ce]">
+                        {selectedFavorite.category ? getCategoryLabel(selectedFavorite.category) : tCommon("untitled")}
+                      </h3>
+                      <p className="mt-3 text-sm leading-6 text-[#5c564e] dark:text-[#8a837a]">
+                        {`${selectedFavorite.author} · ${selectedFavorite.model}`}
+                      </p>
+                    </>
+                  ) : selectedWork ? (
+                    <>
+                      <p className="mt-6 text-[10px] uppercase tracking-[0.2em] text-[#a39b90]">{t("promptLabel")}</p>
+                      <p className="mt-3 whitespace-pre-wrap break-words text-[15px] font-normal leading-7 text-[#4a443c] dark:text-[#a39b90]" style={{ fontFamily: "'Instrument Serif', serif" }}>
+                        {selectedWork.prompt || tCommon("untitled")}
+                      </p>
+                      <p className="mt-6 border-t border-[#d5cfc4] pt-4 text-xs leading-5 text-[#8a837a] dark:border-[#2a2520] dark:text-[#5c564e]">
+                        {`${getModelDisplayName(selectedWork.model)} · ${formatDate(selectedWork.created_at, locale)}`}
+                      </p>
+                    </>
+                  ) : null}
+                </div>
+                <button type="button" onClick={() => setSelectedUrl(null)} className="mt-10 self-start border-b border-[#8a837a] pb-1 text-sm text-[#5c564e] hover:text-[#141210] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5c564e] dark:text-[#8a837a] dark:hover:text-[#e0d9ce]">{t("closePreview")}</button>
               </div>
-              <button type="button" onClick={() => setSelectedUrl(null)} className="mt-8 self-start border-b border-[#8a837a] pb-1 text-sm text-[#5c564e] hover:text-[#141210] dark:text-[#8a837a] dark:hover:text-[#e0d9ce]">{t("closePreview")}</button>
-            </div>
-            <button type="button" onClick={() => setSelectedUrl(null)} aria-label={t("closePreview")} className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f2ed]/90 text-[#2a2520] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f5f2ed] md:right-[296px]">
+            </aside>
+            <button type="button" onClick={() => setSelectedUrl(null)} aria-label={t("closePreview")} className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f2ed]/90 text-[#2a2520] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f5f2ed] md:right-[376px]">
               <X size={20} weight="light" aria-hidden />
             </button>
           </div>

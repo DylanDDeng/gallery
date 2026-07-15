@@ -65,6 +65,8 @@ test("component translation keys exist in messages", () => {
     "nav.settings",
     "nav.profile",
     "profile.favoritesTitle",
+    "profile.promptLabel",
+    "profile.timelineThisWeek",
     "generate.showPrompt",
     "generate.copyPrompt",
     "generate.usePrompt",

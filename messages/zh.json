@@ -395,6 +395,8 @@
     "discoverFirst": "去画廊逛逛",
     "removeFavorite": "取消收藏",
     "previewLabel": "图像预览",
+    "promptLabel": "作品提示词",
+    "timelineThisWeek": "本周",
     "closePreview": "关闭预览",
     "loadError": "暂时无法加载你的空间，请稍后重试。",
     "edit": {
