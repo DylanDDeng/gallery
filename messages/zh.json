@@ -443,6 +443,7 @@
     "unknown": "发生未知错误"
   },
   "imageModal": {
+    "close": "关闭图像",
     "archive": "Aestara 档案",
     "generationNotes": "生成说明",
     "loadingPrompt": "正在加载提示词详情...",

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Heart, X } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+import EditorialModalCloseButton from "@/components/EditorialModalCloseButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import UserMenu from "@/components/UserMenu";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -510,42 +511,85 @@ export default function ProfilePage() {
       </div>
 
       {selectedUrl && (
-        <div role="dialog" aria-modal="true" aria-label={t("previewLabel")} className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c0b09]/88 p-4 backdrop-blur-sm" onClick={() => setSelectedUrl(null)}>
-          <div className="relative grid h-[min(92dvh,900px)] w-full max-w-6xl grid-rows-[minmax(0,52dvh)_minmax(0,1fr)] overflow-hidden bg-[#f5f2ed] md:grid-cols-[minmax(0,1fr)_360px] md:grid-rows-1 dark:bg-[#141210]" onClick={(event) => event.stopPropagation()}>
-            <div className="relative min-h-0 bg-[#0c0b09]">
-              <Image src={selectedUrl} alt={t("previewLabel")} fill sizes="(max-width: 768px) 100vw, calc(100vw - 360px)" className="object-contain object-center" priority unoptimized />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("previewLabel")}
+          className="fixed inset-0 z-50 flex flex-col bg-[#f5f2ed]"
+          onClick={() => setSelectedUrl(null)}
+        >
+          <div
+            className="flex flex-shrink-0 items-center justify-between border-b border-[#d5cfc4]/50 px-5 py-3 md:px-8 md:py-4"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <EditorialModalCloseButton
+              ariaLabel={t("closePreview")}
+              onClick={() => setSelectedUrl(null)}
+            />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90]/60">
+              {activeTab === "favorites" ? t("favorites") : t("works")}
+            </span>
+          </div>
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+            <div
+              className="relative flex min-h-0 flex-1 items-center justify-center bg-[#ebe7e0] px-4 py-6 md:px-10 md:py-10"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="relative h-full w-full max-w-[900px]">
+                <Image
+                  src={selectedUrl}
+                  alt={t("previewLabel")}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 60vw"
+                  className="object-contain object-center"
+                  priority
+                  unoptimized
+                />
+              </div>
             </div>
-            <aside className="min-h-0 overflow-y-auto overscroll-contain border-t border-[#d5cfc4] p-6 md:border-l md:border-t-0 md:p-8 dark:border-[#2a2520]">
-              <div className="flex min-h-full flex-col">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90]">{activeTab === "favorites" ? t("favorites") : t("works")}</p>
-                  {activeTab === "favorites" && selectedFavorite ? (
-                    <>
-                      <h3 className="mt-4 text-2xl font-semibold tracking-tight text-[#141210] dark:text-[#e0d9ce]">
-                        {selectedFavorite.category ? getCategoryLabel(selectedFavorite.category) : tCommon("untitled")}
-                      </h3>
-                      <p className="mt-3 text-sm leading-6 text-[#5c564e] dark:text-[#8a837a]">
-                        {`${selectedFavorite.author} · ${selectedFavorite.model}`}
-                      </p>
-                    </>
-                  ) : selectedWork ? (
-                    <>
-                      <p className="mt-6 text-[10px] uppercase tracking-[0.2em] text-[#a39b90]">{t("promptLabel")}</p>
-                      <p className="mt-3 whitespace-pre-wrap break-words text-[15px] font-normal leading-7 text-[#4a443c] dark:text-[#a39b90]" style={{ fontFamily: "'Instrument Serif', serif" }}>
-                        {selectedWork.prompt || tCommon("untitled")}
-                      </p>
-                      <p className="mt-6 border-t border-[#d5cfc4] pt-4 text-xs leading-5 text-[#8a837a] dark:border-[#2a2520] dark:text-[#5c564e]">
-                        {`${getModelDisplayName(selectedWork.model)} · ${formatDate(selectedWork.created_at, locale)}`}
-                      </p>
-                    </>
-                  ) : null}
+
+            <aside
+              className="relative flex h-[42dvh] w-full flex-shrink-0 flex-col border-t border-[#d5cfc4]/40 bg-[#f5f2ed] md:h-auto md:w-[400px] md:border-l md:border-t-0 lg:w-[460px]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex-1 overflow-y-auto overscroll-contain px-8 py-6 scrollbar-hide md:px-12 md:py-10">
+                <div className="flex min-h-full flex-col">
+                  <div>
+                    <p className="text-[9px] uppercase tracking-[0.35em] text-[#a39b90]">
+                      {activeTab === "favorites" ? t("favorites") : t("works")}
+                    </p>
+                    {activeTab === "favorites" && selectedFavorite ? (
+                      <>
+                        <h3 className="mt-5 text-3xl font-semibold tracking-tight text-[#2a2520]">
+                          {selectedFavorite.category
+                            ? getCategoryLabel(selectedFavorite.category)
+                            : tCommon("untitled")}
+                        </h3>
+                        <p className="mt-4 text-[11px] uppercase leading-6 tracking-[0.16em] text-[#8a837a]">
+                          {`${selectedFavorite.author} · ${selectedFavorite.model}`}
+                        </p>
+                      </>
+                    ) : selectedWork ? (
+                      <>
+                        <p className="mt-8 text-[9px] uppercase tracking-[0.35em] text-[#a39b90]">
+                          {t("promptLabel")}
+                        </p>
+                        <p
+                          className="mt-5 whitespace-pre-wrap break-words text-[15px] font-normal leading-8 text-[#5c564e]"
+                          style={{ fontFamily: "'Instrument Serif', serif" }}
+                        >
+                          {selectedWork.prompt || tCommon("untitled")}
+                        </p>
+                        <p className="mt-8 border-t border-[#d5cfc4]/60 pt-5 text-[10px] uppercase leading-5 tracking-[0.16em] text-[#8a837a]">
+                          {`${getModelDisplayName(selectedWork.model)} · ${formatDate(selectedWork.created_at, locale)}`}
+                        </p>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
-                <button type="button" onClick={() => setSelectedUrl(null)} className="mt-10 self-start border-b border-[#8a837a] pb-1 text-sm text-[#5c564e] hover:text-[#141210] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5c564e] dark:text-[#8a837a] dark:hover:text-[#e0d9ce]">{t("closePreview")}</button>
               </div>
             </aside>
-            <button type="button" onClick={() => setSelectedUrl(null)} aria-label={t("closePreview")} className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f2ed]/90 text-[#2a2520] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f5f2ed] md:right-[376px]">
-              <X size={20} weight="light" aria-hidden />
-            </button>
           </div>
         </div>
       )}

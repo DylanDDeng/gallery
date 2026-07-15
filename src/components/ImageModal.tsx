@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import EditorialModalCloseButton from "./EditorialModalCloseButton";
 import GalleryImage from "./GalleryImage";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -228,24 +229,10 @@ export default function ImageModal() {
         className="flex-shrink-0 flex items-center justify-between px-5 py-3 md:px-8 md:py-4 border-b border-[#d5cfc4]/50"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
+        <EditorialModalCloseButton
+          ariaLabel={t("close")}
           onClick={() => setSelectedImage(null)}
-          className="text-[#8a837a] hover:text-[#2a2520] transition-colors duration-300"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+        />
 
         <div className="flex items-center gap-4">
           <span className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90]/60">

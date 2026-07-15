@@ -443,6 +443,7 @@
     "unknown": "An unknown error occurred"
   },
   "imageModal": {
+    "close": "Close image",
     "archive": "Aestara Archive",
     "generationNotes": "Generation Notes",
     "loadingPrompt": "Loading prompt details...",
