@@ -315,6 +315,13 @@
     "framesCount": "{count} 格",
     "useAsReference": "用作参考图",
     "downloadPrint": "下载作品",
+    "shareToX": "分享到 X",
+    "openingX": "正在打开 X…",
+    "copyLink": "复制链接",
+    "copyingLink": "正在复制…",
+    "linkCopied": "链接已复制",
+    "copyLinkFailed": "复制失败",
+    "shareText": "我的新作品，由 Aestara 创作。",
     "showPrompt": "查看提示词",
     "hidePrompt": "收起提示词",
     "promptDetails": "本次提示词",
@@ -339,8 +346,21 @@
       "failedToCreate": "创建生成任务失败",
       "genericError": "发生错误，请重试。",
       "failedToDownload": "下载生成图像失败，请重试。",
+      "failedToShare": "创建分享链接失败，请重试。",
+      "popupBlocked": "浏览器拦截了分享窗口，请允许弹窗后重试。",
       "failedRemixContext": "加载混音上下文失败"
     }
+  },
+  "share": {
+    "metadataTitle": "Aestara 创作作品",
+    "metadataDescription": "使用 {model} 在 Aestara 创作的图像作品。",
+    "imageAlt": "Aestara 生成的图像作品",
+    "eyebrow": "公开作品",
+    "title": "一幅刚刚显影的作品。",
+    "printLabel": "Aestara 印相",
+    "modelLabel": "模型",
+    "promptPrivate": "创作提示词由作者保留，未在此公开。",
+    "createCta": "创作你的作品"
   },
   "history": {
     "title": "历史",

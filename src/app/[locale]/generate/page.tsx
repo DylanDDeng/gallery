@@ -49,6 +49,7 @@ import type { ImagePrompt } from "@/lib/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase-browser";
 import UserMenu from "@/components/UserMenu";
 import { selectFeaturedResult } from "@/lib/generation-results";
+import { buildXShareUrl } from "@/lib/generation-share-url";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 
@@ -77,6 +78,8 @@ interface AssetCard {
   onRemove?: () => void;
   onDownload?: () => void;
   onUseAsReference?: () => void;
+  onShareToX?: () => void;
+  onCopyShareLink?: () => void;
 }
 
 const REFERENCE_IMAGE_BUCKET = "generations";
@@ -253,10 +256,17 @@ export default function GeneratePage() {
     id: string;
     status: "copied" | "error";
   } | null>(null);
+  const [shareState, setShareState] = useState<{
+    id: string;
+    action: "x" | "copy";
+    status: "working" | "copied" | "error";
+  } | null>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const promptInputRef = useRef<HTMLTextAreaElement>(null);
   const promptTextRef = useRef<HTMLParagraphElement>(null);
   const promptCopyResetTimerRef = useRef<number | null>(null);
+  const shareResetTimerRef = useRef<number | null>(null);
+  const shareUrlsRef = useRef(new Map<string, string>());
   const previousRemixModeRef = useRef(isRemixMode);
   const remixHydrationRequestRef = useRef(0);
   const historyRequestRef = useRef(0);
@@ -283,6 +293,9 @@ export default function GeneratePage() {
     return () => {
       if (promptCopyResetTimerRef.current !== null) {
         window.clearTimeout(promptCopyResetTimerRef.current);
+      }
+      if (shareResetTimerRef.current !== null) {
+        window.clearTimeout(shareResetTimerRef.current);
       }
     };
   }, []);
@@ -1085,6 +1098,89 @@ export default function GeneratePage() {
     [downloadingTaskId, isRemixMode, t]
   );
 
+  const getOrCreateShareUrl = useCallback(
+    async (taskId: string) => {
+      const cachedUrl = shareUrlsRef.current.get(taskId);
+      if (cachedUrl) {
+        return cachedUrl;
+      }
+
+      const response = await fetch(
+        `/api/generations/${encodeURIComponent(taskId)}/share`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ locale }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || typeof data.shareUrl !== "string") {
+        throw new Error(data.error || "Failed to create share link");
+      }
+
+      shareUrlsRef.current.set(taskId, data.shareUrl);
+      return data.shareUrl;
+    },
+    [locale],
+  );
+
+  const resetShareStateAfterDelay = useCallback(() => {
+    if (shareResetTimerRef.current !== null) {
+      window.clearTimeout(shareResetTimerRef.current);
+    }
+
+    shareResetTimerRef.current = window.setTimeout(() => {
+      setShareState(null);
+      shareResetTimerRef.current = null;
+    }, 2500);
+  }, []);
+
+  const handleCopyShareLink = useCallback(
+    async (taskId: string) => {
+      setShareState({ id: taskId, action: "copy", status: "working" });
+
+      try {
+        const shareUrl = await getOrCreateShareUrl(taskId);
+        await copyTextToClipboard(shareUrl);
+        setShareState({ id: taskId, action: "copy", status: "copied" });
+      } catch (shareError) {
+        console.error("Error copying generation share link:", shareError);
+        setShareState({ id: taskId, action: "copy", status: "error" });
+        setError(t("errors.failedToShare"));
+      }
+
+      resetShareStateAfterDelay();
+    },
+    [getOrCreateShareUrl, resetShareStateAfterDelay, t],
+  );
+
+  const handleShareToX = useCallback(
+    async (taskId: string) => {
+      const popup = window.open("about:blank", "_blank");
+      if (!popup) {
+        setError(t("errors.popupBlocked"));
+        return;
+      }
+
+      popup.opener = null;
+      setShareState({ id: taskId, action: "x", status: "working" });
+
+      try {
+        const shareUrl = await getOrCreateShareUrl(taskId);
+        popup.location.replace(buildXShareUrl(shareUrl, t("shareText")));
+        setShareState(null);
+      } catch (shareError) {
+        console.error("Error opening X share:", shareError);
+        popup.close();
+        setShareState({ id: taskId, action: "x", status: "error" });
+        setError(t("errors.failedToShare"));
+        resetShareStateAfterDelay();
+      }
+    },
+    [getOrCreateShareUrl, resetShareStateAfterDelay, t],
+  );
+
   const sourceImageUrl = remixDraft?.sourceImage?.url || null;
   const hasReferenceImage = Boolean(sourceImageUrl);
   const creditCount = credits ?? 0;
@@ -1195,6 +1291,12 @@ export default function GeneratePage() {
           onDownload: () => {
             void handleDownloadTask(task);
           },
+          onShareToX: () => {
+            void handleShareToX(task.id);
+          },
+          onCopyShareLink: () => {
+            void handleCopyShareLink(task.id);
+          },
           onSelect: isRemixMode
             ? () => {
                 if (isLocalUploadRemix && !stagedTaskIds.has(task.id)) {
@@ -1222,7 +1324,9 @@ export default function GeneratePage() {
     [
       featuredTaskId,
       handleDownloadTask,
+      handleCopyShareLink,
       handleSelectReferenceImage,
+      handleShareToX,
       handleUseAsReference,
       isLocalUploadRemix,
       isRemixMode,
@@ -1699,6 +1803,8 @@ export default function GeneratePage() {
                     {featuredAsset.kind === "result" &&
                     (featuredAsset.onDownload ||
                       featuredAsset.onUseAsReference ||
+                      featuredAsset.onShareToX ||
+                      featuredAsset.onCopyShareLink ||
                       featuredPrompt) ? (
                       <div className="mt-5 flex flex-wrap items-center justify-center gap-5">
                         {featuredPrompt ? (
@@ -1722,6 +1828,41 @@ export default function GeneratePage() {
                             className="text-[11px] uppercase tracking-[0.2em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
                           >
                             {t("useAsReference")}
+                          </button>
+                        ) : null}
+                        {featuredAsset.onShareToX ? (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              featuredAsset.onShareToX?.();
+                            }}
+                            className="text-[11px] uppercase tracking-[0.2em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5c564e] dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
+                          >
+                            {shareState?.id === featuredAsset.id &&
+                            shareState.action === "x" &&
+                            shareState.status === "working"
+                              ? t("openingX")
+                              : t("shareToX")}
+                          </button>
+                        ) : null}
+                        {featuredAsset.onCopyShareLink ? (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              featuredAsset.onCopyShareLink?.();
+                            }}
+                            className="text-[11px] uppercase tracking-[0.2em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5c564e] dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
+                          >
+                            {shareState?.id === featuredAsset.id &&
+                            shareState.action === "copy"
+                              ? shareState.status === "working"
+                                ? t("copyingLink")
+                                : shareState.status === "copied"
+                                  ? t("linkCopied")
+                                  : t("copyLinkFailed")
+                              : t("copyLink")}
                           </button>
                         ) : null}
                         {featuredAsset.onDownload ? (

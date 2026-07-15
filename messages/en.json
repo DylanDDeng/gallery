@@ -315,6 +315,13 @@
     "framesCount": "{count} frames",
     "useAsReference": "Use as reference",
     "downloadPrint": "Download print",
+    "shareToX": "Share to X",
+    "openingX": "Opening X…",
+    "copyLink": "Copy link",
+    "copyingLink": "Copying…",
+    "linkCopied": "Link copied",
+    "copyLinkFailed": "Copy failed",
+    "shareText": "A new print, made with Aestara.",
     "showPrompt": "View prompt",
     "hidePrompt": "Hide prompt",
     "promptDetails": "Prompt for this print",
@@ -339,8 +346,21 @@
       "failedToCreate": "Failed to create generation",
       "genericError": "An error occurred. Please try again.",
       "failedToDownload": "Failed to download the generated image. Please try again.",
+      "failedToShare": "Failed to create a share link. Please try again.",
+      "popupBlocked": "Your browser blocked the share window. Allow pop-ups and try again.",
       "failedRemixContext": "Failed to load remix context"
     }
+  },
+  "share": {
+    "metadataTitle": "A print made with Aestara",
+    "metadataDescription": "An image created with {model} on Aestara.",
+    "imageAlt": "An image created with Aestara",
+    "eyebrow": "Public print",
+    "title": "A newly developed print.",
+    "printLabel": "Aestara print",
+    "modelLabel": "Model",
+    "promptPrivate": "The artist has kept the creative prompt private.",
+    "createCta": "Create your own"
   },
   "history": {
     "title": "History",
