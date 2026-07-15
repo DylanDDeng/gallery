@@ -369,7 +369,6 @@ export default function ProfilePage() {
           <nav className="hidden items-center gap-16 text-[13px] font-medium text-[#4a443c] md:flex dark:text-[#a39b90]">
             <Link href="/" className="transition-colors hover:text-[#141210] dark:hover:text-[#e0d9ce]">{tNav("gallery")}</Link>
             <Link href="/generate" className="transition-colors hover:text-[#141210] dark:hover:text-[#e0d9ce]">{tNav("create")}</Link>
-            <Link href="/history" className="transition-colors hover:text-[#141210] dark:hover:text-[#e0d9ce]">{tNav("history")}</Link>
           </nav>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />

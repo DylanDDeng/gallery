@@ -176,12 +176,6 @@ export default function Home() {
             >
               {tNav("create")}
             </Link>
-            <Link
-              href="/history"
-              className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
-            >
-              {tNav("history")}
-            </Link>
           </nav>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />

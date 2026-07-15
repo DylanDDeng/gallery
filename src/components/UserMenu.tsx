@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Heart, UserCircle } from "@phosphor-icons/react";
+import { ClockCounterClockwise, Heart, UserCircle } from "@phosphor-icons/react";
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -96,33 +96,6 @@ export default function UserMenu() {
               </p>
             )}
           </div>
-          {billingEnabled && (
-            <>
-              <Link
-                href="/credits"
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-[#4a443c] transition-colors hover:bg-[#ebe7e0] dark:text-[#a39b90] dark:hover:bg-[#2a2520]/50"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5-1.343 5-3-2.239-3-5-3zm0 0V6m0 8v2m-7-5v2c0 1.657 3.134 3 7 3s7-1.343 7-3v-2"
-                  />
-                </svg>
-                <span>{tNav("credits")}</span>
-                <span className="ml-auto rounded bg-[#d5cfc4] px-1.5 py-0.5 text-[10px] dark:bg-[#2a2520]">
-                  {tCommon("creditsCount", { count: credits ?? "—" })}
-                </span>
-              </Link>
-            </>
-          )}
           <Link
             href="/profile"
             onClick={() => setOpen(false)}
@@ -130,6 +103,14 @@ export default function UserMenu() {
           >
             <UserCircle size={17} weight="light" aria-hidden />
             {tNav("profile")}
+          </Link>
+          <Link
+            href="/history"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-[#4a443c] transition-colors hover:bg-[#ebe7e0] dark:text-[#a39b90] dark:hover:bg-[#2a2520]/50"
+          >
+            <ClockCounterClockwise size={17} weight="light" aria-hidden />
+            {tNav("history")}
           </Link>
           <Link
             href="/profile?tab=favorites"
@@ -144,6 +125,31 @@ export default function UserMenu() {
               </span>
             )}
           </Link>
+          {billingEnabled && (
+            <Link
+              href="/credits"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-[#4a443c] transition-colors hover:bg-[#ebe7e0] dark:text-[#a39b90] dark:hover:bg-[#2a2520]/50"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-2.761 0-5 1.343-5 3s2.239 3 5 3 5-1.343 5-3-2.239-3-5-3zm0 0V6m0 8v2m-7-5v2c0 1.657 3.134 3 7 3s7-1.343 7-3v-2"
+                />
+              </svg>
+              <span>{tNav("credits")}</span>
+              <span className="ml-auto rounded bg-[#d5cfc4] px-1.5 py-0.5 text-[10px] dark:bg-[#2a2520]">
+                {tCommon("creditsCount", { count: credits ?? "—" })}
+              </span>
+            </Link>
+          )}
           <Link
             href="/settings"
             onClick={() => setOpen(false)}
