@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, MODELS } from "@/lib/constants";
@@ -25,6 +25,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
   const [editingImage, setEditingImage] = useState<ImagePrompt | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const editRequestVersionRef = useRef(0);
 
   // Form state
   const [formUrl, setFormUrl] = useState("");
@@ -124,6 +125,7 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
   }, [fetchImages]);
 
   const resetForm = () => {
+    editRequestVersionRef.current += 1;
     setFormUrl("");
     setPreviewError(false);
     setFormPrompt("");
@@ -145,6 +147,8 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
   };
 
   const openEditForm = async (image: ImagePrompt) => {
+    const requestVersion = editRequestVersionRef.current + 1;
+    editRequestVersionRef.current = requestVersion;
     setMessage("");
     let detail: ImagePrompt;
     try {
@@ -155,8 +159,10 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
       if (!response.ok) {
         throw new Error(json.error || "Failed to load image details");
       }
+      if (editRequestVersionRef.current !== requestVersion) return;
       detail = json as ImagePrompt;
     } catch {
+      if (editRequestVersionRef.current !== requestVersion) return;
       setMessage("Error: Unable to load the complete image record for editing");
       return;
     }
@@ -277,6 +283,12 @@ export default function AdminDashboard({ email }: AdminDashboardProps) {
       </header>
 
       <div className="mx-auto max-w-[1400px] px-6 py-6">
+        {!showForm && message && (
+          <div className="mb-5 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-500 ring-1 ring-red-500/20 dark:text-red-400">
+            {message}
+          </div>
+        )}
+
         {!showForm && (
           <button
             onClick={openAddForm}

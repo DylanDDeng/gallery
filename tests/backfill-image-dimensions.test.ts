@@ -148,7 +148,25 @@ describe("image dimension backfill", () => {
     assert.equal(second.manifest.entries.length, 0);
     assert.equal(second.updatedRows, 0);
     assert.equal(second.verification?.missingDimensions, 0);
-    assert.equal(resolverCalls, 0);
+    assert.equal(resolverCalls, 4);
+    assert.deepEqual(gateway.setCalls, []);
+  });
+
+  it("revalidates dimensions from an earlier partial run before resuming writes", async () => {
+    const rows = makeRows(3);
+    rows[0].width = 999;
+    rows[0].height = 999;
+    const gateway = new MemoryGateway(rows);
+
+    await assert.rejects(
+      runBackfill({
+        gateway,
+        projectRef: "abcdefghijklmnopqrst",
+        apply: true,
+        resolveDimensions: resolver,
+      }),
+      /Metadata preflight failed for 1\/3 rows; no database writes were attempted/
+    );
     assert.deepEqual(gateway.setCalls, []);
   });
 

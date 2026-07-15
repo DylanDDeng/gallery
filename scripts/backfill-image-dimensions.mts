@@ -190,8 +190,11 @@ export async function prepareBackfillManifest(options: {
   const missingRows = allRows.filter(
     (row) => row.width === null && row.height === null
   );
+  // Resolve every row, including already-populated rows. This makes a rerun
+  // independently verify dimensions written by an earlier partial run before
+  // it attempts any remaining writes.
   const outcomes = await mapWithConcurrency(
-    missingRows,
+    allRows,
     preflightConcurrency,
     async (row) => {
       try {
@@ -201,6 +204,12 @@ export async function prepareBackfillManifest(options: {
           !isPositiveSafeInteger(dimensions.height)
         ) {
           throw new Error("resolver returned invalid dimensions");
+        }
+        if (
+          row.width !== null &&
+          (row.width !== dimensions.width || row.height !== dimensions.height)
+        ) {
+          throw new Error("stored dimensions do not match source metadata");
         }
         return { row, dimensions, error: null };
       } catch (error) {
@@ -216,15 +225,16 @@ export async function prepareBackfillManifest(options: {
   const failures = outcomes.filter((outcome) => outcome.error !== null);
   if (failures.length > 0) {
     throw new Error(
-      `Metadata preflight failed for ${failures.length}/${missingRows.length} rows; no database writes were attempted`
+      `Metadata preflight failed for ${failures.length}/${allRows.length} rows; no database writes were attempted`
     );
   }
 
-  const entries: BackfillEntry[] = outcomes.map(({ row, dimensions }) => {
+  const entries: BackfillEntry[] = outcomes.flatMap(({ row, dimensions }) => {
+    if (row.width !== null) return [];
     if (!dimensions) {
       throw new Error("Internal preflight invariant failed");
     }
-    return {
+    return [{
       id: row.id,
       imageUrl: row.url,
       widthBefore: null,
@@ -232,7 +242,7 @@ export async function prepareBackfillManifest(options: {
       width: dimensions.width,
       height: dimensions.height,
       nonDimensionHash: hashNonDimensionFields(row),
-    };
+    }];
   });
 
   return {
