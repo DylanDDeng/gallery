@@ -69,6 +69,7 @@ interface AssetCard {
   imageUrl?: string;
   label: string;
   caption: string;
+  prompt?: string;
   kind: "reference" | "result";
   selected?: boolean;
   pending?: boolean;
@@ -167,6 +168,45 @@ function getPromptExcerpt(text: string, maxLength = 104) {
   return `${trimmed.slice(0, maxLength).trimEnd()}…`;
 }
 
+async function copyTextToClipboard(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (copied) {
+    return;
+  }
+
+  if (navigator.clipboard?.writeText) {
+    await new Promise<void>((resolve, reject) => {
+      const timeoutId = window.setTimeout(
+        () => reject(new Error("Clipboard write timed out")),
+        750,
+      );
+
+      navigator.clipboard.writeText(text).then(
+        () => {
+          window.clearTimeout(timeoutId);
+          resolve();
+        },
+        (error) => {
+          window.clearTimeout(timeoutId);
+          reject(error);
+        },
+      );
+    });
+    return;
+  }
+
+  throw new Error("Clipboard copy failed");
+}
+
 export default function GeneratePage() {
   const t = useTranslations("generate");
   const tNav = useTranslations("nav");
@@ -208,7 +248,16 @@ export default function GeneratePage() {
   const [selectedGptQuality, setSelectedGptQuality] = useState<GptImageQuality>("medium");
   const [selectedGptOrientation, setSelectedGptOrientation] =
     useState<GptImageOrientation>("square");
+  const [promptDetailsOpen, setPromptDetailsOpen] = useState(false);
+  const [promptCopyState, setPromptCopyState] = useState<{
+    id: string;
+    status: "copied" | "error";
+  } | null>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
+  const promptInputRef = useRef<HTMLTextAreaElement>(null);
+  const promptTextRef = useRef<HTMLParagraphElement>(null);
+  const promptCopyResetTimerRef = useRef<number | null>(null);
+  const previousRemixModeRef = useRef(isRemixMode);
   const remixHydrationRequestRef = useRef(0);
   const historyRequestRef = useRef(0);
   const promptRef = useRef(prompt);
@@ -229,6 +278,14 @@ export default function GeneratePage() {
   const referenceAcceptTypes = isGptImageModel(selectedModel)
     ? "image/png,image/jpeg,image/webp"
     : "image/png,image/jpeg,image/webp,image/gif";
+
+  useEffect(() => {
+    return () => {
+      if (promptCopyResetTimerRef.current !== null) {
+        window.clearTimeout(promptCopyResetTimerRef.current);
+      }
+    };
+  }, []);
 
   const fetchRemixContext = useCallback(
     async (nextSourceImageId: string) => {
@@ -317,12 +374,17 @@ export default function GeneratePage() {
   }, [isRemixMode, user?.id]);
 
   useEffect(() => {
+    const wasRemixMode = previousRemixModeRef.current;
+    previousRemixModeRef.current = isRemixMode;
+
     if (!user) return;
 
     if (!isRemixMode) {
       setRemixDraft(null);
       setReferenceImages([]);
-      setPrompt("");
+      if (wasRemixMode) {
+        setPrompt("");
+      }
       return;
     }
 
@@ -978,7 +1040,6 @@ export default function GeneratePage() {
             mergeRemixSeriesItems(previous, [completedTask])
           );
         }
-        setPrompt("");
       }
     } catch (submitError) {
       console.error(CREDITS_DEBUG_PREFIX, "generate:submit:exception", submitError);
@@ -1124,6 +1185,7 @@ export default function GeneratePage() {
           caption: `${formatDate(task.created_at, locale)} · ${
             getModelPricing(task.model).name
           }`,
+          prompt: task.prompt,
           kind: "result" as const,
           selected: isRemixMode
             ? sourceImageId || stagedTaskIds.has(task.id)
@@ -1222,6 +1284,40 @@ export default function GeneratePage() {
   const showContactSheet =
     thumbnailCards.length > 1 ||
     (isLocalUploadRemix && thumbnailCards.length > 0 && Boolean(sourceImageUrl));
+  const featuredPrompt = featuredAsset?.prompt?.trim() ?? "";
+
+  const handleCopyFeaturedPrompt = async () => {
+    if (!featuredAsset || !featuredPrompt) return;
+
+    if (promptCopyResetTimerRef.current !== null) {
+      window.clearTimeout(promptCopyResetTimerRef.current);
+    }
+
+    try {
+      await copyTextToClipboard(featuredPrompt);
+      setPromptCopyState({ id: featuredAsset.id, status: "copied" });
+    } catch {
+      if (promptTextRef.current) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(promptTextRef.current);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+      setPromptCopyState({ id: featuredAsset.id, status: "error" });
+    }
+
+    promptCopyResetTimerRef.current = window.setTimeout(() => {
+      setPromptCopyState(null);
+      promptCopyResetTimerRef.current = null;
+    }, 2500);
+  };
+
+  const handleUseFeaturedPrompt = () => {
+    if (!featuredPrompt) return;
+    setPrompt(featuredPrompt);
+    promptInputRef.current?.focus();
+  };
 
   const generateLabel = submitting
     ? t("developing")
@@ -1384,6 +1480,7 @@ export default function GeneratePage() {
                 </span>
               </div>
               <textarea
+                ref={promptInputRef}
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
                 placeholder={t("promptPlaceholder")}
@@ -1564,8 +1661,8 @@ export default function GeneratePage() {
             {featuredAsset ? (
               <div className="flex flex-col gap-8">
                 <div className="studio-backdrop flex min-h-[420px] items-center justify-center px-4 py-10 sm:px-10 lg:min-h-[calc(100vh-330px)]">
-                  <figure className="max-w-full">
-                    <div className="bg-[#faf8f5] p-2.5 pb-9 shadow-[0_20px_60px_rgba(42,37,32,0.12)] sm:p-3 sm:pb-11 dark:bg-[#f2ece2] dark:shadow-[0_24px_70px_rgba(0,0,0,0.45)]">
+                  <figure className="w-full max-w-3xl">
+                    <div className="mx-auto w-fit max-w-full bg-[#faf8f5] p-2.5 pb-9 shadow-[0_20px_60px_rgba(42,37,32,0.12)] sm:p-3 sm:pb-11 dark:bg-[#f2ece2] dark:shadow-[0_24px_70px_rgba(0,0,0,0.45)]">
                       {featuredAsset.pending || !featuredAsset.imageUrl ? (
                         <div className="relative h-[420px] w-[336px] max-w-full overflow-hidden bg-[#e8e4de] dark:bg-[#1a1614]">
                           <div
@@ -1600,8 +1697,21 @@ export default function GeneratePage() {
                       </figcaption>
                     </div>
                     {featuredAsset.kind === "result" &&
-                    (featuredAsset.onDownload || featuredAsset.onUseAsReference) ? (
+                    (featuredAsset.onDownload ||
+                      featuredAsset.onUseAsReference ||
+                      featuredPrompt) ? (
                       <div className="mt-5 flex flex-wrap items-center justify-center gap-5">
+                        {featuredPrompt ? (
+                          <button
+                            type="button"
+                            aria-expanded={promptDetailsOpen}
+                            aria-controls={`prompt-details-${featuredAsset.id}`}
+                            onClick={() => setPromptDetailsOpen((open) => !open)}
+                            className="text-[11px] uppercase tracking-[0.2em] text-[#8a837a] underline decoration-[#d5cfc4] underline-offset-4 transition-colors hover:text-[#2a2520] hover:decoration-[#8a837a] dark:text-[#5c564e] dark:decoration-[#3a352f] dark:hover:text-[#c4bdb4]"
+                          >
+                            {promptDetailsOpen ? t("hidePrompt") : t("showPrompt")}
+                          </button>
+                        ) : null}
                         {!isRemixMode && featuredAsset.onUseAsReference ? (
                           <button
                             type="button"
@@ -1628,6 +1738,51 @@ export default function GeneratePage() {
                               : t("downloadPrint")}
                           </button>
                         ) : null}
+                      </div>
+                    ) : null}
+                    {featuredPrompt ? (
+                      <div
+                        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+                          promptDetailsOpen
+                            ? "grid-rows-[1fr] opacity-100"
+                            : "grid-rows-[0fr] opacity-0"
+                        }`}
+                      >
+                        <div className="overflow-hidden">
+                          <div
+                            id={`prompt-details-${featuredAsset.id}`}
+                            className="mt-5 border-y border-[#d5cfc4] py-5 dark:border-[#2a2520]"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <span className="text-[10px] uppercase tracking-[0.25em] text-[#8a837a] dark:text-[#5c564e]">
+                                {t("promptDetails")}
+                              </span>
+                              <div className="flex flex-wrap items-center gap-4">
+                                <button
+                                  type="button"
+                                  onClick={() => void handleCopyFeaturedPrompt()}
+                                  className="text-[11px] uppercase tracking-[0.16em] text-[#5c564e] transition-colors hover:text-[#2a2520] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5c564e] dark:text-[#8a837a] dark:hover:text-[#c4bdb4]"
+                                >
+                                  {promptCopyState?.id === featuredAsset.id
+                                    ? promptCopyState.status === "copied"
+                                      ? t("promptCopied")
+                                      : t("promptCopyFailed")
+                                    : t("copyPrompt")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleUseFeaturedPrompt}
+                                  className="text-[11px] uppercase tracking-[0.16em] text-[#5c564e] transition-colors hover:text-[#2a2520] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5c564e] dark:text-[#8a837a] dark:hover:text-[#c4bdb4]"
+                                >
+                                  {t("usePrompt")}
+                                </button>
+                              </div>
+                            </div>
+                            <p ref={promptTextRef} className="mt-4 whitespace-pre-wrap break-words text-[14px] leading-7 text-[#4a443c] dark:text-[#8a837a]">
+                              {featuredPrompt}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     ) : null}
                   </figure>
