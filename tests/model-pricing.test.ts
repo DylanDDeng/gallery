@@ -5,6 +5,7 @@ import {
   buildGptImageTierId,
   getDefaultTierId,
   getGenerationCreditsCost,
+  getModelDisplayName,
   isSupportedModelId,
   resolveModelTier,
 } from "../src/lib/model-pricing.ts";
@@ -12,6 +13,15 @@ import {
 describe("model-pricing", () => {
   it("supports gpt-image-2 model id", () => {
     assert.equal(isSupportedModelId("openai/gpt-image-2"), true);
+  });
+
+  it("uses gallery-friendly model names for generation ids", () => {
+    assert.equal(getModelDisplayName("openai/gpt-image-2"), "GPT Image 2");
+    assert.equal(
+      getModelDisplayName("doubao-seedream-5-0-260128"),
+      "Seedream 5.0 Lite"
+    );
+    assert.equal(getModelDisplayName("Nano Banana Pro"), "Nano Banana Pro");
   });
 
   it("prices seedream tiers from server-side tier ids", () => {

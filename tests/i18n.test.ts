@@ -63,6 +63,8 @@ test("component translation keys exist in messages", () => {
     "auth.loginPrompt.generate.title",
     "nav.credits",
     "nav.settings",
+    "nav.profile",
+    "profile.favoritesTitle",
     "common.creditsCount",
     "common.categories.portrait",
     "common.timeFilters.today",

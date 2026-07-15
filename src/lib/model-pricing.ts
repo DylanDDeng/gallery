@@ -75,7 +75,7 @@ const GPT_IMAGE_TIERS: ModelTier[] = [
 export const MODEL_PRICING = {
   "doubao-seedream-5-0-260128": {
     id: "doubao-seedream-5-0-260128",
-    name: "Seedream-5.0-Lite",
+    name: "Seedream 5.0 Lite",
     description: "Balanced quality with support for 2K and 3K renders.",
     provider: "doubao",
     tiers: SEEDREAM_TIERS,
@@ -108,6 +108,10 @@ export function getModelPricing(modelId: string): ModelPricingEntry {
   return MODEL_PRICING[
     isSupportedModelId(modelId) ? modelId : DEFAULT_MODEL_ID
   ];
+}
+
+export function getModelDisplayName(model: string) {
+  return isSupportedModelId(model) ? MODEL_PRICING[model].name : model;
 }
 
 export function getModelTiers(modelId: string) {

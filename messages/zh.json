@@ -135,7 +135,8 @@
     "create": "创作",
     "history": "历史",
     "credits": "积分",
-    "settings": "设置"
+    "settings": "设置",
+    "profile": "我的空间"
   },
   "language": {
     "en": "English",
@@ -369,6 +370,33 @@
         "bind": "绑定",
         "change": "更换"
       }
+    }
+  },
+  "profile": {
+    "title": "我的空间",
+    "editProfile": "编辑资料",
+    "collectionsLabel": "个人收藏集",
+    "works": "我的作品",
+    "favorites": "我的收藏",
+    "worksTitle": "创作档案",
+    "favoritesTitle": "灵感收藏室",
+    "continueCreating": "继续创作",
+    "discoverMore": "去画廊发现更多",
+    "emptyWorks": "完成的第一件作品会出现在这里。",
+    "createFirst": "创作第一件作品",
+    "emptyFavorites": "收藏能点亮下一次创作的图像。",
+    "discoverFirst": "去画廊逛逛",
+    "removeFavorite": "取消收藏",
+    "previewLabel": "图像预览",
+    "closePreview": "关闭预览",
+    "loadError": "暂时无法加载你的空间，请稍后重试。",
+    "edit": {
+      "title": "编辑资料",
+      "nameLabel": "显示名称",
+      "nameError": "请输入 1 至 50 个字符的名称。",
+      "saveError": "资料保存失败，请稍后重试。",
+      "save": "保存修改",
+      "cancel": "取消"
     }
   },
   "errors": {

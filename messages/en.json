@@ -135,7 +135,8 @@
     "create": "Create",
     "history": "History",
     "credits": "Credits",
-    "settings": "Settings"
+    "settings": "Settings",
+    "profile": "My Space"
   },
   "language": {
     "en": "English",
@@ -369,6 +370,33 @@
         "bind": "Bind",
         "change": "Change"
       }
+    }
+  },
+  "profile": {
+    "title": "My Space",
+    "editProfile": "Edit profile",
+    "collectionsLabel": "Personal collections",
+    "works": "My Works",
+    "favorites": "My Favorites",
+    "worksTitle": "Creative Archive",
+    "favoritesTitle": "Inspiration Room",
+    "continueCreating": "Continue creating",
+    "discoverMore": "Discover more in the gallery",
+    "emptyWorks": "Your first finished work will appear here.",
+    "createFirst": "Create your first work",
+    "emptyFavorites": "Save images that spark your next idea.",
+    "discoverFirst": "Explore the gallery",
+    "removeFavorite": "Remove from favorites",
+    "previewLabel": "Image preview",
+    "closePreview": "Close preview",
+    "loadError": "We could not load your space. Please try again.",
+    "edit": {
+      "title": "Edit profile",
+      "nameLabel": "Display name",
+      "nameError": "Enter a name between 1 and 50 characters.",
+      "saveError": "We could not save your profile. Please try again.",
+      "save": "Save changes",
+      "cancel": "Cancel"
     }
   },
   "errors": {
