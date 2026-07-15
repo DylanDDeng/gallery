@@ -70,3 +70,17 @@ export function readGenerationShareToken(token: string, secret: string) {
     return null;
   }
 }
+
+export function readGenerationShareTokenWithSecrets(
+  token: string,
+  secrets: string[],
+) {
+  for (const secret of new Set(secrets)) {
+    const taskId = readGenerationShareToken(token, secret);
+    if (taskId) {
+      return taskId;
+    }
+  }
+
+  return null;
+}

@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   createGenerationShareToken,
   readGenerationShareToken,
+  readGenerationShareTokenWithSecrets,
 } from "../src/lib/generation-share-token.ts";
 import { buildXShareUrl } from "../src/lib/generation-share-url.ts";
 
@@ -22,6 +23,15 @@ test("generation share token rejects tampering and the wrong secret", () => {
 
   assert.equal(readGenerationShareToken(tampered, secret), null);
   assert.equal(readGenerationShareToken(token, "another-secret"), null);
+});
+
+test("generation share token accepts a legacy secret during rotation", () => {
+  const token = createGenerationShareToken(taskId, secret);
+
+  assert.equal(
+    readGenerationShareTokenWithSecrets(token, ["new-secret", secret]),
+    taskId,
+  );
 });
 
 test("generation share token rejects malformed ids and tokens", () => {

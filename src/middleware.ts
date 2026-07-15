@@ -38,6 +38,7 @@ export const config = {
   matcher: [
     "/",
     "/(zh)/:path*",
+    "/share/:path*",
     "/((?!api|auth|_next|_vercel|.*\\..*).*)",
   ],
 };

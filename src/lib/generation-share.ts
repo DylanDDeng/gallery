@@ -1,8 +1,8 @@
 import { cache } from "react";
-import { getFirstAppSecret } from "@/lib/app-secrets";
+import { getAppSecret } from "@/lib/app-secrets";
 import {
   createGenerationShareToken,
-  readGenerationShareToken,
+  readGenerationShareTokenWithSecrets,
 } from "@/lib/generation-share-token";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -13,28 +13,29 @@ export type SharedGeneration = {
   created_at: string;
 };
 
-async function getGenerationShareSecret() {
-  const secret = await getFirstAppSecret([
-    "GENERATION_SHARE_SECRET",
-    "SUPABASE_SERVICE_ROLE_KEY",
-  ]);
+async function getGenerationShareSecrets() {
+  const secrets = [
+    await getAppSecret("GENERATION_SHARE_SECRET"),
+    await getAppSecret("SUPABASE_SERVICE_ROLE_KEY"),
+  ].filter((secret): secret is string => Boolean(secret));
 
-  if (!secret) {
+  if (secrets.length === 0) {
     throw new Error("GENERATION_SHARE_SECRET is not configured");
   }
 
-  return secret;
+  return [...new Set(secrets)];
 }
 
 export async function signGenerationShare(taskId: string) {
-  return createGenerationShareToken(taskId, await getGenerationShareSecret());
+  const [secret] = await getGenerationShareSecrets();
+  return createGenerationShareToken(taskId, secret);
 }
 
 export const getSharedGeneration = cache(
   async (token: string): Promise<SharedGeneration | null> => {
-    const taskId = readGenerationShareToken(
+    const taskId = readGenerationShareTokenWithSecrets(
       token,
-      await getGenerationShareSecret(),
+      await getGenerationShareSecrets(),
     );
 
     if (!taskId) {
