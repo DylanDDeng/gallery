@@ -87,7 +87,8 @@ export default function MasonryGrid({
     Boolean(useAppStore.getState().searchQuery) ||
     useAppStore.getState().activeCategory !== "all" ||
     useAppStore.getState().activeTimeFilter !== "all" ||
-    useAppStore.getState().activeModel !== "all";
+    useAppStore.getState().activeModel !== "all" ||
+    Boolean(useAppStore.getState().activeStyleCode);
 
   const columns = useMemo(
     () => buildColumns(filteredImages, columnCount),

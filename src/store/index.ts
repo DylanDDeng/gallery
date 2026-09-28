@@ -1,11 +1,17 @@
 import { create } from "zustand";
 import type { ImagePrompt } from "@/lib/types";
 import { createClient } from "@/lib/supabase-browser";
-import { MOCK_IMAGES } from "@/lib/constants";
+import { MIDJOURNEY_MODEL, MOCK_IMAGES } from "@/lib/constants";
+import type { StyleCodeKind } from "@/lib/midjourney-params";
 
 const CREDITS_DEBUG_PREFIX = "[credits-debug]";
 const PAGE_SIZE = 24;
 const MAX_IMAGES = 1000;
+
+export interface StyleCodeFilter {
+  kind: StyleCodeKind;
+  code: string;
+}
 
 interface User {
   id: string;
@@ -29,6 +35,9 @@ interface AppState {
   activeCategory: string;
   activeTimeFilter: "all" | "today" | "week" | "month";
   activeModel: string;
+  /** Midjourney-only filters; cleared whenever the model filter changes. */
+  activeMjVersion: string;
+  activeStyleCode: StyleCodeFilter | null;
   favorites: string[];
   showFavoritesOnly: boolean;
   theme: "light" | "dark";
@@ -58,6 +67,10 @@ interface AppState {
   setActiveCategory: (category: string) => void;
   setActiveTimeFilter: (filter: "all" | "today" | "week" | "month") => void;
   setActiveModel: (model: string) => void;
+  setActiveMjVersion: (version: string) => void;
+  setActiveStyleCode: (filter: StyleCodeFilter | null) => void;
+  /** Jump the gallery to every Midjourney image that uses one style code. */
+  showStyleCode: (filter: StyleCodeFilter) => void;
   toggleFavorite: (imageId: string) => void;
   isFavorite: (imageId: string) => boolean;
   toggleShowFavoritesOnly: () => void;
@@ -91,6 +104,8 @@ function buildQueryString(
     | "activeCategory"
     | "activeTimeFilter"
     | "activeModel"
+    | "activeMjVersion"
+    | "activeStyleCode"
     | "showFavoritesOnly"
     | "favorites"
   >
@@ -104,6 +119,13 @@ function buildQueryString(
   if (state.activeCategory !== "all") params.set("category", state.activeCategory);
   if (state.activeTimeFilter !== "all") params.set("time", state.activeTimeFilter);
   if (state.activeModel !== "all") params.set("model", state.activeModel);
+  if (state.activeMjVersion !== "all") params.set("mj_version", state.activeMjVersion);
+  if (state.activeStyleCode) {
+    params.set(
+      state.activeStyleCode.kind === "p" ? "mj_profile" : "mj_sref",
+      state.activeStyleCode.code
+    );
+  }
   if (state.showFavoritesOnly && state.favorites.length > 0) {
     params.set("ids", state.favorites.join(","));
   }
@@ -133,6 +155,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeCategory: "all",
   activeTimeFilter: "all",
   activeModel: "all",
+  activeMjVersion: "all",
+  activeStyleCode: null,
   favorites: [],
   showFavoritesOnly: false,
   theme: "light",
@@ -160,7 +184,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setActiveCategory: (category) => set({ activeCategory: category }),
   setActiveTimeFilter: (filter) => set({ activeTimeFilter: filter }),
-  setActiveModel: (model) => set({ activeModel: model }),
+  setActiveModel: (model) =>
+    set((state) =>
+      model === state.activeModel
+        ? {}
+        : { activeModel: model, activeMjVersion: "all", activeStyleCode: null }
+    ),
+  setActiveMjVersion: (version) =>
+    set({ activeMjVersion: version, activeStyleCode: null }),
+  setActiveStyleCode: (filter) => set({ activeStyleCode: filter }),
+  showStyleCode: (filter) =>
+    set({
+      activeModel: MIDJOURNEY_MODEL,
+      activeMjVersion: "all",
+      activeStyleCode: filter,
+      activeCategory: "all",
+      activeTimeFilter: "all",
+      showFavoritesOnly: false,
+      selectedImage: null,
+      magazineOpened: true,
+    }),
   toggleShowFavoritesOnly: () =>
     set((state) => ({ showFavoritesOnly: !state.showFavoritesOnly })),
 
@@ -247,6 +290,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         state.activeCategory === "all" &&
         state.activeTimeFilter === "all" &&
         state.activeModel === "all" &&
+        state.activeMjVersion === "all" &&
+        !state.activeStyleCode &&
         !state.showFavoritesOnly;
 
       if (data.length === 0 && isDefaultFeed) {

@@ -18,6 +18,7 @@ function getModelLogo(model: string): string {
   if (m.includes("seedream")) return "/bytedance-color.svg";
   if (m.includes("grok")) return "/grok-color.svg";
   if (m.includes("gpt")) return "/openai-color.svg";
+  if (m.includes("midjourney")) return "/midjourney-color.svg";
   return "/nanobanana-color.svg";
 }
 

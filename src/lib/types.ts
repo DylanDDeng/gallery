@@ -14,6 +14,10 @@ export interface ImagePrompt {
   height: number | null;
   created_at: string;
   tweet_url?: string | null;
+  mj_version?: string | null;
+  mj_profiles?: string[] | null;
+  mj_srefs?: string[] | null;
+  mj_params?: Record<string, string> | null;
 }
 
 export interface Favorite {

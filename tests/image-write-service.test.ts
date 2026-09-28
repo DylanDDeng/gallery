@@ -192,3 +192,38 @@ describe("image write service", () => {
     assert.equal(sideEffects, 0);
   });
 });
+
+describe("image write service midjourney columns", () => {
+  it("derives Midjourney columns from the prompt on create", async () => {
+    let inserted: ImageMutation | null = null;
+    await createImageRecord(
+      { ...body(), model: "Midjourney", prompt: "portrait --v 7 --p abc --sref 99" },
+      {
+        resolveDimensions: async () => ({ width: 1, height: 1 }),
+        insert: async (mutation) => {
+          inserted = mutation;
+          return { id: "created" };
+        },
+      }
+    );
+
+    assert.equal(inserted?.mj_version, "7");
+    assert.deepEqual(inserted?.mj_profiles, ["abc"]);
+    assert.deepEqual(inserted?.mj_srefs, ["99"]);
+  });
+
+  it("clears Midjourney columns when the model changes", async () => {
+    let updated: ImageMutation | null = null;
+    await updateImageRecord("image-id", { ...body(), prompt: "portrait --p abc" }, {
+      resolveDimensions: async () => ({ width: 1, height: 1 }),
+      findById: async () => ({ id: "image-id", url: ORIGINAL_URL, width: 1, height: 1 }),
+      updateIfCurrentUrl: async (_id, _url, mutation) => {
+        updated = mutation;
+        return { id: "image-id" };
+      },
+    });
+
+    assert.equal(updated?.mj_profiles, null);
+    assert.equal(updated?.mj_version, null);
+  });
+});

@@ -1,4 +1,8 @@
 import type { ImageDimensions } from "./cos-image-metadata-core";
+import {
+  midjourneyColumnsFor,
+  type MidjourneyColumns,
+} from "./midjourney-params.ts";
 
 export interface ImageWriteBody {
   url?: unknown;
@@ -21,7 +25,7 @@ export interface ExistingImageDimensions {
   height: number | null;
 }
 
-export interface ImageMutation {
+export interface ImageMutation extends MidjourneyColumns {
   url: string;
   prompt: unknown;
   author: unknown;
@@ -87,6 +91,7 @@ function mutationFrom(
     tweet_url: nullableValue(body.tweet_url),
     prompt_zh: nullableValue(body.prompt_zh),
     prompt_ja: nullableValue(body.prompt_ja),
+    ...midjourneyColumnsFor(body.model, body.prompt),
   };
 }
 

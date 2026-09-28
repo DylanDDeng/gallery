@@ -38,6 +38,9 @@ export async function GET(request: Request) {
   const search = searchParams.get("search");
   const model = searchParams.get("model");
   const time = searchParams.get("time");
+  const mjVersion = searchParams.get("mj_version");
+  const mjProfile = searchParams.get("mj_profile");
+  const mjSref = searchParams.get("mj_sref");
   const idsParam = searchParams.get("ids");
   const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "24"), 1), 100);
   const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
@@ -49,7 +52,9 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from("images")
-    .select("id,url,author,model,category,width,height,created_at,tweet_url")
+    .select(
+      "id,url,author,model,category,width,height,created_at,tweet_url,mj_version,mj_profiles,mj_srefs"
+    )
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .range(offset, offset + limit);
@@ -64,6 +69,18 @@ export async function GET(request: Request) {
 
   if (model && model !== "all") {
     query = query.eq("model", model);
+  }
+
+  if (mjVersion && mjVersion !== "all") {
+    query = query.eq("mj_version", mjVersion);
+  }
+
+  if (mjProfile) {
+    query = query.contains("mj_profiles", [mjProfile]);
+  }
+
+  if (mjSref) {
+    query = query.contains("mj_srefs", [mjSref]);
   }
 
   if (time && time !== "all") {

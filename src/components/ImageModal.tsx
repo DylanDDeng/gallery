@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import EditorialModalCloseButton from "./EditorialModalCloseButton";
+import MidjourneyLogo from "./MidjourneyLogo";
 import GalleryImage from "./GalleryImage";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -14,6 +15,12 @@ import { formatDate } from "@/lib/format";
 import type { Locale } from "@/i18n/routing";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
+import {
+  isMidjourneyModel,
+  midjourneyModelLabel,
+  parseMidjourneyPrompt,
+  type StyleCodeKind,
+} from "@/lib/midjourney-params";
 
 const PRELOAD_THRESHOLD = 8;
 
@@ -39,9 +46,10 @@ export default function ImageModal() {
   const hasMore = useAppStore((s) => s.hasMore);
   const isLoadingMore = useAppStore((s) => s.isLoadingMore);
   const loadNextPage = useAppStore((s) => s.loadNextPage);
+  const showStyleCode = useAppStore((s) => s.showStyleCode);
 
   const [promptLang, setPromptLang] = useState<"en" | "zh" | "ja">("en");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"text" | "command" | null>(null);
   const [imageDetailsById, setImageDetailsById] = useState<
     Record<string, ImagePrompt>
   >({});
@@ -121,12 +129,42 @@ export default function ImageModal() {
 
   if (!selectedImage || !activeImage) return null;
 
-  const promptText =
+  const rawPromptText =
     promptLang === "zh"
       ? activeImage.prompt_zh || activeImage.prompt || ""
       : promptLang === "ja"
       ? activeImage.prompt_ja || activeImage.prompt || ""
       : activeImage.prompt || "";
+
+  // Midjourney prompts carry their parameters inline; show them separately.
+  const isMidjourney = isMidjourneyModel(activeImage.model);
+  const mjCommand = isMidjourney ? activeImage.prompt?.trim() || "" : "";
+  const mjParams = isMidjourney ? parseMidjourneyPrompt(mjCommand).params : null;
+  const promptText = isMidjourney
+    ? parseMidjourneyPrompt(rawPromptText).text
+    : rawPromptText;
+  const modelLabel = isMidjourney
+    ? midjourneyModelLabel(activeImage.model, mjParams?.version)
+    : activeImage.model;
+  const styleRows: Array<{ kind: StyleCodeKind; code: string }> = mjParams
+    ? [
+        ...mjParams.profiles.map((code) => ({ kind: "p" as const, code })),
+        ...mjParams.srefs.map((code) => ({ kind: "sref" as const, code })),
+      ]
+    : [];
+  const otherParams: string[] = mjParams
+    ? [
+        ["ar", mjParams.aspect],
+        ["s", mjParams.stylize],
+        ["style", mjParams.style],
+        ...Object.entries(mjParams.other),
+      ]
+        .filter((entry): entry is [string, string] => entry[1] !== null)
+        .map(([flag, value]) => (value ? `--${flag} ${value}` : `--${flag}`))
+    : [];
+  const showParameters =
+    Boolean(mjParams) &&
+    (styleRows.length > 0 || otherParams.length > 0 || mjParams!.usesDefaultProfile);
 
   const availableLangs: ("en" | "zh" | "ja")[] = ["en"];
   if (activeImage.has_prompt_zh || activeImage.prompt_zh)
@@ -134,11 +172,11 @@ export default function ImageModal() {
   if (activeImage.has_prompt_ja || activeImage.prompt_ja)
     availableLangs.push("ja");
 
-  const copyPrompt = () => {
-    if (!promptText) return;
-    navigator.clipboard.writeText(promptText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copyToClipboard = (text: string, key: "text" | "command") => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   const handleDownload = async () => {
@@ -388,7 +426,7 @@ export default function ImageModal() {
                 <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-[#8a837a]/70">
                   <span>{activeImage.author}</span>
                   <span className="text-[#d5cfc4]">—</span>
-                  <span>{activeImage.model}</span>
+                  <span>{modelLabel}</span>
                 </div>
               </div>
             </div>
@@ -456,13 +494,83 @@ export default function ImageModal() {
 
               {promptText && (
                 <button
-                  onClick={copyPrompt}
+                  onClick={() => copyToClipboard(promptText, "text")}
                   className="text-[9px] uppercase tracking-[0.25em] text-[#a39b90] hover:text-[#5c564e] transition-colors duration-300 pl-4"
                 >
-                  {copied ? t("copied") : t("copyText")}
+                  {copied === "text" ? t("copied") : t("copyText")}
                 </button>
               )}
             </div>
+
+            {/* Midjourney parameters */}
+            {showParameters && mjParams && (
+              <div className="mb-10">
+                <div className="h-px bg-[#d5cfc4]/60 mb-5" />
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[9px] uppercase tracking-[0.35em] text-[#a39b90]">
+                    {t("parameters")}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.2em] text-[#8a837a]">
+                    <MidjourneyLogo className="h-3 w-3" />
+                    {modelLabel}
+                  </span>
+                </div>
+
+                {styleRows.map((row) => (
+                  <button
+                    key={`${row.kind}:${row.code}`}
+                    onClick={() => showStyleCode(row)}
+                    title={t("viewStyle")}
+                    className="group block w-full border-b border-[#d5cfc4]/50 py-3 text-left"
+                  >
+                    <span className="block text-[9px] uppercase tracking-[0.25em] text-[#a39b90]">
+                      {row.kind === "p" ? t("profileLabel") : t("srefLabel")}
+                    </span>
+                    <span className="mt-1 flex items-center gap-2 font-mono text-[13px] text-[#2a2520]">
+                      <span className="truncate underline decoration-[#d5cfc4] underline-offset-4 transition-colors group-hover:decoration-[#2a2520]">
+                        <span className="text-[#a39b90]">--{row.kind} </span>
+                        {row.code}
+                      </span>
+                      <span className="text-[#a39b90] transition-transform group-hover:translate-x-0.5 group-hover:text-[#2a2520]">
+                        →
+                      </span>
+                    </span>
+                  </button>
+                ))}
+
+                {mjParams.usesDefaultProfile && mjParams.profiles.length === 0 && (
+                  <div className="border-b border-[#d5cfc4]/50 py-3">
+                    <span className="block text-[9px] uppercase tracking-[0.25em] text-[#a39b90]">
+                      {t("profileLabel")}
+                    </span>
+                    <span className="mt-1 block text-[12px] text-[#5c564e]">
+                      <span className="font-mono text-[#a39b90]">--p </span>
+                      {t("defaultProfile")}
+                    </span>
+                  </div>
+                )}
+
+                {otherParams.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {otherParams.map((param) => (
+                      <span
+                        key={param}
+                        className="rounded-[4px] border border-[#d5cfc4] px-1.5 py-0.5 font-mono text-[10px] text-[#5c564e]"
+                      >
+                        {param}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => copyToClipboard(mjCommand, "command")}
+                  className="mt-5 text-[9px] uppercase tracking-[0.25em] text-[#a39b90] hover:text-[#5c564e] transition-colors duration-300"
+                >
+                  {copied === "command" ? t("copied") : t("copyCommand")}
+                </button>
+              </div>
+            )}
 
             {/* Tags */}
             {activeImage.tags.length > 0 && (

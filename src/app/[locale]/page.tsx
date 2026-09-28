@@ -6,6 +6,8 @@ import { Link } from "@/i18n/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import MasonryGrid from "@/components/MasonryGrid";
 import MinimalSidebar from "@/components/MinimalSidebar";
+import CategoryTabs from "@/components/CategoryTabs";
+import HeaderCategories from "@/components/HeaderCategories";
 import HomeHero from "@/components/HomeHero";
 import ImageModal from "@/components/ImageModal";
 import SearchModal from "@/components/SearchModal";
@@ -19,11 +21,14 @@ export default function Home() {
   const tCommon = useTranslations("common");
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [categoryRowScrolledPast, setCategoryRowScrolledPast] = useState(false);
   const lastLoadedParamsRef = useRef({
     searchQuery: "__initial__",
     activeCategory: "__initial__",
     activeTimeFilter: "__initial__",
     activeModel: "__initial__",
+    activeMjVersion: "__initial__",
+    activeStyleKey: "__initial__",
     showFavoritesOnly: null as boolean | null,
   });
 
@@ -39,6 +44,12 @@ export default function Home() {
   const activeCategory = useAppStore((s) => s.activeCategory);
   const activeTimeFilter = useAppStore((s) => s.activeTimeFilter);
   const activeModel = useAppStore((s) => s.activeModel);
+  const activeMjVersion = useAppStore((s) => s.activeMjVersion);
+  const activeStyleCode = useAppStore((s) => s.activeStyleCode);
+  const setActiveStyleCode = useAppStore((s) => s.setActiveStyleCode);
+  const activeStyleKey = activeStyleCode
+    ? `${activeStyleCode.kind}:${activeStyleCode.code}`
+    : "";
   const favoritesLoaded = useAppStore((s) => s.favoritesLoaded);
   const showFavoritesOnly = useAppStore((s) => s.showFavoritesOnly);
   const favorites = useAppStore((s) => s.favorites);
@@ -65,6 +76,8 @@ export default function Home() {
       activeCategory,
       activeTimeFilter,
       activeModel,
+      activeMjVersion,
+      activeStyleKey,
       showFavoritesOnly,
     };
 
@@ -75,6 +88,8 @@ export default function Home() {
       last.activeCategory !== activeCategory ||
       last.activeTimeFilter !== activeTimeFilter ||
       last.activeModel !== activeModel ||
+      last.activeMjVersion !== activeMjVersion ||
+      last.activeStyleKey !== activeStyleKey ||
       last.showFavoritesOnly !== showFavoritesOnly;
 
     if (!paramsChanged) return;
@@ -100,6 +115,8 @@ export default function Home() {
     activeCategory,
     activeTimeFilter,
     activeModel,
+    activeMjVersion,
+    activeStyleKey,
     showFavoritesOnly,
     favoritesLoaded,
     favorites.length,
@@ -129,9 +146,28 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f5f2ed] dark:bg-[#0c0b09] text-[#2a2520] dark:text-[#c4bdb4]">
       {/* Minimal Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-[#f5f2ed]/70 dark:bg-[#0c0b09]/70 backdrop-blur-md">
+      <header
+        className={`fixed top-0 left-0 right-0 z-40 border-b transition-colors duration-300 ${
+          magazineOpened && categoryRowScrolledPast
+            ? "border-[#e0d9ce] bg-[#f5f2ed] dark:border-[#2a2520] dark:bg-[#0c0b09]"
+            : "border-transparent bg-[#f5f2ed]/70 backdrop-blur-md dark:bg-[#0c0b09]/70"
+        }`}
+      >
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2 select-none">
+          {/* The logo doubles as the way back to the top of the gallery. */}
+          <Link
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              openGallery();
+              requestAnimationFrame(() =>
+                document
+                  .getElementById("gallery")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              );
+            }}
+            className="flex shrink-0 items-center gap-2 select-none"
+          >
             <h1
               className="text-xl font-bold tracking-tight text-[#2a2520] dark:text-[#c4bdb4]"
               style={{ fontFamily: "'Caveat', cursive" }}
@@ -139,27 +175,23 @@ export default function Home() {
               {tCommon("brand")}
             </h1>
           </Link>
-          <nav className="hidden md:flex items-center gap-8 text-[11px] uppercase tracking-[0.15em] text-[#5c564e] dark:text-[#7a7269]">
-            <button
-              type="button"
-              onClick={() => {
-                openGallery();
-                document
-                  .getElementById("gallery")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
-            >
-              {tNav("gallery")}
-            </button>
+          <HeaderCategories visible={magazineOpened && categoryRowScrolledPast} />
+          <div className="flex shrink-0 items-center gap-3">
             <Link
               href="/generate"
-              className="hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
+              aria-label={tNav("create")}
+              className="flex h-10 w-10 items-center justify-center gap-2 rounded-[3px] bg-[#141210] text-[11px] tracking-[0.2em] text-[#f5f2ed] transition-colors hover:bg-[#2a2520] dark:bg-[#e0d9ce] dark:text-[#141210] dark:hover:bg-[#f5f2ed] sm:mr-2 sm:h-8 sm:w-auto sm:pl-3 sm:pr-3.5"
             >
-              {tNav("create")}
+              <svg
+                className="h-3.5 w-3.5 sm:h-2.5 sm:w-2.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeWidth={2} d="M12 5v14M5 12h14" />
+              </svg>
+              <span className="hidden sm:inline">{tNav("create")}</span>
             </Link>
-          </nav>
-          <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <UserMenu />
             <button
@@ -257,6 +289,29 @@ export default function Home() {
           </div>
 
           <main className="min-w-0 flex-1">
+            <CategoryTabs onScrolledPastChange={setCategoryRowScrolledPast} />
+            {/* The sidebar already shows and clears the style code; this bar
+                covers mobile and the collapsed sidebar, where it is hidden. */}
+            {activeStyleCode && (
+              <div
+                className={`mb-8 flex items-center gap-3 text-[11px] tracking-wide text-[#8a837a] dark:text-[#5c564e] ${
+                  sidebarCollapsed ? "" : "lg:hidden"
+                }`}
+              >
+                <span className="uppercase tracking-[0.2em] text-[10px]">
+                  {tHome("styleFilterLabel")}
+                </span>
+                <span className="font-mono text-[12px] text-[#2a2520] dark:text-[#c4bdb4]">
+                  --{activeStyleCode.kind} {activeStyleCode.code}
+                </span>
+                <button
+                  onClick={() => setActiveStyleCode(null)}
+                  className="underline underline-offset-4 hover:text-[#2a2520] dark:hover:text-[#c4bdb4] transition-colors"
+                >
+                  {tHome("clearFilter")}
+                </button>
+              </div>
+            )}
             {isLoading && allImages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-40 gap-8">
                 {/* Photo developing animation */}

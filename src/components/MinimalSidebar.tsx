@@ -2,7 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useAppStore } from "@/store";
-import { CATEGORIES, MODELS } from "@/lib/constants";
+import { MIDJOURNEY_MODEL, MODELS } from "@/lib/constants";
+import MidjourneyStyleFilter from "./MidjourneyStyleFilter";
 
 const TIME_FILTERS = [
   { slug: "today" as const },
@@ -125,34 +126,22 @@ export default function MinimalSidebar({
       <div className="space-y-3">
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90] dark:text-[#4a443c] mb-1">{t("models")}</p>
         {MODELS.map((model) => (
-          <MenuItem
-            key={model}
-            label={model}
-            onClick={() => {
-              setActiveModel(activeModel === model ? "all" : model);
-              if (showFavoritesOnly) toggleShowFavoritesOnly();
-            }}
-            isActive={activeModel === model}
-          />
+          <div key={model} className="space-y-3">
+            <MenuItem
+              label={model}
+              onClick={() => {
+                setActiveModel(activeModel === model ? "all" : model);
+                if (showFavoritesOnly) toggleShowFavoritesOnly();
+              }}
+              isActive={activeModel === model}
+            />
+            {model === MIDJOURNEY_MODEL && activeModel === model && (
+              <MidjourneyStyleFilter />
+            )}
+          </div>
         ))}
       </div>
 
-      {/* Categories */}
-      <div className="space-y-3">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-[#a39b90] dark:text-[#4a443c] mb-1">{t("categories")}</p>
-        {CATEGORIES.filter((c) => c.slug !== "all").map((cat) => (
-          <MenuItem
-            key={cat.slug}
-            label={tCommon(`categories.${cat.slug}`)}
-            onClick={() => {
-              setActiveCategory(cat.slug);
-              setActiveModel("all");
-              if (showFavoritesOnly) toggleShowFavoritesOnly();
-            }}
-            isActive={activeCategory === cat.slug}
-          />
-        ))}
-      </div>
     </nav>
   );
 }

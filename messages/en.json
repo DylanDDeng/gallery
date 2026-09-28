@@ -282,7 +282,11 @@
       "openAriaLabel": "Open gallery",
       "openingGallery": "Opening Gallery...",
       "coverAlt": "Cover"
-    }
+    },
+    "styleFilterLabel": "Style code",
+    "clearFilter": "Clear",
+    "moreCategories": "More categories",
+    "more": "More"
   },
   "generate": {
     "studio": "Studio",
@@ -453,7 +457,13 @@
     "index": "Index",
     "remix": "Remix",
     "imageCounter": "{current} / {total}",
-    "imageCounterMore": "{current} / {total}+"
+    "imageCounterMore": "{current} / {total}+",
+    "parameters": "Parameters",
+    "profileLabel": "Personalization",
+    "srefLabel": "Style reference",
+    "defaultProfile": "Author's default profile",
+    "viewStyle": "View style",
+    "copyCommand": "Copy Full Command"
   },
   "search": {
     "placeholder": "Search prompts, tags, authors...",
@@ -472,7 +482,14 @@
     "favorites": "Favorites",
     "time": "Time",
     "models": "Models",
-    "categories": "Categories"
+    "categories": "Categories",
+    "styleCodes": "Style codes",
+    "profileTab": "Personalize",
+    "srefTab": "Style ref",
+    "allVersions": "All",
+    "showAll": "Show all {count}",
+    "showLess": "Show less",
+    "noStyleCodes": "No style codes yet"
   },
   "footer": {
     "credits": "Credits",
@@ -598,7 +615,7 @@
         {
           "heading": "Data Storage & Security",
           "paragraphs": [
-          "Your data is stored securely in Supabase with row-level security (RLS) policies helping ensure that personal account data is only accessible to the appropriate user and service roles. SMS delivery audit records are retained only as long as needed for security and troubleshooting. We do not sell your personal data."
+            "Your data is stored securely in Supabase with row-level security (RLS) policies helping ensure that personal account data is only accessible to the appropriate user and service roles. SMS delivery audit records are retained only as long as needed for security and troubleshooting. We do not sell your personal data."
           ]
         },
         {

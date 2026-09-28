@@ -4,6 +4,11 @@ import { memo, useState } from "react";
 import GalleryImage from "./GalleryImage";
 import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
+import {
+  isMidjourneyModel,
+  midjourneyModelLabel,
+  type StyleCodeKind,
+} from "@/lib/midjourney-params";
 
 interface ImageCardProps {
   image: ImagePrompt;
@@ -13,12 +18,28 @@ function ImageCard({ image }: ImageCardProps) {
   const setSelectedImage = useAppStore((s) => s.setSelectedImage);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFavorite = useAppStore((s) => s.isFavorite);
+  const showStyleCode = useAppStore((s) => s.showStyleCode);
   const [aspectRatio, setAspectRatio] = useState<number | null>(
     image.width && image.height ? image.width / image.height : null
   );
   const [isDecoded, setIsDecoded] = useState(false);
 
   const summary = image.model || "AI Generated Image";
+  const isMidjourney = isMidjourneyModel(image.model);
+  const modelLabel = isMidjourney
+    ? midjourneyModelLabel(image.model, image.mj_version)
+    : image.model;
+  // One chip per kind: the first code, plus a count of any others it was mixed with.
+  const styleChips: Array<{ kind: StyleCodeKind; code: string; all: string[] }> = isMidjourney
+    ? (
+        [
+          ["p", image.mj_profiles ?? []],
+          ["sref", image.mj_srefs ?? []],
+        ] as const
+      )
+        .filter(([, codes]) => codes.length > 0)
+        .map(([kind, codes]) => ({ kind, code: codes[0], all: [...codes] }))
+    : [];
 
   const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const img = e.currentTarget;
@@ -80,17 +101,31 @@ function ImageCard({ image }: ImageCardProps) {
           </svg>
         </button>
 
+        {styleChips.length > 0 && (
+          <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap gap-1.5 opacity-0 transition-opacity duration-300 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100">
+            {styleChips.map((chip) => (
+              <button
+                key={`${chip.kind}:${chip.code}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showStyleCode({ kind: chip.kind, code: chip.code });
+                }}
+                title={chip.all.map((code) => `--${chip.kind} ${code}`).join("\n")}
+                className="max-w-full truncate rounded-[4px] bg-[#141210]/60 px-1.5 py-0.5 font-mono text-[10px] text-[#f5f2ed]/90 backdrop-blur-sm transition-colors hover:bg-[#141210]/80 hover:text-[#f5f2ed]"
+              >
+                --{chip.kind} {chip.code}
+                {chip.all.length > 1 && (
+                  <span className="ml-1 text-[#f5f2ed]/60">+{chip.all.length - 1}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Caption below — editorial style */}
-      <div className="mt-5 text-center">
-        <p
-          className="text-[14px] italic text-[#2a2520] dark:text-[#c4bdb4] tracking-wide"
-          style={{ fontFamily: "'Instrument Serif', serif" }}
-        >
-          {image.category || "Untitled"}
-        </p>
-        <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[#8a837a] dark:text-[#5c564e]">
+      <div className="mt-4 text-center">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a837a] dark:text-[#5c564e]">
           {image.tweet_url ? (
             <a
               href={image.tweet_url}
@@ -105,7 +140,7 @@ function ImageCard({ image }: ImageCardProps) {
             image.author
           )}
           <span className="mx-1.5">—</span>
-          {image.model}
+          {modelLabel}
         </p>
       </div>
     </div>

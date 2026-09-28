@@ -282,7 +282,11 @@
       "openAriaLabel": "打开画廊",
       "openingGallery": "正在打开画廊...",
       "coverAlt": "封面"
-    }
+    },
+    "styleFilterLabel": "风格码",
+    "clearFilter": "清除",
+    "moreCategories": "更多分类",
+    "more": "更多"
   },
   "generate": {
     "studio": "工作室",
@@ -453,7 +457,13 @@
     "index": "索引",
     "remix": "混音",
     "imageCounter": "{current} / {total}",
-    "imageCounterMore": "{current} / {total}+"
+    "imageCounterMore": "{current} / {total}+",
+    "parameters": "参数",
+    "profileLabel": "个性化风格",
+    "srefLabel": "风格参考",
+    "defaultProfile": "作者默认风格",
+    "viewStyle": "查看同风格",
+    "copyCommand": "复制完整命令"
   },
   "search": {
     "placeholder": "搜索提示词、标签、作者...",
@@ -472,7 +482,14 @@
     "favorites": "收藏",
     "time": "时间",
     "models": "模型",
-    "categories": "分类"
+    "categories": "分类",
+    "styleCodes": "风格码",
+    "profileTab": "个性化",
+    "srefTab": "风格参考",
+    "allVersions": "全部",
+    "showAll": "查看全部 {count} 个",
+    "showLess": "收起",
+    "noStyleCodes": "暂无风格码"
   },
   "footer": {
     "credits": "积分",
@@ -598,7 +615,7 @@
         {
           "heading": "数据存储与安全",
           "paragraphs": [
-          "你的数据安全存储在 Supabase 中，行级安全（RLS）策略有助于确保个人账户数据仅对相应用户和服务角色可访问。短信投递审计记录仅在安全和故障排查所需期限内保留。我们不出售你的个人数据。"
+            "你的数据安全存储在 Supabase 中，行级安全（RLS）策略有助于确保个人账户数据仅对相应用户和服务角色可访问。短信投递审计记录仅在安全和故障排查所需期限内保留。我们不出售你的个人数据。"
           ]
         },
         {

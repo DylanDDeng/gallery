@@ -398,6 +398,8 @@ export const CATEGORIES = [
   { name: "Screenshot", slug: "screenshot" },
 ] satisfies Category[];
 
+export const MIDJOURNEY_MODEL = "Midjourney";
+
 export const MODELS = [
   "Nano Banana Pro",
   "Nano Banana 2",
@@ -407,4 +409,5 @@ export const MODELS = [
   "Seedream 4.5",
   "Seedream 5.0 Lite",
   "Z Image",
+  "Midjourney",
 ] as const;
