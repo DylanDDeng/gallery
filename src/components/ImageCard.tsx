@@ -6,7 +6,6 @@ import { useAppStore } from "@/store";
 import type { ImagePrompt } from "@/lib/types";
 import {
   isMidjourneyModel,
-  midjourneyModelLabel,
   type StyleCodeKind,
 } from "@/lib/midjourney-params";
 
@@ -26,9 +25,6 @@ function ImageCard({ image }: ImageCardProps) {
 
   const summary = image.model || "AI Generated Image";
   const isMidjourney = isMidjourneyModel(image.model);
-  const modelLabel = isMidjourney
-    ? midjourneyModelLabel(image.model, image.mj_version)
-    : image.model;
   // One chip per kind: the first code, plus a count of any others it was mixed with.
   const styleChips: Array<{ kind: StyleCodeKind; code: string; all: string[] }> = isMidjourney
     ? (
@@ -121,27 +117,6 @@ function ImageCard({ image }: ImageCardProps) {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Caption below — editorial style */}
-      <div className="mt-4 text-center">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a837a] dark:text-[#5c564e]">
-          {image.tweet_url ? (
-            <a
-              href={image.tweet_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="hover:text-[#5c564e] dark:hover:text-[#a39b90] hover:underline underline-offset-2 transition-colors cursor-pointer"
-            >
-              {image.author}
-            </a>
-          ) : (
-            image.author
-          )}
-          <span className="mx-1.5">—</span>
-          {modelLabel}
-        </p>
       </div>
     </div>
   );

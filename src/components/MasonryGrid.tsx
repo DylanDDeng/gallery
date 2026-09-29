@@ -37,7 +37,7 @@ function buildColumns(
   for (const image of images) {
     const shortestColumnIndex = heights.indexOf(Math.min(...heights));
     columns[shortestColumnIndex].push(image);
-    heights[shortestColumnIndex] += estimateHeight(image) + 0.12;
+    heights[shortestColumnIndex] += estimateHeight(image) + 0.08;
   }
 
   return columns;
@@ -113,11 +113,11 @@ export default function MasonryGrid({
   return (
     <>
       <div
-        className="grid items-start gap-8 lg:gap-12"
+        className="grid items-start gap-5 lg:gap-8"
         style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
       >
         {columns.map((column, index) => (
-          <div key={index} className="flex flex-col gap-8 lg:gap-12">
+          <div key={index} className="flex flex-col gap-5 lg:gap-8">
             {column.map((image) => (
               <ImageCard key={image.id} image={image} />
             ))}
